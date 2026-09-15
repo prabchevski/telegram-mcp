@@ -214,6 +214,18 @@ def test_crash_after_durable_dispatch_marker_never_retries(prepared):
     assert recovered.send(session, draft_id=draft_id)["status"] == "unknown"
 
 
+def test_incomplete_preparation_does_not_block_other_drafts(prepared):
+    box, session, _, _ = prepared
+    orphan = uuid.uuid4().hex
+    (box.directory / orphan).mkdir(mode=0o700)
+    restarted = Outbox(box.directory, session.user_id)
+    with pytest.raises(ValueError, match="not found"):
+        restarted.send(session, draft_id=orphan)
+    draft_id = uuid.uuid4().hex
+    assert restarted.prepare(session, draft_id=draft_id, recipient="42", text="New", file_path=None)["status"] == "prepared"
+    assert not sends(session)
+
+
 def test_wire_rejects_unknown_fields_and_round_trips(prepared):
     _, _, draft_id, result = prepared
     request = {"protocol": 1, "id": uuid.uuid4().hex, "operation": "send_message", "params": {"draft_id": draft_id}, "timeout": 30}

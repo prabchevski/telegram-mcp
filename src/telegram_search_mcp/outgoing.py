@@ -70,7 +70,7 @@ class Outbox:
         self.early: dict[tuple[int, int], dict] = {}
         self.pending: dict[tuple[int, int], str] = {}
         for entry in directory.iterdir():
-            if re.fullmatch(ID_PATTERN, entry.name):
+            if re.fullmatch(ID_PATTERN, entry.name) and (entry / "state.json").exists():
                 value = self._load(entry.name)
                 if value["status"] == "pending" and value.get("message_id"):
                     self.pending[(value["chat_id"], value["message_id"])] = entry.name
@@ -127,7 +127,7 @@ class Outbox:
                 return self.public(previous)
             unfinished = 0
             for p in self.directory.iterdir():
-                if not re.fullmatch(ID_PATTERN, p.name):
+                if not re.fullmatch(ID_PATTERN, p.name) or not (p / "state.json").exists():
                     continue
                 old = self._load(p.name)
                 if old["status"] == "prepared" and time.time() - old["created_at"] > DRAFT_TTL:
