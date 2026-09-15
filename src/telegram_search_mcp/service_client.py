@@ -113,6 +113,7 @@ def _spawn(profile: str, paths: ServicePaths) -> subprocess.Popen[bytes]:
     # Avoid inherited workspace variables affecting the interpreter or native
     # library loader. -I also ignores PYTHONPATH and user site packages.
     account = pwd.getpwuid(os.getuid())
+    from .launchers import service_python
     environment = {"HOME": account.pw_dir, "USER": account.pw_name, "LOGNAME": account.pw_name,
                    "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
                    "LANG": "en_US.UTF-8"}
@@ -122,7 +123,7 @@ def _spawn(profile: str, paths: ServicePaths) -> subprocess.Popen[bytes]:
             os.ftruncate(log_fd, 0)
         os.lseek(log_fd, 0, os.SEEK_END)
         child = subprocess.Popen(
-            [sys.executable, "-I", "-m", "telegram_search_mcp.service", "--profile", profile],
+            [service_python(), "-I", "-m", "telegram_search_mcp.service", "--profile", profile],
             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=log_fd,
             cwd=account.pw_dir, env=environment, start_new_session=True, close_fds=True,
         )

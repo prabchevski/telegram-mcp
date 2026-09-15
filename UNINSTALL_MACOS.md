@@ -2,6 +2,9 @@
 
 ## Disconnect the MCP while keeping your login
 
+Use the root printed by the installer in these commands. When preserving a Codex
+0.2 program, the new root may be `~/Applications/TelegramSearchMCPShared`.
+
 Finish active Telegram requests, then run:
 
 ```sh
@@ -13,6 +16,9 @@ for this shared package and backs up the settings. It preserves unrelated MCP
 entries, old 0.2/0.3 installations, program files, the profile, and Keychain entries.
 Restart the selected clients. The shared service does not stop automatically,
 because another connected client may still be using it.
+Disconnecting the last client recorded by the 0.5 installer also removes its daily
+update schedule. If you edited client configuration manually, run
+`current/tgsearch updates off` before deleting the program directory.
 
 If running the script from an extracted archive, specify the installed version or
 its `current` link:
@@ -42,6 +48,13 @@ Homebrew, uv, Python, and TDLib may be used by other programs, so the script doe
 not remove them automatically.
 
 ## Optionally remove data and revoke the login
+
+The following paths apply to a fresh shared profile. If you reused an old archive's
+login, data remains in `TelegramSearchMCP` (Codex) or `TelegramSearchMCPGemini`
+(Gemini), with the original Keychain service. The private shared
+`profile-source.json` records which was selected. Those old directories may still
+serve other retained installations; do not delete them as part of routine removal.
+Identify the actual Telegram device session before revoking a reused login.
 
 Follow these steps only if you want to delete your local history and revoke this
 installation's authorization:

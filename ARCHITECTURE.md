@@ -63,12 +63,12 @@ requests and run `service stop` first.
 
 ## Data and compatibility
 
-| Area | Version 0.4 behavior |
+| Area | Version 0.5 behavior |
 | --- | --- |
 | Data | `~/Library/Application Support/TelegramSearchMCPShared/profiles/default` |
 | Keychain service | `local.unofficial-telegram-search-mcp-shared` |
 | Credentials | `default:api_hash`, `default:database_key`; local Keychain only |
-| Previous Codex/Gemini data | Not read or copied automatically |
+| Previous Codex/Gemini data | Explicit installer upgrade can select one compatible profile in place |
 | Authorization | Your own api_id/api_hash, QR, and code/2FA in Terminal if required |
 | Media | Text and structured metadata for both clients |
 | Full image | Additional `_meta` containing the Codex `original` hint |
@@ -76,10 +76,33 @@ requests and run `service stop` first.
 | TDLib | Version and schema 1.8.0; unknown versions are rejected |
 
 A profile is bound to one Telegram account; an account mismatch is rejected.
-Automatic migration of old profiles is excluded from this release: an open database
-cannot be copied safely, and the installer cannot choose which of two accounts the
-user wants to share between clients. Signing in again creates a separate Telegram
-device session.
+A private `profile-source.json` in the shared root can select the fixed `codex` or
+`gemini` legacy namespace. Paths cannot be supplied in this binding. The selected
+profile and Keychain service are reused in place; no database or secret is copied.
+The old native lock must be free during adoption. An existing shared profile takes
+priority, and different old accounts require an explicit choice. New authorization
+creates a separate session only when no reusable saved session is selected.
+
+## Program updates
+
+The managed installation has immutable version directories and stable launchers.
+Each launcher resolves `current` to an immutable path before executing Python, so
+switching the symlink cannot change a running process's import path. An existing
+proxy also resolves the newest installed interpreter when starting a shared service.
+The existing service finishes its active work and exits after its normal idle delay.
+
+A per-user macOS LaunchAgent checks once a day. The updater accepts only the exact
+canonical main SHA with a successful push workflow, downloads a pinned source ZIP,
+and validates paths, file types, size, and source allowlists. It stages locked
+dependencies and checks imports before activation. Installation locks prevent
+concurrent activation; client settings and the receipt are checked for changes
+during download. Background updates do not rewrite client settings. Disabling
+updates removes the schedule; disconnecting the last registered client also disables it.
+
+An installation receipt records version, revision, client config paths, and update
+preference. It contains no Telegram credentials. Code updates trust the maintainer's
+canonical repository and the locked dependency sources; passing CI is a functional
+check, not proof against every malicious or faulty future change.
 
 ## Limitations
 

@@ -11,7 +11,8 @@ APP_DIR_NAME = "TelegramSearchMCPShared"
 def app_root() -> Path:
     # Gemini CLI inherits variables from a trusted workspace's .env file.
     # Runtime storage must therefore never be redirected by ambient input.
-    return Path.home() / "Library" / "Application Support" / APP_DIR_NAME
+    from .profile_binding import data_root
+    return data_root()
 
 
 def profile_root(profile: str = "default") -> Path:

@@ -1,4 +1,54 @@
-# Release 0.4.0 verification
+# Verification
+
+## Version 0.5.0 — September 15, 2026
+
+**201 tests passed on Python 3.13, Apple Silicon macOS**, including the existing
+search/service/registration suite and new migration/update checks:
+
+- Compatible Codex/Gemini profile selection with private synthetic policies and
+  databases; no DB copy; original Keychain namespace selection; existing shared
+  profile priority; different-account refusal and explicit selection.
+- A real held legacy file lock blocks adoption. Unsafe profile paths and policies
+  are rejected. Tests never access the owner's actual Telegram credentials.
+- Exact canonical main commit/branch/workflow success is required. Malformed,
+  private-data, binary, and path-traversal source archives are refused.
+- Real stable shell launchers resolve immutable versions before starting a process.
+  Existing proxies choose the newest interpreter for the next service start.
+- Failed activation restores the previous version and a changed client registration.
+  Failed dependencies, concurrent config edits, disabled updates, and daily retry
+  throttling keep the prior installation. Removed registrations are not restored.
+- LaunchAgent enable/recovery/disable and last-client removal use mocked launchctl
+  calls in temporary directories; no personal background job is installed by tests.
+- A real source ZIP was installed with uv into a temporary macOS directory, then
+  updated through the background installation path using the old installed Python.
+  Client settings stayed byte-for-byte identical and the old executable remained.
+- The resulting stable launcher completed an MCP handshake and exposed exactly
+  four read-only tools, without invoking Telegram or opening a session.
+- Source inventory passed; the built wheel matched the source and license metadata.
+- The updater's unauthenticated GitHub API lookup recognized the already successful
+  canonical main workflow. No personal installation was updated by that lookup.
+
+Run the checks from the repository:
+
+```sh
+uv run --frozen pytest
+uv run --frozen python -I scripts/release.py audit
+uv run --frozen python -I scripts/release.py build --output dist
+uv build --wheel --out-dir dist
+uv run --frozen python -I scripts/release.py verify-wheel dist/telegram_search_mcp-0.5.0-py3-none-any.whl
+uv run --frozen python -I scripts/smoke-install-macos.py dist/telegram-search-mcp-macos-v0.5.0.zip
+```
+
+CI runs the full suite on Linux/macOS with Python 3.12/3.14, then builds and performs
+the real macOS archive installation/update check. Results appear in
+[GitHub Actions](https://github.com/prabchevski/telegram-search-mcp/actions).
+
+These checks do not establish successful migration of every real Telegram session,
+first-time login, live search/media rendering in each AI client, physical Intel Mac
+compatibility, or a full 24-hour launchd run on another user's computer. Those
+require the owner's local installation. A revoked session still needs authorization.
+
+## Historical 0.4.0 verification
 
 Date: **September 15, 2026**. Checks were performed in a separate working copy
 on Apple Silicon macOS, without using the active Telegram profile.

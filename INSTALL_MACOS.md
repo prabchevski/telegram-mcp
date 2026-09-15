@@ -2,22 +2,20 @@
 
 ## Requirements
 
-- macOS with Homebrew and an available TDLib **1.8.0** package.
-- Codex (app/CLI with local MCP support) and/or Gemini CLI.
-- Your own Telegram account, api_id, and api_hash.
-- Internet access for dependencies and the Telegram connection.
+- macOS with Homebrew and TDLib **1.8.0**.
+- Codex app/CLI with local MCP support and/or Gemini CLI.
+- Your own Telegram account and API credentials for a new login.
+- Internet access for dependencies, GitHub updates, and Telegram.
 
-The package looks for TDLib in the standard Homebrew locations for Apple Silicon
-and Intel. Supporting these paths does not mean every Mac model and macOS version
-has been tested. See the [verification report](VERIFICATION.md) for completed checks.
+Standard Homebrew paths support Apple Silicon and Intel layouts; see
+[VERIFICATION.md](VERIFICATION.md) for the devices actually tested.
+To let Codex handle setup, use [INSTALL_WITH_CODEX.md](INSTALL_WITH_CODEX.md).
 
 ## Download and install
 
-[Download the latest source ZIP](https://github.com/prabchevski/telegram-search-mcp/archive/refs/heads/main.zip),
-or choose **Code → Download ZIP** on the repository page. A GitHub account is not
-required. Extract the archive and open `telegram-search-mcp-main`. No manual build
-is needed. Double-click `install-macos.command`, or run one of these commands from
-the extracted folder:
+[Download the source ZIP](https://github.com/prabchevski/telegram-search-mcp/archive/refs/heads/main.zip),
+extract it, and open `install-macos.command`. No GitHub account or manual build is
+required. You can also run a command from the extracted directory:
 
 ```sh
 bash install-macos.command --clients codex
@@ -25,124 +23,125 @@ bash install-macos.command --clients gemini
 bash install-macos.command --clients both
 ```
 
-### Optional: install a versioned release
+The interactive installer upgrades recognized older registrations, reuses a
+compatible saved login, and enables daily checked-main updates by default.
+It installs missing uv and TDLib through Homebrew and obtains a managed Python 3.13.
+Homebrew must already be installed. The account owner handles any required system
+approval and first Telegram login in Terminal. Existing credentials stay local.
 
-For a fixed version, download its installer ZIP and `.sha256` file from
-[Releases](https://github.com/prabchevski/telegram-search-mcp/releases).
-Open Terminal in the directory containing them and verify the checksum; for 0.4.0:
+The installer prints the program root, normally `~/Applications/TelegramSearchMCP`.
+If Codex 0.2 already occupies that directory, it uses
+`~/Applications/TelegramSearchMCPShared` instead. **Use the printed root in commands
+below** if yours differs. Each version has separate source and Python dependencies.
+Stable launchers resolve the current version before starting Python.
 
-```sh
-shasum -a 256 -c telegram-search-mcp-macos-v0.4.0.zip.sha256
-```
+Codex's registration is `telegram_search`; Gemini's is `telegram-search`. Private
+backups preserve original settings. Other MCP entries are retained. Gemini JSON
+formatting/comments may change, with the original kept in its backup. The
+installer does not itself verify that the client app is installed or has reloaded.
 
-Extract the release ZIP and open `telegram-search-mcp-macos`. Run the installer
-using the same commands above. A release contains the source at its tagged version;
-the source ZIP contains the current `main` branch.
+## Installation without interactive authorization
 
-### What the installer does
-
-The installer creates a separate version directory under
-`~/Applications/TelegramSearchMCP`, installs pinned Python dependencies, and
-registers the selected clients. Each installation has its own source copy and
-Python environment. The `current` link points to the most recently installed and
-registered version; Telegram authorization is checked in the next step.
-The installer does not check whether the clients are installed or connected.
-
-Codex uses the registration name `telegram_search`; Gemini uses `telegram-search`.
-Launchers clear the environment, and client configurations allow exactly four
-tools. Client settings contain no Telegram keys. Before changing an existing file,
-a private backup is created alongside it; unrelated entries are preserved.
-Gemini JSON formatting/comments may change, with the original file kept in the backup.
-
-## Prepare without signing in
+For Codex-assisted setup and migration:
 
 ```sh
-bash install-macos.command --clients both --prepare-only
+bash install-macos.command --clients codex --prepare-only --upgrade --auto-update on
 ```
 
-This installs and registers the MCP without starting interactive authorization.
-The account owner can then run:
+`--prepare-only` skips signing in. Without explicit flags, it leaves update settings
+unchanged and does not select an old profile. `--upgrade` enables recognized legacy
+registration replacement and automatic compatible profile selection. An already
+configured second client is refreshed too; an absent second client is not enabled.
+
+Check a saved login with `current/tgsearch doctor`, then `doctor --connect`. For a
+new/expired login, open the root's `authorize.command` in your own Terminal. Never
+paste api_hash, a QR/login link, login codes, or a 2FA password into an AI chat.
+
+To prepare files without client registration, use `--clients none --prepare-only`.
+For isolated checks, also use absolute `--install-dir`, `--codex-config`, and
+`--gemini-config` paths, `--migrate-profile none`, and `--auto-update keep`.
+`--skip-system-deps` requires prepare-only and an existing uv; it does not install
+Homebrew packages. Do not enable a real background schedule in development tests.
+
+## Upgrade old archives and preserve a login
+
+Codex 0.2, Gemini 0.3, and shared 0.4 archives do not contain this updater. Their
+owners need **one installation of 0.5 or later**, using the command above or Codex.
+The maintainer cannot remotely change already downloaded archives.
+
+- A configured shared 0.4 profile remains selected.
+- Compatible Codex 0.2 or Gemini 0.3 profiles are reused **in place**, with their
+  original Keychain service. No database or secret is copied into the new program.
+- If both legacy profiles use the same account, the Codex profile is selected.
+- If they use different accounts, choose explicitly with `--migrate-profile codex`
+  or `--migrate-profile gemini`. Accounts are never merged.
+- `--migrate-profile none` skips adopting an old profile. It does not undo an
+  existing selection or switch an already configured shared account.
+- A private, compatible policy and inactive TDLib lock are required for adoption.
+  Finish old Telegram requests and close/restart the old MCP client if it is busy.
+  Keep tdlib.lock on disk; do not copy the DB or kill unrelated processes.
+
+Recognized old registrations, including known alternate aliases, are replaced.
+Unknown custom entries are refused with an explanation. Original source manifests
+must still exist for legacy launcher recognition. Review unfamiliar entries before
+changing them. Old program directories are retained. Restart the clients after
+this first upgrade so they stop using their old registrations.
+
+A valid, unrevoked saved session normally needs no QR login. A revoked session or
+missing Keychain credentials still requires the owner's authorization.
+
+## Automatic updates
+
+The selected default is **canonical main, after successful CI, once a day**.
+A per-user macOS LaunchAgent checks at login and every 24 hours, with at most one
+scheduled check in a 24-hour period. The Mac must be running and the user logged in.
+Sleep, offline operation, GitHub limits, or failed/pending checks can delay an update.
+There is no server pushing commands to other people's computers.
+
+The updater checks the exact main commit's successful `Test and package` workflow,
+downloads source pinned to that SHA from GitHub, validates archive paths/types,
+installs locked dependencies into a separate version, and verifies package imports
+before switching `current`. It refuses version downgrades and divergent Git history.
+Failed downloads or dependency installs keep the current program. A changed or
+removed client registration is left alone; update installation is cancelled.
+
+New MCP processes use the new version. Existing proxies start the latest shared
+service after the previous service exits, normally after 10 idle minutes. Active
+requests are not interrupted. To activate immediately, finish requests, stop this
+package's service, and restart the client. Older version directories remain for
+recovery and are not automatically deleted while processes might use them.
 
 ```sh
-"$HOME/Applications/TelegramSearchMCP/current/tgsearch" auth
-"$HOME/Applications/TelegramSearchMCP/current/tgsearch" doctor --connect
+"$HOME/Applications/TelegramSearchMCP/current/tgsearch" updates status
+"$HOME/Applications/TelegramSearchMCP/current/tgsearch" updates off
+"$HOME/Applications/TelegramSearchMCP/current/tgsearch" updates on
+"$HOME/Applications/TelegramSearchMCP/current/tgsearch" update --check
+"$HOME/Applications/TelegramSearchMCP/current/tgsearch" update
 ```
 
-To install the program and dependencies without changing client settings:
+`update --check` only reports availability; `update` installs a checked update now,
+even if daily checking is disabled. `updates status` reports saved settings and
+installed revision. A ZIP installation may show no revision until its first update.
+The schedule lives in `~/Library/LaunchAgents/io.github.prabchevski.telegram-search-mcp.update.<id>.plist`.
+The private `updates.log` in the program root records update outcomes/errors, not
+Telegram messages. If enabling reports that launchd could not start, run
+`updates on` in the logged-in desktop session or log out and back in.
 
-```sh
-bash install-macos.command --clients none --prepare-only
-```
+To restore a specific source version, disable daily updates, finish requests, stop
+the service, and rerun that version's installer with `--auto-update off`. Retain a
+known compatible version; automatic database-format rollback is not provided.
 
-For isolated installer checks, use `--install-dir`, `--codex-config`, and
-`--gemini-config`. Each path must be absolute. `--install-dir` specifies the root
-containing all versions, rather than an individual version directory. If you choose
-a custom root, replace `$HOME/Applications/TelegramSearchMCP` in this guide with
-your path. Repeat custom `--codex-config` and `--gemini-config` paths when verifying
-or removing those registrations; they do not become the defaults.
-`--skip-system-deps` requires `--prepare-only` and an existing uv installation.
-Using Telegram still requires TDLib.
+## Add a client and verify
 
-## Add a second client later
-
-Run the installer again with the desired `--clients` value, or use the installed version:
+Rerun the installer with the desired `--clients` value, or use:
 
 ```sh
 "$HOME/Applications/TelegramSearchMCP/current/client-config" register --clients both
 ```
 
-Restart the client. The second client does not need a separate Telegram login.
-
-## Update version 0.4 and later
-
-1. Download the latest source ZIP, or a new release ZIP and verify its checksum.
-2. Finish active Telegram requests and close both clients.
-3. Stop the shared service:
-
-   ```sh
-   "$HOME/Applications/TelegramSearchMCP/current/tgsearch" service stop
-   ```
-
-4. Run the new archive's installer with the desired `--clients` value.
-5. Restart the clients and run `doctor --connect`.
-
-The old program directory is preserved, so running processes do not have their
-Python environment overwritten. The shared profile and Keychain entries are
-preserved. If the local `doctor` check succeeds, the installer skips signing in
-again and runs `doctor --connect`. If the profile is not configured or the local
-check fails, authorization starts. Old client processes can restart the previous
-service while they remain open; restart the clients to complete the switch.
-
-To roll back, close the clients, stop the service, and run
-`client-config register --clients both` from a retained previous installation.
-Then restart the clients. Manual registration does not change the `current` link;
-run commands directly from the version you want to use. Profiles are not
-automatically converted between different database formats.
-
-## Migrate from Codex 0.2 or Gemini 0.3
-
-The new version stores data in **TelegramSearchMCPShared**. Previous
-TelegramSearchMCP and TelegramSearchMCPGemini data directories and their Keychain
-entries remain untouched. Signing in creates a separate Telegram device session.
-Do not copy a database that is in use.
-
-1. Finish Telegram requests in the old clients.
-2. Explicitly allow the installer to replace recognized legacy registrations:
-
-   ```sh
-   bash install-macos.command --clients both --replace-legacy
-   ```
-
-3. Sign in to your own Telegram account and restart the clients.
-
-`--replace-legacy` permits replacement only for recognized Codex 0.2 / Gemini 0.3
-launchers with their original project file still present. Recognized legacy entries
-under other names are also replaced with one standard entry. Replacement affects
-registration, not old data or processes. If an entry is not recognized, the
-installer explains the conflict and preserves it. Inspect the command and backup
-before removing any unfamiliar MCP entry.
-
-## Diagnostics
+This records the added client for updates. It does not need another Telegram login.
+Repeat any custom `--codex-config` / `--gemini-config` paths during registration,
+verification, or removal; they do not change the command's defaults.
 
 ```sh
 "$HOME/Applications/TelegramSearchMCP/current/tgsearch" --version
@@ -152,41 +151,39 @@ before removing any unfamiliar MCP entry.
 "$HOME/Applications/TelegramSearchMCP/current/client-config" verify --clients codex
 ```
 
-Use `gemini` in the last command for Gemini CLI, or `both` if both clients are
-registered. Verification with `both` fails if only one client is registered.
+Use `gemini` or `both` when applicable. `doctor` checks local setup without printing
+secret values; `doctor --connect` verifies saved authorization through the service.
+`service stop` closes the shared session gracefully without logging out; the next
+request starts it again. Restart/reload clients to apply a new registration.
 
-`doctor` checks the profile, credentials, and library without printing secret
-values. `doctor --connect` checks authorization through the shared service.
-`service status` reports the service state without opening TDLib; `service start`
-starts the service without signing in to Telegram. `service stop` shuts it down
-gracefully; the next request starts it again.
+In Codex CLI, inspect `codex mcp get telegram_search`. In Gemini CLI, use
+`gemini mcp list` and `/mcp`; the working directory must be trusted by Gemini.
+Standard MCP discovery exposes exactly four tools even before authorization.
 
-In Codex CLI, run `codex mcp get telegram_search`. In Gemini CLI, use
-`gemini mcp list` and `/mcp`. Gemini checks local MCP servers only in a trusted
-working directory; configure trust for your directory in the client.
-
-| Message or situation | Action |
+| Situation | Action |
 | --- | --- |
-| Setup incomplete / credentials missing | Run `auth` in your own Terminal |
-| Shared service is already running during `auth` | Finish requests, run `service stop`, then retry `auth` |
-| Profile is in use | Keep tdlib.lock; check for running authorization or an old manual copy; run `service status` |
-| Queue full / deadline / timeout | Wait for other requests and retry a narrower query; check the internet connection |
-| Unsupported TDLib runtime | Check Homebrew TDLib 1.8.0; use the stable package rather than HEAD |
-| MCP is missing from the client | Check registration and the selected client, then restart it |
-| Media does not display | Request a preview first; PDF/audio rendering depends on the client |
-| Unsupported context anchor | Select a nearby text message; a voice message may have no text |
+| Setup incomplete / credentials missing | Open authorize.command in your private Terminal |
+| Service running during auth | Finish requests, run service stop, then retry auth |
+| Old profile in use | Close/restart its old MCP client; preserve tdlib.lock |
+| Two different old accounts | Choose --migrate-profile codex or gemini |
+| Queue full / timeout | Wait and retry a narrower query; check connectivity |
+| Unsupported TDLib | Use Homebrew TDLib 1.8.0, not HEAD |
+| MCP missing | Verify the selected registration and restart the client |
+| waiting_for_ci | The current main commit has not completed successful checks |
+| registration_changed | Review the owner's changed settings; updates did not restore them |
+| Update failed / offline | Existing version remains; retry update when connected |
+| Media does not display | Try a preview; rendering depends on the client |
 
-When asking for help, share the version, error message, and service status.
-Do not share chat history, Keychain data, the TDLib database, QR codes, api_hash,
-login codes, or passwords.
+## Fixed releases
 
-## Getting updates
+[Releases](https://github.com/prabchevski/telegram-search-mcp/releases) contain tagged
+source and optional checksum files. Their features are those of the selected tag;
+older releases lack daily updates. Verify the matching `.sha256` before installing
+a release archive. Use `--auto-update off` on 0.5+ if you want to keep a fixed version.
 
-The [repository](https://github.com/prabchevski/telegram-search-mcp) and
-[releases](https://github.com/prabchevski/telegram-search-mcp/releases) are public.
-Download updates directly without a GitHub account, then follow the update steps
-above. Installing an update preserves the existing shared profile and Keychain.
+When asking for help, share the version and error message, not chat history,
+Keychain data, databases, QR codes, login codes, or passwords.
 
-Official documentation: [Codex MCP](https://learn.chatgpt.com/docs/extend/mcp?surface=cli),
+Official references: [Codex MCP](https://learn.chatgpt.com/docs/extend/mcp?surface=cli),
 [Gemini CLI MCP](https://geminicli.com/docs/tools/mcp-server/),
 [Telegram API credentials](https://core.telegram.org/api/obtaining_api_id).

@@ -5,6 +5,8 @@ from __future__ import annotations
 import getpass
 import subprocess
 
+from .profile_binding import credential_services
+
 SERVICE = "local.unofficial-telegram-search-mcp-shared"
 LEGACY_SERVICES: tuple[str, ...] = ()
 SECURITY = "/usr/bin/security"
@@ -19,7 +21,7 @@ def _account(profile: str, secret_name: str) -> str:
 
 
 def get_secret(secret_name: str, profile: str = "default") -> str | None:
-    for service in (SERVICE, *LEGACY_SERVICES):
+    for service in credential_services():
         result = subprocess.run(
             [
                 SECURITY,
@@ -56,7 +58,7 @@ def set_secret(secret_name: str, value: str, profile: str = "default") -> None:
             "add-generic-password",
             "-U",
             "-s",
-            SERVICE,
+            credential_services()[0],
             "-a",
             _account(profile, secret_name),
             "-l",
@@ -76,7 +78,7 @@ def set_secret(secret_name: str, value: str, profile: str = "default") -> None:
 
 def delete_secret(secret_name: str, profile: str = "default") -> bool:
     deleted = False
-    for service in (SERVICE, *LEGACY_SERVICES):
+    for service in credential_services():
         result = subprocess.run(
             [
                 SECURITY,

@@ -209,6 +209,31 @@ def command_service(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_update(args: argparse.Namespace) -> int:
+    from .launchers import installed_root
+    from .updater import update
+    root = installed_root()
+    if root is None:
+        raise RuntimeError("Run updates from an installed copy")
+    print(json.dumps(update(root, check_only=args.check), indent=2))
+    return 0
+
+
+def command_updates(args: argparse.Namespace) -> int:
+    from .installation import read_receipt
+    from .launchers import installed_root
+    from .updater import set_enabled
+    root = installed_root()
+    if root is None:
+        raise RuntimeError("Run updates from an installed copy")
+    if args.action != "status":
+        set_enabled(root, args.action == "on")
+    receipt = read_receipt(root)
+    print(json.dumps({"automatic": receipt.get("auto_update", False), "channel": "checked-main",
+                      "interval_hours": 24, "revision": receipt.get("revision"), "version": receipt.get("version")}, indent=2))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="tgsearch",
@@ -238,6 +263,12 @@ def build_parser() -> argparse.ArgumentParser:
     service = commands.add_parser("service", help="manage the shared local Telegram service")
     service.add_argument("action", choices=["start", "status", "stop"])
     service.set_defaults(handler=command_service)
+    update = commands.add_parser("update", help="install the latest main revision that passed GitHub CI")
+    update.add_argument("--check", action="store_true", help="check without installing")
+    update.set_defaults(handler=command_update)
+    updates = commands.add_parser("updates", help="manage daily automatic updates")
+    updates.add_argument("action", choices=["status", "on", "off"])
+    updates.set_defaults(handler=command_updates)
     return parser
 
 

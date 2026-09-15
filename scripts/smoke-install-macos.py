@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Install a verified release twice into a disposable directory, without login.
+"""Install and apply a background-style update in a disposable directory, without login.
 
 Only explicit temporary client configuration files are touched. TDLib, Telegram
 authorization, Keychain, user client settings and user services are not opened.
@@ -28,8 +28,8 @@ from mcp.client.stdio import stdio_client, StdioServerParameters
 
 async def main():
     parameters = StdioServerParameters(
-        command=sys.executable,
-        args=['-I', '-m', 'telegram_search_mcp.server'],
+        command='/bin/sh',
+        args=[sys.argv[1]],
     )
     async with Client(stdio_client(parameters)) as client:
         result = await client.list_tools()
@@ -46,6 +46,24 @@ async def main():
 # Initialize/list only: never invoke a tool or ask the service to connect.
 asyncio.run(main())
 print('PASS: installed MCP stdio handshake and exactly four read-only tools.')
+"""
+
+BACKGROUND_INSTALL_CHECK = """
+import json
+from pathlib import Path
+import sys
+from telegram_search_mcp.installation import RECEIPT, install
+
+source, root, uv = Path(sys.argv[1]), Path(sys.argv[2]), sys.argv[3]
+receipt_source = (root / RECEIPT).read_bytes()
+receipt = json.loads(receipt_source)
+paths = {client: Path(path) for client, path in receipt['clients'].items()}
+before = {client: path.read_bytes() for client, path in paths.items()}
+install(source, root, uv=uv, python=sys.executable, clients=list(paths), paths=paths,
+        registration_snapshot=before, expected_receipt=receipt_source)
+assert all(path.read_bytes() == before[client] for client, path in paths.items())
+assert json.loads((root / RECEIPT).read_bytes())['auto_update'] is False
+print('PASS: background installation path preserves exact client settings and keeps scheduling off.')
 """
 
 
@@ -86,7 +104,7 @@ def main() -> None:
         subprocess.run([str(first / "tgsearch"), "--help"], check=True, timeout=30)
         first_python = first / ".venv" / "bin" / "python"
         subprocess.run([str(first_python), "-I", "-c", "import sys; from telegram_search_mcp import __version__; assert __version__ == sys.argv[1]", manifest["version"]], check=True, timeout=30)
-        subprocess.run(command, check=True, timeout=300)
+        subprocess.run([str(first_python), "-I", "-c", BACKGROUND_INSTALL_CHECK, str(source), str(install), uv], check=True, timeout=300)
         second = (install / "current").resolve(strict=True)
         assert first != second, "Update must create a new immutable installation"
         assert first_python.is_file(), "Update must preserve the previous executable"
@@ -98,12 +116,12 @@ def main() -> None:
         assert "telegram-search" in gemini_data["mcpServers"]
         for data in (codex_data["mcp_servers"]["telegram_search"], gemini_data["mcpServers"]["telegram-search"]):
             assert data["command"] == "/usr/bin/env"
-            assert str(second / ".venv" / "bin" / "python") in data["args"]
+            assert str(install / "launch-mcp.command") in data["args"]
         subprocess.run(
-            [str(second / ".venv" / "bin" / "python"), "-I", "-c", MCP_DISCOVERY_CHECK],
+            [str(second / ".venv" / "bin" / "python"), "-I", "-c", MCP_DISCOVERY_CHECK, str(install / "launch-mcp.command")],
             check=True, timeout=30,
         )
-        print("PASS: verified archive, real isolated installation, both client registrations, immutable update, CLI import, and MCP stdio discovery. No Telegram authorization or tool invocation performed.")
+        print("PASS: verified archive, real isolated installation, both client registrations, immutable background update, CLI import, and stable-launcher MCP discovery. No Telegram authorization or tool invocation performed.")
 
 
 if __name__ == "__main__":

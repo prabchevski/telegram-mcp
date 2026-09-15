@@ -1,6 +1,16 @@
 # Changelog
 
-## Unreleased
+## 0.5.0 — 2026-09-15
+
+- Add a Codex installation guide and scoped AGENTS.md for link-based setup.
+- Reuse compatible Codex 0.2 / Gemini 0.3 local profiles and their original Keychain
+  namespaces, without copying session data; preserve existing shared 0.4 profiles.
+- Add daily opt-out updates from canonical main after successful GitHub checks,
+  with manual check/update commands and schedule removal on final disconnection.
+- Resolve immutable versions through stable launchers, preserve active operations,
+  and activate new shared-service code on its next start.
+- Validate pinned source downloads, refuse downgrades, preserve client edits, and
+  retain the old version if staging or activation fails.
 
 - Add direct public source downloads and installation instructions.
 - Remove the archive shell wrapper; documentation and CI call the Python builder directly.

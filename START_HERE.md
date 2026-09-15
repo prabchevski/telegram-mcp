@@ -6,6 +6,9 @@ and mobile app are not supported.
 
 ## Before you start
 
+Prefer Codex to handle setup? Send it the repository link and ask it to follow
+[INSTALL_WITH_CODEX.md](INSTALL_WITH_CODEX.md). It can also upgrade an older archive.
+
 1. Install the client you want to use: Codex or Gemini CLI.
 2. Install [Homebrew](https://brew.sh/) if you do not already have it.
 3. Get your own `api_id` and `api_hash` under **API development tools** at
@@ -25,6 +28,15 @@ separately. The archive contains no other person's account, history, or keys.
 4. Scan the QR code from Telegram on your phone: **Settings → Devices → Link
    Desktop Device**. If prompted, enter your login code and 2FA password in Terminal.
 5. Wait for the connection check to succeed, then restart the selected clients.
+
+A compatible saved login from an older archive is reused, so steps 3–4 may be
+skipped. Finish old Telegram requests before upgrading. If two old profiles use
+different accounts, choose one as described in [the migration guide](INSTALL_MACOS.md#upgrade-old-archives-and-preserve-a-login).
+
+Daily updates from main after successful GitHub checks are enabled by default.
+The installer prints the program root; use that path if it differs from the one
+below. Old Codex installations may use `~/Applications/TelegramSearchMCPShared`
+for the new program. Turn daily updates off with `current/tgsearch updates off`.
 
 If macOS will not open the installer with a double-click, open Terminal, type `bash `
 with a trailing space, drag `install-macos.command` into the window, and press Enter.

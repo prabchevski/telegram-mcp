@@ -25,9 +25,9 @@ IGNORED_DIRS = frozenset(
     {".git", ".venv", ".pytest_cache", "__pycache__", "dist", ".ruff_cache", ".mypy_cache"}
 )
 REQUIRED_FILES = frozenset(
-    {"pyproject.toml", "uv.lock", "README.md", "LICENSE", "INSTALL_MACOS.md", "START_HERE.md",
+    {"pyproject.toml", "uv.lock", "README.md", "LICENSE", "AGENTS.md", "INSTALL_WITH_CODEX.md", "INSTALL_MACOS.md", "START_HERE.md",
      "UNINSTALL_MACOS.md", "install-macos.command", "uninstall-macos.command", "scripts/release.py",
-     "src/telegram_search_mcp/__init__.py"}
+     "scripts/install.py", "src/telegram_search_mcp/__init__.py"}
 )
 ROOT_FILES = REQUIRED_FILES | {
     ".gitignore", "NOTICE", "update-macos.command", "uninstall-macos.command"
