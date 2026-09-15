@@ -1,0 +1,31 @@
+[project]
+name = "telegram-search-mcp"
+version = "0.4.0"
+description = "Shared local read-only Telegram search for Codex and Gemini CLI on macOS"
+readme = "README.md"
+requires-python = ">=3.12,<3.15"
+dependencies = [
+  "mcp==2.0.0",
+  "qrcode==8.2",
+]
+
+[project.scripts]
+tgsearch = "telegram_search_mcp.cli:main"
+tgsearch-mcp = "telegram_search_mcp.server:main"
+
+[dependency-groups]
+dev = [
+  "pytest==9.1.1",
+  "pytest-asyncio==1.4.0",
+]
+
+[build-system]
+requires = ["hatchling==1.31.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/telegram_search_mcp"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]

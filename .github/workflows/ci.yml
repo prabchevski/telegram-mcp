@@ -1,0 +1,74 @@
+name: Test and package
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python: ['3.12', '3.14']
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: '0.11.15'
+          enable-cache: false
+          python-version: ${{ matrix.python }}
+      - name: Install locked dependencies
+        run: uv sync --locked --python '${{ matrix.python }}'
+      - name: Unit, concurrency, registration, and packaging checks
+        run: uv run --frozen pytest
+      - name: Source inventory and accidental credential scan
+        run: uv run --frozen python -I scripts/release.py audit
+
+  release-artifacts:
+    needs: tests
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: '0.11.15'
+          enable-cache: false
+          python-version: '3.13'
+      - run: uv sync --locked --python 3.13
+      - name: Build versioned archive and wheel
+        run: |
+          bash scripts/build-macos-archive.sh
+          uv build --wheel --out-dir dist
+      - name: Verify wheel matches reviewed source
+        run: uv run --frozen python -I scripts/release.py verify-wheel dist/*.whl
+      - name: Verify actual macOS archive installation and update
+        run: uv run --frozen python -I scripts/smoke-install-macos.py dist/*.zip
+      - name: Save private workflow artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: telegram-search-mcp-macos
+          path: |
+            dist/*.zip
+            dist/*.sha256
+            dist/*.manifest.json
+            dist/*.whl
+          if-no-files-found: error
+          retention-days: 30
