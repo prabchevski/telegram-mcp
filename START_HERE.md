@@ -18,7 +18,8 @@ separately. The archive contains no other person's account, history, or keys.
 
 ## Install
 
-1. Extract `telegram-search-mcp-macos-v0.4.0.zip`.
+1. [Download the latest source ZIP](https://github.com/prabchevski/telegram-search-mcp/archive/refs/heads/main.zip)
+   and extract it. Open the `telegram-search-mcp-main` folder.
 2. Open `install-macos.command`. Choose **Codex**, **Gemini CLI**, or **both**.
 3. On the first installation, enter your `api_id` and hidden `api_hash` in Terminal.
 4. Scan the QR code from Telegram on your phone: **Settings → Devices → Link
@@ -51,6 +52,6 @@ starts automatically when first needed.
 - [Detailed installation, updates, and troubleshooting](INSTALL_MACOS.md)
 - [Uninstallation](UNINSTALL_MACOS.md)
 
-You can receive the ZIP directly from the project owner; GitHub access is not
-required to install it. Updates can also be shared as archives. If the repository
-is private, GitHub shows its source and releases only to people granted access.
+Share the [repository link](https://github.com/prabchevski/telegram-search-mcp) with
+friends. They can download and install it without a GitHub account or repository
+invitation. Each person signs in to their own Telegram account on their own Mac.

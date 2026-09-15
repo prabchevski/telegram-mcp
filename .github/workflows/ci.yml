@@ -55,13 +55,13 @@ jobs:
       - run: uv sync --locked --python 3.13
       - name: Build versioned archive and wheel
         run: |
-          bash scripts/build-macos-archive.sh
+          uv run --frozen python -I scripts/release.py build --output dist
           uv build --wheel --out-dir dist
       - name: Verify wheel matches reviewed source
         run: uv run --frozen python -I scripts/release.py verify-wheel dist/*.whl
       - name: Verify actual macOS archive installation and update
         run: uv run --frozen python -I scripts/smoke-install-macos.py dist/*.zip
-      - name: Save private workflow artifacts
+      - name: Save workflow artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: telegram-search-mcp-macos

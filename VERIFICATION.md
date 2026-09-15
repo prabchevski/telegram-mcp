@@ -52,7 +52,7 @@ Reproducible commands:
 ```sh
 uv sync --frozen --group dev
 uv run --frozen pytest
-bash scripts/build-macos-archive.sh
+uv run --frozen python -I scripts/release.py build --output dist
 uv build --wheel --out-dir dist
 uv run --frozen python -I scripts/release.py verify-wheel dist/telegram_search_mcp-0.4.0-py3-none-any.whl
 uv run --frozen python -I scripts/smoke-install-macos.py dist/telegram-search-mcp-macos-v0.4.0.zip

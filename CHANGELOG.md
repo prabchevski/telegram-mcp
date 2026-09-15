@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add direct public source downloads and installation instructions.
+- Remove the archive shell wrapper; documentation and CI call the Python builder directly.
 - Add the MIT License to the repository, package metadata, release archive, wheel,
   and installed copy.
 - Translate documentation and installer/uninstaller messages into English.

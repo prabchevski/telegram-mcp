@@ -27,7 +27,7 @@ IGNORED_DIRS = frozenset(
 REQUIRED_FILES = frozenset(
     {"pyproject.toml", "uv.lock", "README.md", "LICENSE", "INSTALL_MACOS.md", "START_HERE.md",
      "UNINSTALL_MACOS.md", "install-macos.command", "uninstall-macos.command", "scripts/release.py",
-     "scripts/build-macos-archive.sh", "src/telegram_search_mcp/__init__.py"}
+     "src/telegram_search_mcp/__init__.py"}
 )
 ROOT_FILES = REQUIRED_FILES | {
     ".gitignore", "NOTICE", "update-macos.command", "uninstall-macos.command"

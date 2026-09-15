@@ -11,23 +11,35 @@ The package looks for TDLib in the standard Homebrew locations for Apple Silicon
 and Intel. Supporting these paths does not mean every Mac model and macOS version
 has been tested. See the [verification report](VERIFICATION.md) for completed checks.
 
-## Install from an archive
+## Download and install
 
-Obtain the ZIP and `.sha256` file from the same trusted source. Open Terminal in
-the directory containing them and verify the checksum:
-
-```sh
-shasum -a 256 -c telegram-search-mcp-macos-v0.4.0.zip.sha256
-```
-
-Extract the ZIP. Inside `telegram-search-mcp-macos`, double-click the installer or
-run one of these commands:
+[Download the latest source ZIP](https://github.com/prabchevski/telegram-search-mcp/archive/refs/heads/main.zip),
+or choose **Code → Download ZIP** on the repository page. A GitHub account is not
+required. Extract the archive and open `telegram-search-mcp-main`. No manual build
+is needed. Double-click `install-macos.command`, or run one of these commands from
+the extracted folder:
 
 ```sh
 bash install-macos.command --clients codex
 bash install-macos.command --clients gemini
 bash install-macos.command --clients both
 ```
+
+### Optional: install a versioned release
+
+For a fixed version, download its installer ZIP and `.sha256` file from
+[Releases](https://github.com/prabchevski/telegram-search-mcp/releases).
+Open Terminal in the directory containing them and verify the checksum; for 0.4.0:
+
+```sh
+shasum -a 256 -c telegram-search-mcp-macos-v0.4.0.zip.sha256
+```
+
+Extract the release ZIP and open `telegram-search-mcp-macos`. Run the installer
+using the same commands above. A release contains the source at its tagged version;
+the source ZIP contains the current `main` branch.
+
+### What the installer does
 
 The installer creates a separate version directory under
 `~/Applications/TelegramSearchMCP`, installs pinned Python dependencies, and
@@ -83,7 +95,7 @@ Restart the client. The second client does not need a separate Telegram login.
 
 ## Update version 0.4 and later
 
-1. Obtain the new ZIP and verify its checksum.
+1. Download the latest source ZIP, or a new release ZIP and verify its checksum.
 2. Finish active Telegram requests and close both clients.
 3. Stop the shared service:
 
@@ -170,9 +182,10 @@ login codes, or passwords.
 
 ## Getting updates
 
-Installing a downloaded ZIP does not require GitHub authorization. If the project
-is private, the owner can share new ZIP and `.sha256` files with friends who lack
-repository access. The archive does not grant access to private source or updates.
+The [repository](https://github.com/prabchevski/telegram-search-mcp) and
+[releases](https://github.com/prabchevski/telegram-search-mcp/releases) are public.
+Download updates directly without a GitHub account, then follow the update steps
+above. Installing an update preserves the existing shared profile and Keychain.
 
 Official documentation: [Codex MCP](https://learn.chatgpt.com/docs/extend/mcp?surface=cli),
 [Gemini CLI MCP](https://geminicli.com/docs/tools/mcp-server/),
