@@ -25,12 +25,12 @@ IGNORED_DIRS = frozenset(
     {".git", ".venv", ".pytest_cache", "__pycache__", "dist", ".ruff_cache", ".mypy_cache"}
 )
 REQUIRED_FILES = frozenset(
-    {"pyproject.toml", "uv.lock", "README.md", "INSTALL_MACOS_RU.md", "START_HERE_RU.md",
-     "UNINSTALL_MACOS_RU.md", "install-macos.command", "uninstall-macos.command", "scripts/release.py",
+    {"pyproject.toml", "uv.lock", "README.md", "LICENSE", "INSTALL_MACOS.md", "START_HERE.md",
+     "UNINSTALL_MACOS.md", "install-macos.command", "uninstall-macos.command", "scripts/release.py",
      "scripts/build-macos-archive.sh", "src/telegram_search_mcp/__init__.py"}
 )
 ROOT_FILES = REQUIRED_FILES | {
-    ".gitignore", "LICENSE", "NOTICE", "update-macos.command", "uninstall-macos.command"
+    ".gitignore", "NOTICE", "update-macos.command", "uninstall-macos.command"
 }
 FORBIDDEN_PARTS = frozenset(
     {"profiles", "runtime", "database", "files", "secrets", "credentials", ".ssh",
@@ -224,6 +224,7 @@ def verify_wheel(wheel_path: Path, source: Path) -> int:
         for name, data in payload.items() if name.startswith("src/")
     }
     metadata_names = {"METADATA", "WHEEL", "RECORD", "entry_points.txt"}
+    license_name = metadata_root + "licenses/LICENSE"
     found: set[str] = set()
     with zipfile.ZipFile(wheel_path) as wheel:
         for entry in wheel.infolist():
@@ -235,12 +236,17 @@ def verify_wheel(wheel_path: Path, source: Path) -> int:
             if name in source_files:
                 if data != source_files[name]:
                     raise ReleaseError(f"Wheel differs from reviewed source: {name}")
+            elif name == license_name:
+                if data != payload["LICENSE"]:
+                    raise ReleaseError("Wheel license differs from the repository LICENSE")
             elif name.startswith(metadata_root) and name.removeprefix(metadata_root) in metadata_names:
                 check_file("README.md", data)
             else:
                 raise ReleaseError(f"Unexpected wheel entry: {name}")
     if source_files.keys() - found or metadata_root + "METADATA" not in found:
         raise ReleaseError("Wheel is missing package files or metadata")
+    if license_name not in found:
+        raise ReleaseError("Wheel is missing LICENSE")
     return len(found)
 
 

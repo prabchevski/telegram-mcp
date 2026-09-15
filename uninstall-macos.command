@@ -7,17 +7,17 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --help|-h)
       cat <<'EOF'
-Отключить Telegram Search MCP от клиентов, сохранив историю и собственный вход:
+Disconnect Telegram Search MCP from clients while keeping your history and login:
   bash uninstall-macos.command --install-dir /absolute/path/to/version [options]
-Если скрипт запущен из установленной версии, --install-dir не нужен.
-  --clients codex|gemini|both    По умолчанию both.
-  --codex-config PATH           Явный путь настроек Codex.
-  --gemini-config PATH          Явный путь настроек Gemini.
+--install-dir is optional when running this script from an installed version.
+  --clients codex|gemini|both    Default: both.
+  --codex-config PATH           Explicit Codex settings path.
+  --gemini-config PATH          Explicit Gemini settings path.
 
-Удаляются только распознанные записи этого общего пакета. Создаются резервные
-копии настроек. Программа, профиль и Keychain сохраняются. После отключения
-всех клиентов можно выполнить tgsearch service stop и удалить каталог программы.
-Это не затрагивает другие установки и старые сессии Codex/Gemini 0.2/0.3.
+Only recognized registrations for this shared package are removed. Settings are
+backed up. The program, profile, and Keychain entries are preserved. After all
+clients are disconnected, run tgsearch service stop and remove the program directory.
+Other installations and old Codex/Gemini 0.2/0.3 sessions are not affected.
 EOF
       exit 0 ;;
     --install-dir)
@@ -26,16 +26,16 @@ EOF
     --clients|--codex-config|--gemini-config)
       [[ $# -ge 2 ]] || exit 2
       CLIENT_ARGS+=("$1" "$2"); shift ;;
-    *) printf 'Неизвестный параметр: %s\n' "$1" >&2; exit 2 ;;
+    *) printf 'Unknown option: %s\n' "$1" >&2; exit 2 ;;
   esac
   shift
 done
 INSTALL_DIR="${INSTALL_DIR:-$SOURCE_DIR}"
 [[ "$INSTALL_DIR" = /* && -f "$INSTALL_DIR/.telegram-search-install" && -x "$INSTALL_DIR/client-config" ]] || {
-  printf 'Укажите установленную версию: --install-dir /absolute/path/to/version\n' >&2
+  printf 'Specify an installed version: --install-dir /absolute/path/to/version\n' >&2
   exit 1
 }
 "$INSTALL_DIR/client-config" unregister "${CLIENT_ARGS[@]}"
-printf '\nПодключение отключено. Перезапустите выбранные клиенты.\n'
-printf 'Файлы программы, собственная история и вход в Telegram сохранены.\n'
-printf 'Когда все клиенты отключены, остановите общий сервис:\n  %q/tgsearch service stop\n' "$INSTALL_DIR"
+printf '\nDisconnected. Restart the selected clients.\n'
+printf 'Program files, your history, and your Telegram login have been preserved.\n'
+printf 'Once all clients are disconnected, stop the shared service:\n  %q/tgsearch service stop\n' "$INSTALL_DIR"

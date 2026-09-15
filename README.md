@@ -1,55 +1,56 @@
 # Telegram Search MCP · 0.4.0
 
-Локальный поиск по вашему Telegram для **Codex и Gemini CLI на macOS**.
-Одна установка, один вход в Telegram, оба клиента могут работать одновременно.
-Неофициальный проект; обычный Gemini в браузере и мобильном приложении не поддерживается.
+Local search across your Telegram chats for **Codex and Gemini CLI on macOS**.
+One installation and one Telegram login serve both clients at the same time.
+This is an unofficial project. Gemini's web and mobile apps are not supported.
 
-**Начните с [короткой инструкции](START_HERE_RU.md).**
+**Start with the [quick start guide](START_HERE.md).**
 
-## Возможности
+## Features
 
-| Операция | Что возвращает |
+| Tool | Result |
 | --- | --- |
-| `telegram_search_messages` | Поиск по доступным облачным чатам, до 20 результатов и курсор следующей страницы |
-| `telegram_get_message` | Одно сообщение по идентификаторам чата и сообщения |
-| `telegram_get_context` | До пяти текстовых сообщений с каждой стороны найденного сообщения |
-| `telegram_get_media` | Фото, поддерживаемое аудио, PDF или миниатюра видео; preview до 2 MiB, full до 12 MiB |
+| `telegram_search_messages` | Search accessible cloud chats, with up to 20 results and a cursor for the next page |
+| `telegram_get_message` | Retrieve one message by chat and message IDs |
+| `telegram_get_context` | Retrieve up to five text messages on either side of a matching message |
+| `telegram_get_media` | Retrieve a photo, supported audio, PDF, or video thumbnail; previews up to 2 MiB, full media up to 12 MiB |
 
-Отправки, редактирования и удаления сообщений нет. Секретные чаты не поддерживаются.
-Защищённые и самоуничтожающиеся медиа отклоняются. История доступна в пределах прав
-вашего Telegram-аккаунта. Текст и названия в ответах помечены как внешние недоверенные данные.
+The server cannot send, edit, or delete messages. Secret Chats are not supported.
+Protected and self-destructing media are rejected. Access to history follows your
+Telegram account's permissions. Returned text and titles are marked as external,
+untrusted data.
 
-## Что исправлено
+## Shared session
 
-Раньше каждый запущенный MCP-процесс держал собственную TDLib-сессию до завершения
-процесса. Новые MCP-процессы передают запросы одному локальному фоновому сервису.
-Сервис владеет сессией и последовательно выполняет общую очередь запросов.
-Завершение отдельной задачи Codex или Gemini не мешает другим клиентам.
+MCP processes forward requests to one local background service. The service owns
+the TDLib session and processes a shared queue one request at a time. Ending a
+Codex or Gemini task does not interrupt other clients.
 
-Новая версия использует отдельные данные `TelegramSearchMCPShared` и отдельную запись
-macOS Keychain. Старые установки 0.2/0.3 не переключаются автоматически: для 0.4 нужен
-новый вход в **свой** Telegram. Это позволяет оставить прежние активные задачи работающими.
+Version 0.4 uses a separate `TelegramSearchMCPShared` data directory and macOS
+Keychain service. Earlier 0.2/0.3 installations are not switched automatically:
+0.4 requires a new login to **your own** Telegram account. Existing tasks can
+continue using their previous installation.
 
-## Установка и сопровождение
+## Installation and maintenance
 
-- [Быстрый старт](START_HERE_RU.md)
-- [Установка, обновление, диагностика](INSTALL_MACOS_RU.md)
-- [Удаление и отзыв Telegram-сессии](UNINSTALL_MACOS_RU.md)
-- [Архитектура, защита локального соединения и ограничения](ARCHITECTURE_RU.md)
-- [Изменения](CHANGELOG.md)
-- [Что проверено](VERIFICATION_RU.md)
+- [Quick start](START_HERE.md)
+- [Installation, updates, and troubleshooting](INSTALL_MACOS.md)
+- [Uninstallation and Telegram session revocation](UNINSTALL_MACOS.md)
+- [Architecture, local connection security, and limitations](ARCHITECTURE.md)
+- [Changelog](CHANGELOG.md)
+- [Verification report](VERIFICATION.md)
 
-Архив содержит исходники и установщик, но не Python/TDLib и зависимости. При первой
-установке нужен интернет. Для установки полученного ZIP доступ к GitHub не требуется.
-Репозиторий приватный: новые архивы передаёт владелец; самостоятельное скачивание
-обновлений с GitHub доступно только пользователям с предоставленным доступом.
+The archive contains source code and an installer. Python, TDLib, and other
+dependencies are downloaded separately, so the first installation needs internet
+access. Installing a ZIP you have already received does not require GitHub access.
+If the repository is private, downloading releases from GitHub requires access
+granted by its owner; the owner can also share the release ZIP directly.
 
-Каждый человек использует собственные Telegram API credentials и проходит вход на
-своём Mac. Не передавайте каталог установленной программы вместе с её данными,
-Keychain, `policy.json`, базой TDLib или сессией. Передавайте только выпускной ZIP
-и его контрольную сумму.
+Each person uses their own Telegram API credentials and signs in on their own Mac.
+Share only the release ZIP and its checksum. Do not share an installed copy together
+with its data, Keychain entries, `policy.json`, TDLib database, or session.
 
-## Разработка
+## Development
 
 ```sh
 uv sync --frozen --group dev
@@ -57,15 +58,20 @@ uv run --frozen pytest
 bash scripts/build-macos-archive.sh
 ```
 
-Тесты не требуют Telegram-аккаунта. Для полноценной проверки клиента нужны
-установленный Codex/Gemini CLI и локальная авторизация владельца аккаунта.
-CI запускает проверки и собирает версионные архивы из разрешённого списка файлов.
+Tests do not require a Telegram account. End-to-end client verification requires
+an installed Codex/Gemini CLI client and the account owner's local authorization.
+CI runs checks and builds versioned archives from an explicit file allowlist.
 
-## Официальные справки
+## License
 
-- [Codex: подключение MCP](https://learn.chatgpt.com/docs/extend/mcp?surface=cli)
+This project's code and documentation are available under the [MIT License](LICENSE).
+Third-party dependencies retain their own licenses.
+
+## Official documentation
+
+- [Codex: MCP integration](https://learn.chatgpt.com/docs/extend/mcp?surface=cli)
 - [Gemini CLI: MCP servers](https://geminicli.com/docs/tools/mcp-server/)
-- [Telegram: получение api_id и api_hash](https://core.telegram.org/api/obtaining_api_id)
+- [Telegram: obtaining api_id and api_hash](https://core.telegram.org/api/obtaining_api_id)
 - [Homebrew: TDLib](https://formulae.brew.sh/formula/tdlib)
 
-Параметры интеграции сверены 15 сентября 2026 года.
+Integration settings were checked on September 15, 2026.

@@ -1,18 +1,25 @@
-# Изменения
+# Changelog
+
+## Unreleased
+
+- Add the MIT License to the repository, package metadata, release archive, wheel,
+  and installed copy.
+- Translate documentation and installer/uninstaller messages into English.
+- Rename the documentation files without the `_RU` suffix and update their links.
 
 ## 0.4.0 — 2026-09-15
 
-- Общая версия `telegram-search-mcp` для Codex и Gemini CLI на macOS.
-- Один локальный сервис TDLib на профиль, общая ограниченная очередь, автоматический
-  запуск и восстановление при следующем запросе, корректное завершение.
-- MCP-процессы больше не захватывают профиль TDLib каждый по отдельности.
-- Сохранены ровно четыре операции чтения Telegram.
-- Из Gemini 0.3 сохранены изоляция запуска, фиксированные пути TDLib и текстовые
-  метаданные медиа. Из Codex 0.2 возвращены `codex/imageDetail: original` для полного
-  изображения и предел 12 MiB; предпросмотр остаётся ограничен 2 MiB.
-- Новое независимое хранилище и Keychain для совместного использования двумя клиентами.
-  Автоматического копирования старых сессий и секретов нет.
-- Единый установщик, отдельная регистрация клиентов, версионные установки, диагностика,
-  инструкции на русском, проверяемый архив и CI.
+- Unified `telegram-search-mcp` for Codex and Gemini CLI on macOS.
+- One local TDLib service per profile, a shared bounded queue, automatic startup
+  and recovery on the next request, and graceful shutdown.
+- MCP processes no longer acquire the TDLib profile independently.
+- Retained exactly four read-only Telegram operations.
+- Retained isolated launchers, fixed TDLib paths, and text media metadata from
+  Gemini 0.3. Restored `codex/imageDetail: original` for full images and a 12 MiB
+  full-media limit from Codex 0.2; previews remain limited to 2 MiB.
+- New independent data storage and Keychain service shared by both clients.
+  Existing sessions and secrets are not copied automatically.
+- Unified installer, separate client registration, versioned installations,
+  diagnostics, Russian-language instructions, a verifiable archive, and CI.
 
-Исходная база: архив Gemini CLI 0.3.0 и исходники Codex 0.2.0.
+Based on the Gemini CLI 0.3.0 archive and Codex 0.2.0 source.

@@ -144,3 +144,20 @@ def test_real_repository_passes_allowlist_and_data_guard() -> None:
     payload = release.inventory(ROOT)
     assert "src/telegram_search_mcp/server.py" in payload
     assert "tests/test_packaging.py" in payload
+
+
+@pytest.mark.parametrize("license_state", ["matching", "missing", "changed"])
+def test_wheel_requires_the_repository_license(source: Path, tmp_path: Path, license_state: str) -> None:
+    wheel_path = tmp_path / "package.whl"
+    metadata_root = "telegram_search_mcp-0.4.0.dist-info/"
+    with zipfile.ZipFile(wheel_path, "w") as wheel:
+        wheel.writestr("telegram_search_mcp/__init__.py", (source / "src/telegram_search_mcp/__init__.py").read_bytes())
+        wheel.writestr(metadata_root + "METADATA", "Name: telegram-search-mcp\nVersion: 0.4.0\n")
+        if license_state != "missing":
+            license_data = (source / "LICENSE").read_bytes() if license_state == "matching" else b"Replaced license\n"
+            wheel.writestr(metadata_root + "licenses/LICENSE", license_data)
+    if license_state == "matching":
+        assert release.verify_wheel(wheel_path, source) == 3
+    else:
+        with pytest.raises(release.ReleaseError, match="license|LICENSE"):
+            release.verify_wheel(wheel_path, source)

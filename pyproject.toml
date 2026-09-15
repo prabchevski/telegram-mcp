@@ -3,6 +3,8 @@ name = "telegram-search-mcp"
 version = "0.4.0"
 description = "Shared local read-only Telegram search for Codex and Gemini CLI on macOS"
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.12,<3.15"
 dependencies = [
   "mcp==2.0.0",

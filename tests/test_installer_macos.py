@@ -31,9 +31,10 @@ def test_prepare_update_and_unregister_with_isolated_configs(tmp_path):
     for iteration in range(2):
         result = subprocess.run(command, env=environment, capture_output=True, text=True, timeout=180)
         assert result.returncode == 0, result.stderr
-        assert "Авторизация не запускалась" in result.stdout
+        assert "Authorization was skipped" in result.stdout
         current = (install_root / "current").resolve()
         assert current.parent == install_root
+        assert (current / "LICENSE").read_bytes() == (ROOT / "LICENSE").read_bytes()
         assert (current / "tgsearch").stat().st_mode & 0o777 == 0o700
         if iteration == 0:
             old_version = current
