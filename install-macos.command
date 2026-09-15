@@ -84,10 +84,12 @@ else
 fi
 [[ "$UV_BIN" = /* && -x "$UV_BIN" ]] || fail "Нужен uv с абсолютным исполняемым путём (TGSEARCH_INSTALL_UV)."
 # The managed bootstrap interpreter is read-only with respect to Telegram and clients.
-BOOTSTRAP_PYTHON="$("$UV_BIN" python find 3.13 2>/dev/null || true)"
+# --system excludes project virtualenvs; --managed-python excludes system/Homebrew Python.
+# Never repair permissions of a global interpreter, and do not install global Python shims.
+BOOTSTRAP_PYTHON="$("$UV_BIN" python find --managed-python --system --no-project --no-config 3.13 2>/dev/null || true)"
 if [[ -z "$BOOTSTRAP_PYTHON" ]]; then
-  "$UV_BIN" python install 3.13
-  BOOTSTRAP_PYTHON="$("$UV_BIN" python find 3.13)"
+  "$UV_BIN" python install --no-bin --no-config 3.13
+  BOOTSTRAP_PYTHON="$("$UV_BIN" python find --managed-python --system --no-project --no-config 3.13)"
 fi
 SAFE_USER_HOME="$(/usr/bin/env -i PATH="$SAFE_EXEC_PATH" "$BOOTSTRAP_PYTHON" -I -c 'import os,pwd; print(pwd.getpwuid(os.getuid()).pw_dir)')"
 INSTALL_ROOT="${REQUESTED_INSTALL_DIR:-$SAFE_USER_HOME/Applications/TelegramSearchMCP}"
