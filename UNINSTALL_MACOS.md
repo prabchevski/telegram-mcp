@@ -1,4 +1,4 @@
-# Uninstall Telegram Search MCP
+# Uninstall Telegram MCP
 
 ## Disconnect the MCP while keeping your login
 

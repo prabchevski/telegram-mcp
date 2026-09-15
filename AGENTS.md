@@ -2,7 +2,7 @@
 
 ## Installing for a user
 
-When the user explicitly asks to install or upgrade Telegram Search MCP from this
+When the user explicitly asks to install or upgrade Telegram MCP from this
 repository, follow [INSTALL_WITH_CODEX.md](INSTALL_WITH_CODEX.md). Read that guide
 before changing their installation. It covers existing archives, local login, and
 daily updates. A repository URL alone does not authorize installation.

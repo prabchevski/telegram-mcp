@@ -38,7 +38,7 @@ def test_archive_is_deterministic_and_has_complete_inventory(source: Path, tmp_p
             target.chmod(0o600)
     second = release.build(source, tmp_path / "second")
     assert first.read_bytes() == second.read_bytes()
-    assert first.name == "telegram-search-mcp-macos-v0.4.0.zip"
+    assert first.name == "telegram-mcp-macos-v0.4.0.zip"
     manifest = release.verify_archive(first)
     assert {item["path"] for item in manifest["files"]} == release.REQUIRED_FILES
     assert first.with_suffix(".zip.sha256").read_text() == f"{hashlib.sha256(first.read_bytes()).hexdigest()}  {first.name}\n"

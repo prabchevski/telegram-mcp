@@ -24,7 +24,7 @@ from .installation import RECEIPT, install, read_receipt, safe_environment
 from .launchers import current_version, installed_root, validate_root
 from .registration import ALIASES, NAMES, _load, default_path, expected_entry, real_home
 
-REPOSITORY = "prabchevski/telegram-search-mcp"
+REPOSITORY = "prabchevski/telegram-mcp"
 API = "https://api.github.com/repos/" + REPOSITORY
 CHECK_INTERVAL = 86400
 MAX_DOWNLOAD = 20 * 1024 * 1024
@@ -36,7 +36,7 @@ def _download(url: str, *, limit: int) -> bytes:
     parsed = urlparse(url)
     if parsed.scheme != "https" or parsed.hostname not in allowed_hosts:
         raise RuntimeError("Update URL is outside the canonical GitHub hosts")
-    request = Request(url, headers={"User-Agent": "telegram-search-mcp-updater", "Accept": "application/vnd.github+json"})
+    request = Request(url, headers={"User-Agent": "telegram-mcp-updater", "Accept": "application/vnd.github+json"})
     with urlopen(request, timeout=30) as response:
         redirected = urlparse(response.url)
         if redirected.scheme != "https" or redirected.hostname not in allowed_hosts:
@@ -75,7 +75,7 @@ def checked_revision() -> str | None:
 def extract_source(payload: bytes, revision: str, destination: Path) -> Path:
     if not re.fullmatch(r"[0-9a-f]{40}", revision):
         raise RuntimeError("Invalid update revision")
-    prefix = "telegram-search-mcp-" + revision + "/"
+    prefix = "telegram-mcp-" + revision + "/"
     with zipfile.ZipFile(io.BytesIO(payload)) as archive:
         entries = archive.infolist()
         if len(entries) > 1000 or sum(item.file_size for item in entries) > MAX_DOWNLOAD:

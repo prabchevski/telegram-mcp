@@ -1,5 +1,12 @@
 # Verification
 
+## Version 0.6.1 — September 15, 2026
+
+- All 228 automated tests passed after updating the repository address and expected
+  GitHub source-archive root to telegram-mcp.
+- The renamed source ZIP passed its inventory audit and an actual isolated macOS
+  installation and upgrade, including Codex and Gemini CLI tool discovery.
+
 ## Version 0.6.0 — September 15, 2026
 
 - 228 automated tests passed locally, including outgoing text/document preparation,
@@ -62,7 +69,7 @@ uv run --frozen python -I scripts/smoke-install-macos.py dist/telegram-search-mc
 
 CI runs the full suite on Linux/macOS with Python 3.12/3.14, then builds and performs
 the real macOS archive installation/update check. Results appear in
-[GitHub Actions](https://github.com/prabchevski/telegram-search-mcp/actions).
+[GitHub Actions](https://github.com/prabchevski/telegram-mcp/actions).
 
 These checks do not establish successful migration of every real Telegram session,
 first-time login, live search/media rendering in each AI client, physical Intel Mac

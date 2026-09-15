@@ -18,7 +18,7 @@ GEMINI_CONFIG=""
 
 usage() {
   cat <<'EOF'
-Telegram Search MCP — macOS installation
+Telegram MCP — macOS installation
 
 bash install-macos.command [--clients codex|gemini|both|none] [--prepare-only]
   --prepare-only          Install and register without signing in to Telegram.

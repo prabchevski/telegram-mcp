@@ -19,7 +19,7 @@ import sys
 import tomllib
 import zipfile
 
-PACKAGE_ROOT = "telegram-search-mcp-macos"
+PACKAGE_ROOT = "telegram-mcp-macos"
 MANIFEST_NAME = "RELEASE_MANIFEST.json"
 IGNORED_DIRS = frozenset(
     {".git", ".venv", ".pytest_cache", "__pycache__", "dist", ".ruff_cache", ".mypy_cache"}

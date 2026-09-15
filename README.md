@@ -1,6 +1,7 @@
-# Telegram Search MCP · 0.6.0
+# Telegram MCP · 0.6.1
 
-Local search across your Telegram chats for **Codex and Gemini CLI on macOS**.
+Search your Telegram chats and optionally send text and files with
+**Codex and Gemini CLI on macOS**.
 One installation and one Telegram login serve both clients at the same time.
 This is an unofficial project. Gemini's web and mobile apps are not supported.
 
@@ -8,7 +9,7 @@ This is an unofficial project. Gemini's web and mobile apps are not supported.
 
 Send this to Codex on your Mac:
 
-> Install https://github.com/prabchevski/telegram-search-mcp for Codex. Follow
+> Install https://github.com/prabchevski/telegram-mcp for Codex. Follow
 > INSTALL_WITH_CODEX.md, upgrade my older installation if present, preserve my
 > Telegram login, and enable daily updates from main after successful checks.
 
@@ -19,7 +20,7 @@ client, and check the installation. First-time Telegram authorization, passwords
 and any required macOS approval remain with the owner in their private Terminal.
 A client restart may be needed.
 
-Prefer a manual installation? **[Download for macOS](https://github.com/prabchevski/telegram-search-mcp/archive/refs/heads/main.zip)**,
+Prefer a manual installation? **[Download for macOS](https://github.com/prabchevski/telegram-mcp/archive/refs/heads/main.zip)**,
 extract the ZIP, and open `install-macos.command`. No manual build is needed.
 See the [quick start](START_HERE.md).
 
@@ -134,7 +135,7 @@ data, Keychain entries, policy.json, TDLib database, or session.
 
 Source downloads are public and need no GitHub account. Python, TDLib, and other
 dependencies download separately. Tagged source archives are also available under
-[Releases](https://github.com/prabchevski/telegram-search-mcp/releases); older tags
+[Releases](https://github.com/prabchevski/telegram-mcp/releases); older tags
 retain their original features and instructions.
 
 ## Development

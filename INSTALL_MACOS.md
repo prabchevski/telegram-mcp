@@ -13,7 +13,7 @@ To let Codex handle setup, use [INSTALL_WITH_CODEX.md](INSTALL_WITH_CODEX.md).
 
 ## Download and install
 
-[Download the source ZIP](https://github.com/prabchevski/telegram-search-mcp/archive/refs/heads/main.zip),
+[Download the source ZIP](https://github.com/prabchevski/telegram-mcp/archive/refs/heads/main.zip),
 extract it, and open `install-macos.command`. No GitHub account or manual build is
 required. You can also run a command from the extracted directory:
 
@@ -177,7 +177,7 @@ sending adds three tools; see README.md, Optional text and file sending.
 
 ## Fixed releases
 
-[Releases](https://github.com/prabchevski/telegram-search-mcp/releases) contain tagged
+[Releases](https://github.com/prabchevski/telegram-mcp/releases) contain tagged
 source and optional checksum files. Their features are those of the selected tag;
 older releases lack daily updates. Verify the matching `.sha256` before installing
 a release archive. Use `--auto-update off` on 0.5+ if you want to keep a fixed version.

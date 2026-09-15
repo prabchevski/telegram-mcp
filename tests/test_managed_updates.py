@@ -42,7 +42,7 @@ def source_zip(extra=None):
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w") as archive:
         for name, value in files.items():
-            entry = zipfile.ZipInfo("telegram-search-mcp-" + REVISION + "/" + name)
+            entry = zipfile.ZipInfo("telegram-mcp-" + REVISION + "/" + name)
             entry.external_attr = (stat.S_IFREG | 0o644) << 16
             archive.writestr(entry, value)
     return buffer.getvalue()

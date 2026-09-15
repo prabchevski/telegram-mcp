@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.1 — 2026-09-15
+
+- Rename the public repository and project to Telegram MCP.
+- Point installation links and checked-main updates at prabchevski/telegram-mcp.
+- Match the new GitHub source-archive root and name downloadable archives telegram-mcp-macos.
+
 ## 0.6.0 — 2026-09-15
 
 - Add opt-in preparation, text/document sending, and outgoing status tools.
