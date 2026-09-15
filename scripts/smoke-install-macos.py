@@ -49,7 +49,7 @@ async def main():
 
 # Initialize/list only: never invoke a tool or ask the service to connect.
 asyncio.run(main())
-print('PASS: installed MCP stdio handshake, tool set and annotations; sending=' + str(sending))
+print('PASS: installed MCP stdio handshake, tool set and annotations; sending=' + str(len(sys.argv) > 2 and sys.argv[2] == 'sending'))
 """
 
 BACKGROUND_INSTALL_CHECK = """

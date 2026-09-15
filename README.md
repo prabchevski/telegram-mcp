@@ -47,6 +47,10 @@ Enable sending locally from a managed installation:
 ```
 
 Use the root printed by the installer. Restart the MCP clients after enabling it.
+Codex and Gemini CLI use the same sending implementation. The installer can register
+either client or both (`--clients codex|gemini|both`). Enabling sending updates the
+registered clients' tool lists and retains their confirmation settings. This does
+not add support for the Gemini web or mobile application.
 After upgrading from 0.5, restart the idle shared service once to load the new code.
 `sending status` shows the setting and `sending off` disables further preparations
 and dispatches immediately. Existing pending sends may still finish. Your login is reused.

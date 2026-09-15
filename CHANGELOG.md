@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.6.0 — local development
+## 0.6.0 — 2026-09-15
 
 - Add opt-in preparation, text/document sending, and outgoing status tools.
 - Pin the resolved recipient, exact text and private attachment snapshot before sending.

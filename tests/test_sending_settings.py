@@ -8,6 +8,32 @@ from telegram_search_mcp import registration
 from telegram_search_mcp.sending_settings import OUTGOING_TOOLS, set_sending, sending_enabled
 
 
+def test_codex_and_gemini_enable_same_tools_preserving_approval_and_other_settings(managed, tmp_path):
+    from telegram_search_mcp import updater
+    root, version, codex = managed
+    gemini = tmp_path / "gemini/settings.json"
+    gemini.parent.mkdir()
+    gemini.write_text(json.dumps({"ui": {"theme": "user-theme"}, "mcpServers": {"unrelated": {"command": "other"}}}))
+    python = str(version / ".venv/bin/python")
+    registration.configure("register", clients=["gemini"], python=python, paths={"gemini": gemini}, install_root=root)
+    updater.remember_clients(root, {"gemini": gemini})
+    before = json.loads(gemini.read_text())
+    set_sending(root, True)
+    data = json.loads(gemini.read_text())
+    entry = data["mcpServers"]["telegram-search"]
+    codex_entry = tomllib.loads(codex.read_text())["mcp_servers"]["telegram_search"]
+    assert entry["includeTools"] == codex_entry["enabled_tools"]
+    assert len(entry["includeTools"]) == 7
+    assert entry["trust"] is False
+    assert codex_entry["default_tools_approval_mode"] == "prompt"
+    assert data["ui"] == before["ui"]
+    assert data["mcpServers"]["unrelated"] == before["mcpServers"]["unrelated"]
+    registration.configure("verify", clients=["codex", "gemini"], python=python,
+                           paths={"codex": codex, "gemini": gemini}, install_root=root)
+    set_sending(root, False)
+    assert json.loads(gemini.read_text()) == before
+
+
 def test_sending_is_opt_in_and_restores_read_only_registration(managed):
     root, _, config = managed
     before = tomllib.loads(config.read_text())

@@ -1,5 +1,26 @@
 # Verification
 
+## Version 0.6.0 — September 15, 2026
+
+- 228 automated tests passed locally, including outgoing text/document preparation,
+  native success/failure/timeout handling, duplicate suppression, recovery after
+  interrupted preparation, account binding, snapshot integrity, and shared-service
+  delivery from two clients.
+- The actual macOS source-archive installer was tested with disposable Codex and
+  Gemini CLI settings. Both registrations exposed the same seven tools after
+  enabling sending and returned to the original four after disabling it.
+- Client confirmation settings and unrelated settings were preserved.
+- Standard MCP stdio initialization, schemas and tool annotations were checked
+  for both the default and sending-enabled configurations.
+- After explicit owner authorization, a real text message and a document with
+  caption were sent to Saved Messages using telegram_send_message. Both received
+  status=sent and were independently read back using telegram_get_message.
+- Existing Telegram login and Keychain binding were preserved.
+- Gemini CLI registration and the common MCP transport were tested. A live
+  Gemini CLI model session was not run on the maintainer's Mac.
+- Source archive audit passed; private outbox records, user files and Telegram
+  account/session data are excluded from release artifacts.
+
 ## Version 0.5.0 — September 15, 2026
 
 **201 tests passed on Python 3.13, Apple Silicon macOS**, including the existing
