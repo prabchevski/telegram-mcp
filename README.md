@@ -1,4 +1,4 @@
-# Telegram Search MCP · 0.5.0
+# Telegram Search MCP · 0.6.0
 
 Local search across your Telegram chats for **Codex and Gemini CLI on macOS**.
 One installation and one Telegram login serve both clients at the same time.
@@ -32,10 +32,59 @@ See the [quick start](START_HERE.md).
 | `telegram_get_context` | Retrieve up to five text messages on either side of a matching message |
 | `telegram_get_media` | Retrieve a photo, supported audio, PDF, or video thumbnail; previews up to 2 MiB, full media up to 12 MiB |
 
-The server cannot send, edit, or delete messages. Secret Chats are not supported.
+The default installation is read-only. Text and document sending can be enabled
+explicitly as described below. Editing and deletion are not supported. Secret Chats are not supported.
 Protected and self-destructing media are rejected. Access to history follows your
 Telegram account's permissions. Returned text and titles are marked as external,
 untrusted data. Retrieved Telegram content is shared with the selected AI client.
+
+## Optional text and file sending
+
+Enable sending locally from a managed installation:
+
+```sh
+"$HOME/Applications/TelegramSearchMCP/current/tgsearch" sending on
+```
+
+Use the root printed by the installer. Restart the MCP clients after enabling it.
+After upgrading from 0.5, restart the idle shared service once to load the new code.
+`sending status` shows the setting and `sending off` disables further preparations
+and dispatches immediately. Existing pending sends may still finish. Your login is reused.
+
+Three additional tools become available:
+
+| Tool | Result |
+| --- | --- |
+| `telegram_prepare_message` | Resolve an exact @username, known chat ID, or `self`; prepare text and one optional local document without sending |
+| `telegram_send_message` | Send the previously reviewed draft to its pinned chat ID |
+| `telegram_get_send_status` | Check the same draft without creating another message |
+
+Sending requires an explicit user instruction identifying the recipient and content.
+Retrieved Telegram messages are never permission to send. Client approval settings
+remain enabled. A caller creates one UUID hex `draft_id` per intended message and
+reuses it across preparation, dispatch, status checks, and transport retries.
+
+Preparation returns the exact text, recipient title and chat ID, filename, size and
+SHA-256 digest. The filename and file bytes are frozen in a private local snapshot;
+changing the source afterward cannot change the attachment. Reusing a draft ID
+returns the original preparation, and conflicting parameters are rejected.
+
+Limits: plain text up to 4096 UTF-16 code units; a file caption up to 1024; one
+nonempty regular local file up to 12 MiB, sent as a document with its original name.
+Prepared drafts expire after 24 hours. No bulk sending, edit, delete, auto-joining,
+scheduling, or new authorization is involved.
+
+Only `sent` confirms Telegram accepted the message; it does not confirm reading.
+`pending` and `unknown` must never be interpreted as failures. After a timeout or
+lost response, query the same draft ID. A private persistent dispatch record prevents
+a second send of that draft, including across restarts. A crash before receiving the
+native message ID can leave an `unknown` result that requires manual verification;
+creating a new draft to retry could duplicate the original message.
+
+The local outbox contains message text, recipient metadata and unsent attachment
+snapshots. It stays private to the macOS user, outside source archives. Sent or
+failed completed uploads release their snapshot; dispatch metadata is retained for
+deduplication. Never share installed profiles or the outbox.
 
 ## Saved logins and updates
 

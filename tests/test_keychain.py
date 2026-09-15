@@ -2,8 +2,15 @@ from __future__ import annotations
 
 import subprocess
 from types import SimpleNamespace
+import pytest
 
 from telegram_search_mcp import keychain
+
+
+@pytest.fixture(autouse=True)
+def isolated_profile_binding(monkeypatch, tmp_path):
+    # Never inspect the developer's migrated Keychain namespace in unit tests.
+    monkeypatch.setenv("HOME", str(tmp_path))
 
 
 def test_set_secret_uses_detached_stdin_and_never_argv(monkeypatch) -> None:

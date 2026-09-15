@@ -135,6 +135,32 @@ async def test_roundtrip_four_reads_and_readiness(private_paths):
 
 
 @pytest.mark.asyncio
+async def test_two_clients_dispatch_one_prepared_send_and_status(private_paths, tmp_path):
+    import uuid
+    from test_outgoing import FakeSession, sends
+    from telegram_search_mcp.outgoing import Outbox
+    session = FakeSession()
+    box = Outbox(tmp_path / "outbox", session.user_id)
+    box.attach(session)
+    class Backend(ThreadBackend):
+        async def prepare_message(self, **params):
+            return await asyncio.to_thread(box.prepare, session, **params)
+        async def send_message(self, **params):
+            return await asyncio.to_thread(box.send, session, **params)
+        async def get_send_status(self, **params):
+            return await asyncio.to_thread(box.status, session, **params)
+    async with running(private_paths, Backend()):
+        a, b = [SharedTelegramBackend(paths=private_paths, autostart=False) for _ in range(2)]
+        draft_id = uuid.uuid4().hex
+        prepared = await a.prepare_message(draft_id=draft_id, recipient="@example", text="🌍" * 2000, file_path=None)
+        assert prepared["status"] == "prepared" and not sends(session)
+        results = await asyncio.gather(a.send_message(draft_id=draft_id), b.send_message(draft_id=draft_id))
+        assert all(r["status"] == "sent" for r in results)
+        assert (await b.get_send_status(draft_id=draft_id))["message_id"] == 456
+        assert len(sends(session)) == 1
+
+
+@pytest.mark.asyncio
 async def test_many_clients_share_one_serial_native_worker(private_paths):
     async with running(private_paths, queue_limit=32) as (_, backend):
         clients = [SharedTelegramBackend(paths=private_paths, autostart=False) for _ in range(20)]
@@ -269,9 +295,9 @@ async def test_lock_symlink_is_rejected_without_modifying_target(private_paths):
 
 
 @pytest.mark.asyncio
-async def test_no_write_or_generic_rpc_is_available(private_paths):
+async def test_no_unbounded_write_or_generic_rpc_is_available(private_paths):
     async with running(private_paths) as (_, backend):
-        for operation in ("send_message", "sendMessage", "close", "__dict__", "request", "logout"):
+        for operation in ("sendMessage", "sendMessageAlbum", "close", "__dict__", "request", "logout"):
             with pytest.raises(ServiceProtocolError, match="not permitted"):
                 await _request(private_paths, operation, {}, timeout=2)
         assert backend.calls == []

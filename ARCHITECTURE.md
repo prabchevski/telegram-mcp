@@ -14,9 +14,11 @@ The service handles one profile belonging to the current macOS user; other users
 and profiles are isolated. A separate lock prevents simultaneous service startups.
 The `tdlib.lock` file continues to protect the TDLib database.
 
-The service accepts a fixed set of requests: four read-only operations and local
-diagnostics/shutdown. It does not accept arbitrary TDLib methods, Python function
-names, media paths, or commands to execute through the connection.
+The service accepts a fixed set of requests: four read-only operations, local
+diagnostics/shutdown, and three bounded outgoing operations. Sending is disabled
+unless enabled locally. It does not accept arbitrary TDLib methods, Python function
+names, or commands to execute through the connection. Only outgoing preparation
+can accept a bounded local attachment path.
 
 ## Local connection
 
@@ -111,3 +113,27 @@ supported text may not work as context anchors. Videos are returned as thumbnail
 the application does not perform bulk history exports. TDLib caches media locally
 in the profile. Read-only restrictions apply to Telegram operations; authorization,
 the local database, cache, and installation settings still change as needed.
+
+
+## Optional outgoing operations (0.6)
+
+Sending is disabled by default. A private `sending.json` in the managed installation
+root controls discovery and native dispatch. `tgsearch sending on|off` refreshes only
+unchanged registered clients, preserving unrelated settings, removed registrations
+and approval prompts. Existing proxies cannot bypass a later local disable switch.
+
+The fixed local protocol adds prepare_message, send_message and get_send_status.
+No generic TDLib request transport is exposed. They use the same serialized worker
+and account-bound session as reads. Requests are bounded to 32 KiB; files are local
+snapshots, never JSON payloads. Attachments use TDLib 1.8 inputMessageDocument, plain
+text uses inputMessageText, and updates distinguish SendSucceeded from SendFailed.
+Schema reference: https://github.com/tdlib/td/blob/v1.8.0/td/generate/scheme/td_api.tl
+
+Each UUID draft has a private durable state file under the profile outbox. Preparation
+pins a numeric cloud-chat recipient and copies a bounded local attachment. Sending
+persists an uncertain dispatch marker before calling sendMessage. Receiver updates
+are matched by chat ID and temporary message ID, including updates that arrive before
+the initial response. Repeated dispatch never invokes sendMessage again. Across a
+crash without a native ID the result remains uncertain; at-most-once dispatch is not
+a guarantee that every attempted message reaches Telegram. Unknown results require
+inspection, never a blind resend with a new draft ID.

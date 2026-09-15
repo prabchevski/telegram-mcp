@@ -234,10 +234,22 @@ def command_updates(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_sending(args: argparse.Namespace) -> int:
+    from .launchers import installed_root
+    from .sending_settings import set_sending, sending_enabled
+    root = installed_root()
+    if root is None:
+        raise RuntimeError("Manage sending from an installed copy")
+    if args.action != "status":
+        set_sending(root, args.action == "on")
+    print(json.dumps({"enabled": sending_enabled(root), "activation": "restart MCP clients; restart the idle service after upgrading"}))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="tgsearch",
-        description="Local read-only global Telegram search setup",
+        description="Local Telegram search and optional sending setup",
     )
     from . import __version__
 
@@ -268,6 +280,9 @@ def build_parser() -> argparse.ArgumentParser:
     update.set_defaults(handler=command_update)
     updates = commands.add_parser("updates", help="manage daily automatic updates")
     updates.add_argument("action", choices=["status", "on", "off"])
+    sending = commands.add_parser("sending", help="enable or disable text and file sending locally")
+    sending.add_argument("action", choices=["status", "on", "off"])
+    sending.set_defaults(handler=command_sending)
     updates.set_defaults(handler=command_updates)
     return parser
 

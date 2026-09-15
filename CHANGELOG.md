@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.0 — local development
+
+- Add opt-in preparation, text/document sending, and outgoing status tools.
+- Pin the resolved recipient, exact text and private attachment snapshot before sending.
+- Persist dispatch state before TDLib calls; reuse the same draft ID without duplicate sends.
+- Distinguish confirmed, pending, rejected and uncertain results, including native update races.
+- Keep the four original tools and read-only default; retain client approval settings.
+- Reuse the shared account and service without copying or replacing the Telegram session.
+
 ## 0.5.0 — 2026-09-15
 
 - Add a Codex installation guide and scoped AGENTS.md for link-based setup.

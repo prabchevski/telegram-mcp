@@ -33,19 +33,23 @@ async def main():
     )
     async with Client(stdio_client(parameters)) as client:
         result = await client.list_tools()
-        assert {tool.name for tool in result.tools} == {
+        expected = {
             'telegram_search_messages', 'telegram_get_message',
             'telegram_get_context', 'telegram_get_media',
         }
-        assert len(result.tools) == 4
+        sending = len(sys.argv) > 2 and sys.argv[2] == 'sending'
+        if sending:
+            expected.update({'telegram_prepare_message', 'telegram_send_message', 'telegram_get_send_status'})
+        assert {tool.name for tool in result.tools} == expected
+        assert len(result.tools) == (7 if sending else 4)
         for tool in result.tools:
             assert tool.annotations is not None
-            assert tool.annotations.read_only_hint is True
+            assert tool.annotations.read_only_hint is (tool.name not in {'telegram_prepare_message', 'telegram_send_message'})
             assert tool.annotations.destructive_hint is False
 
 # Initialize/list only: never invoke a tool or ask the service to connect.
 asyncio.run(main())
-print('PASS: installed MCP stdio handshake and exactly four read-only tools.')
+print('PASS: installed MCP stdio handshake, tool set and annotations; sending=' + str(sending))
 """
 
 BACKGROUND_INSTALL_CHECK = """
@@ -121,6 +125,11 @@ def main() -> None:
             [str(second / ".venv" / "bin" / "python"), "-I", "-c", MCP_DISCOVERY_CHECK, str(install / "launch-mcp.command")],
             check=True, timeout=30,
         )
+        subprocess.run([str(second / "tgsearch"), "sending", "on"], check=True, timeout=30)
+        subprocess.run([str(second / "client-config"), "verify", "--clients", "both", "--codex-config", str(codex), "--gemini-config", str(gemini)], check=True, timeout=30)
+        subprocess.run([str(second / ".venv/bin/python"), "-I", "-c", MCP_DISCOVERY_CHECK, str(install / "launch-mcp.command"), "sending"], check=True, timeout=30)
+        subprocess.run([str(second / "tgsearch"), "sending", "off"], check=True, timeout=30)
+        subprocess.run([str(second / "client-config"), "verify", "--clients", "both", "--codex-config", str(codex), "--gemini-config", str(gemini)], check=True, timeout=30)
         print("PASS: verified archive, real isolated installation, both client registrations, immutable background update, CLI import, and stable-launcher MCP discovery. No Telegram authorization or tool invocation performed.")
 
 

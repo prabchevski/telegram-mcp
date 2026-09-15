@@ -43,6 +43,10 @@ def expected_entry(client: str, python: str, install_root: Path | None = None) -
         entry.update(enabled_tools=list(TOOLS), default_tools_approval_mode="prompt", supports_parallel_tool_calls=False, startup_timeout_sec=20, tool_timeout_sec=150)
     else:
         entry.update(timeout=TIMEOUT_MS, trust=False, description=DESCRIPTION, includeTools=list(TOOLS))
+    if install_root is not None:
+        from .sending_settings import OUTGOING_TOOLS, sending_enabled
+        if sending_enabled(install_root):
+            entry["enabled_tools" if client == "codex" else "includeTools"].extend(OUTGOING_TOOLS)
     return entry
 
 

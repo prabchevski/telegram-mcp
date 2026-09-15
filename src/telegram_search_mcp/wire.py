@@ -14,12 +14,13 @@ from typing import Any
 from .backend import RawMedia, RawMessage, RawMessagePage
 
 PROTOCOL_VERSION = 1
-MAX_REQUEST_BYTES = 8 * 1024
+MAX_REQUEST_BYTES = 32 * 1024
 MAX_MEDIA_BYTES = 12 * 1024 * 1024
 MAX_RESPONSE_BYTES = 18 * 1024 * 1024
 MAX_TIMEOUT = 120.0
 READ_OPERATIONS = frozenset({"search_messages", "get_message", "get_context", "get_media"})
 MANAGEMENT_OPERATIONS = frozenset({"status", "stop", "check_ready"})
+OUTGOING_OPERATIONS = frozenset({"prepare_message", "send_message", "get_send_status"})
 
 
 class ServiceError(RuntimeError):
@@ -59,7 +60,7 @@ def validate_request(value: Any) -> dict[str, Any]:
     if type(timeout) not in (int, float) or not math.isfinite(timeout) or not 0 < timeout <= MAX_TIMEOUT:
         raise ServiceProtocolError("Invalid request timeout")
     operation, params = value["operation"], value["params"]
-    if not isinstance(operation, str) or operation not in READ_OPERATIONS | MANAGEMENT_OPERATIONS:
+    if not isinstance(operation, str) or operation not in READ_OPERATIONS | MANAGEMENT_OPERATIONS | OUTGOING_OPERATIONS:
         raise ServiceProtocolError("Operation is not permitted")
     if not isinstance(params, dict):
         raise ServiceProtocolError("Invalid operation parameters")
@@ -69,9 +70,21 @@ def validate_request(value: Any) -> dict[str, Any]:
         "get_context": {"chat_id", "message_id", "before", "after"},
         "get_media": {"chat_id", "message_id", "quality", "max_bytes"},
         "status": set(), "stop": set(), "check_ready": set(),
+        "prepare_message": {"draft_id", "recipient", "text", "file_path"},
+        "send_message": {"draft_id"}, "get_send_status": {"draft_id"},
     }[operation]
     if set(params) != required:
         raise ServiceProtocolError("Invalid operation parameters")
+    if operation in OUTGOING_OPERATIONS:
+        from .outgoing import valid_id, validate_content
+        try:
+            valid_id(params["draft_id"])
+            if operation == "prepare_message":
+                if not isinstance(params["recipient"], str) or not 1 <= len(params["recipient"]) <= 64:
+                    raise ValueError("Invalid recipient")
+                validate_content(params["text"], params["file_path"])
+        except ValueError as exc:
+            raise ServiceProtocolError(str(exc)) from exc
     if "chat_id" in params:
         _integer(params["chat_id"], -(2**63), 2**63 - 1, "chat_id")
         _integer(params["message_id"], 1, 2**63 - 1, "message_id")
@@ -123,6 +136,8 @@ def _encode_message(message: RawMessage) -> dict[str, Any]:
 
 
 def encode_result(operation: str, result: Any) -> Any:
+    if operation in OUTGOING_OPERATIONS:
+        return _outgoing_result(result)
     if operation in MANAGEMENT_OPERATIONS:
         return result
     if operation == "search_messages":
@@ -165,6 +180,8 @@ def _decode_message(value: Any) -> RawMessage:
 
 
 def decode_result(operation: str, value: Any) -> Any:
+    if operation in OUTGOING_OPERATIONS:
+        return _outgoing_result(value)
     if operation in MANAGEMENT_OPERATIONS:
         if not isinstance(value, dict):
             raise ServiceProtocolError("Invalid service status")
@@ -210,3 +227,12 @@ def decode_result(operation: str, value: Any) -> Any:
             raise ServiceProtocolError("Media exceeds service transfer limit")
         return RawMedia(**{**value, "data": data})
     raise ServiceProtocolError("Operation is not permitted")
+
+
+def _outgoing_result(value: Any) -> dict:
+    from .models import OutgoingState
+    from pydantic import ValidationError
+    try:
+        return OutgoingState.model_validate(value, strict=True).model_dump()
+    except ValidationError as exc:
+        raise ServiceProtocolError("Invalid outgoing result") from exc

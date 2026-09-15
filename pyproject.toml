@@ -1,7 +1,7 @@
 [project]
 name = "telegram-search-mcp"
-version = "0.5.0"
-description = "Shared local read-only Telegram search for Codex and Gemini CLI on macOS"
+version = "0.6.0"
+description = "Shared local Telegram search with optional sending for Codex and Gemini CLI on macOS"
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]

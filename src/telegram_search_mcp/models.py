@@ -75,3 +75,20 @@ class MediaResult(OutputModel):
     height: int | None = Field(default=None, ge=1)
     quality: Literal["preview", "full"]
     is_preview: bool = False
+
+
+class OutgoingState(OutputModel):
+    draft_id: str = Field(pattern=r"^[0-9a-f]{32}$")
+    status: Literal["prepared", "unknown", "pending", "sent", "failed"]
+    chat_id: int
+    chat_title: str = Field(max_length=256)
+    text: str = Field(max_length=4096)
+    file_name: str | None
+    file_size: int | None = Field(ge=1, le=12 * 1024 * 1024)
+    file_sha256: str | None = Field(pattern=r"^[0-9a-f]{64}$")
+    message_id: int | None
+    detail: str = Field(max_length=256)
+
+
+class OutgoingResult(OutgoingState):
+    trust_boundary: TrustBoundary = Field(default_factory=TrustBoundary)

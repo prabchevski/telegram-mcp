@@ -92,7 +92,7 @@ async def _request(paths: ServicePaths, operation: str, params: dict[str, Any], 
     except TimeoutError as exc:
         raise ServiceTimeoutError("Telegram service request timed out; active native work will finish safely") from exc
     except (asyncio.IncompleteReadError, ConnectionError) as exc:
-        raise ServiceError("Telegram service connection ended during the request; retry the read") from exc
+        raise ServiceError("Telegram service connection ended. For outgoing messages, check the same draft ID; never create a replacement to retry") from exc
     finally:
         if writer is not None:
             writer.close()
@@ -248,3 +248,12 @@ class SharedTelegramBackend:
         # Connections are one-shot and closed in _request, including cancellation.
         # The daemon closes on explicit management stop or ten minutes idle.
         pass
+
+    async def prepare_message(self, *, draft_id: str, recipient: str, text: str, file_path: str | None) -> dict:
+        return await self._call("prepare_message", {"draft_id": draft_id, "recipient": recipient, "text": text, "file_path": file_path})
+
+    async def send_message(self, *, draft_id: str) -> dict:
+        return await self._call("send_message", {"draft_id": draft_id})
+
+    async def get_send_status(self, *, draft_id: str) -> dict:
+        return await self._call("get_send_status", {"draft_id": draft_id})

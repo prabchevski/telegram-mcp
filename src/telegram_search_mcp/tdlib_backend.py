@@ -301,6 +301,7 @@ class TDLibBackend:
         self._session: TdlibSession | None = None
         self._session_lock = threading.RLock()
         self._operation_lock = threading.Lock()
+        self._outbox = None
 
     async def search_messages(
         self, *, query: str, cursor: str | None, limit: int
@@ -348,6 +349,31 @@ class TDLibBackend:
 
     async def close(self) -> None:
         await asyncio.to_thread(self.close_sync)
+
+    async def prepare_message(self, *, draft_id: str, recipient: str, text: str, file_path: str | None) -> dict:
+        return await asyncio.to_thread(self._outgoing_sync, "prepare", draft_id=draft_id, recipient=recipient, text=text, file_path=file_path)
+
+    async def send_message(self, *, draft_id: str) -> dict:
+        return await asyncio.to_thread(self._outgoing_sync, "send", draft_id=draft_id)
+
+    async def get_send_status(self, *, draft_id: str) -> dict:
+        return await asyncio.to_thread(self._outgoing_sync, "status", draft_id=draft_id)
+
+    def _outgoing_sync(self, operation: str, **params) -> dict:
+        from .outgoing import Outbox
+        from .paths import profile_root
+        from .sending_settings import sending_enabled
+        if operation != "status" and not sending_enabled():
+            raise ValueError("Sending is disabled. Enable it locally with `tgsearch sending on` first")
+        with self._operation_lock:
+            policy = Policy.load(self.profile)
+            session = self._ready(policy)
+            if self._outbox is None:
+                self._outbox = Outbox(profile_root(self.profile) / "outbox", session.user_id)
+            if self._outbox.user_id != session.user_id:
+                raise ValueError("Outgoing account changed; restart the service")
+            self._outbox.attach(session.client)
+            return getattr(self._outbox, operation)(session, **params)
 
     async def check_ready(self) -> dict[str, bool]:
         """Check saved authorization through the same serialized TDLib session."""

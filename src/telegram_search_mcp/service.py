@@ -170,7 +170,7 @@ def error_result(exc: Exception) -> dict[str, str]:
     name = type(exc).__name__
     if name in known:
         return {"code": name, "message": str(exc)[:512]}
-    return {"code": "ServiceError", "message": "Telegram read operation failed. Run `tgsearch doctor --connect` locally."}
+    return {"code": "ServiceError", "message": "Telegram operation failed. For an outgoing message, check its existing draft ID before taking any further action."}
 
 
 @dataclass
