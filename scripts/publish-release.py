@@ -89,9 +89,22 @@ def api(path: str) -> dict | None:
     return json.loads(result.stdout)
 
 
+def release_info(tag: str) -> dict | None:
+    # REST releases/tags only resolves published tags. gh release view also
+    # finds drafts whose tag is created only when the release is published.
+    result = subprocess.run(['gh', 'release', 'view', tag, '--repo', REPOSITORY,
+                             '--json', 'isDraft,targetCommitish,assets'], capture_output=True, text=True)
+    if result.returncode:
+        if result.stderr.strip() == 'release not found':
+            return None
+        raise RuntimeError('Release lookup failed; publication was not attempted')
+    value = json.loads(result.stdout)
+    return {'draft': value['isDraft'], 'target_commitish': value['targetCommitish'], 'assets': value['assets']}
+
+
 def publish(version: str, assets: list[Path], notes: Path, sha: str) -> None:
     tag = 'v' + version
-    existing = api('releases/tags/' + tag)
+    existing = release_info(tag)
     if existing and not existing['draft']:
         print(f'{tag} is already published; its tag and assets remain unchanged.')
         return
@@ -109,7 +122,7 @@ def publish(version: str, assets: list[Path], notes: Path, sha: str) -> None:
                         '--title', 'Telegram MCP ' + version, '--notes-file', str(notes)], check=True)
     subprocess.run(['gh', 'release', 'upload', tag, '--repo', REPOSITORY, '--clobber',
                     *map(str, assets)], check=True)
-    uploaded = api('releases/tags/' + tag)
+    uploaded = release_info(tag)
     expected = {path.name: 'sha256:' + hashlib.sha256(path.read_bytes()).hexdigest() for path in assets}
     actual = {item['name']: item.get('digest') for item in uploaded['assets']}
     if actual != expected:

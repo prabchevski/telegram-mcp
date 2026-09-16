@@ -1,6 +1,8 @@
 """Release publication must retain old releases and verify every uploaded byte."""
 import hashlib
 import importlib.util
+import json
+import subprocess
 import tomllib
 from pathlib import Path
 
@@ -23,7 +25,7 @@ def assets(tmp_path):
 
 
 def test_published_release_is_never_overwritten(monkeypatch, assets):
-    monkeypatch.setattr(publication, 'api', lambda _: {'draft': False})
+    monkeypatch.setattr(publication, 'release_info', lambda _: {'draft': False})
     monkeypatch.setattr(publication.subprocess, 'run', lambda *a, **k: pytest.fail('must not mutate published release'))
     publication.publish('0.7.1', *assets, SHA)
 
@@ -34,6 +36,7 @@ def test_publish_only_after_all_uploaded_digests_match(monkeypatch, assets, bad_
     digest = 'sha256:' + hashlib.sha256(paths[0].read_bytes()).hexdigest()
     responses = iter([None, None, {'assets': [{'name': paths[0].name, 'digest': 'wrong' if bad_digest else digest}]}])
     monkeypatch.setattr(publication, 'api', lambda _: next(responses))
+    monkeypatch.setattr(publication, 'release_info', lambda _: next(responses))
     calls = []
     monkeypatch.setattr(publication.subprocess, 'run', lambda args, **kwargs: calls.append(args))
     if bad_digest:
@@ -50,6 +53,7 @@ def test_publish_only_after_all_uploaded_digests_match(monkeypatch, assets, bad_
 def test_release_at_another_commit_is_not_replaced(monkeypatch, assets, conflict):
     responses = iter([{'draft': True, 'target_commitish': 'b' * 40}] if conflict == 'draft' else [None, {'object': {'type': 'commit', 'sha': 'b' * 40}}])
     monkeypatch.setattr(publication, 'api', lambda _: next(responses))
+    monkeypatch.setattr(publication, 'release_info', lambda _: next(responses))
     monkeypatch.setattr(publication.subprocess, 'run', lambda *a, **k: pytest.fail('must not mutate different commit'))
     with pytest.raises(RuntimeError, match='different commit|exact commit'):
         publication.publish('0.7.1', *assets, SHA)
@@ -70,3 +74,21 @@ def test_current_notes_include_upgrade_exceptions():
     notes = publication.current_notes(ROOT, version)
     assert 'Pre-rename 0.6.0' in notes and '0.7.0 installations stranded' in notes
     assert 'physical Intel' in notes
+
+
+def test_draft_lookup_uses_cli_before_github_creates_tag(monkeypatch):
+    def run(args, **kwargs):
+        assert args[:3] == ['gh', 'release', 'view']
+        return subprocess.CompletedProcess(args, 0, json.dumps({'isDraft': True, 'targetCommitish': SHA, 'assets': []}), '')
+    monkeypatch.setattr(publication.subprocess, 'run', run)
+    assert publication.release_info('v0.7.1') == {'draft': True, 'target_commitish': SHA, 'assets': []}
+
+
+@pytest.mark.parametrize('error,absent', [('release not found\n', True), ('authentication failed\n', False)])
+def test_release_lookup_distinguishes_absence_from_request_failure(monkeypatch, error, absent):
+    monkeypatch.setattr(publication.subprocess, 'run', lambda args, **kw: subprocess.CompletedProcess(args, 1, '', error))
+    if absent:
+        assert publication.release_info('v0.7.1') is None
+    else:
+        with pytest.raises(RuntimeError, match='lookup failed'):
+            publication.release_info('v0.7.1')

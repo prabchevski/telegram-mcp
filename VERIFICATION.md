@@ -2,7 +2,7 @@
 
 ## Version 0.7.1 — September 16, 2026
 
-- 281 automated tests passed locally, including publication checks. The 272 core
+- 284 automated tests passed locally, including publication checks. The 272 core
   tests and the Linux/macOS Python 3.12/3.14
   matrix passed for the migration implementation. Publication checks additionally
   cover matching artifacts, release notes and immutable published versions.
