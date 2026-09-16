@@ -1,12 +1,15 @@
-# Install or upgrade with Codex
+# Install or upgrade with Codex or Gemini CLI
 
 This guide is for an agent acting on a user's explicit installation request. It
-supports local Codex app/CLI on macOS, with optional local Gemini CLI integration.
+supports local Codex app/CLI and Gemini CLI on macOS equally. Either agent can
+perform the installation directly; Gemini CLI does not require Codex.
 Do not run the personal installation while merely reviewing or developing this repo.
 
 ## 1. Inspect and obtain the source
 
-Confirm macOS and the intended local client. Inspect only the relevant existing
+Confirm macOS and the intended local client. Unless the user specifies otherwise,
+configure the client running this instruction: `codex` for Codex, `gemini` for Gemini
+CLI. Use `both` only when the user requests both. Inspect only the relevant existing
 Telegram MCP entries and installation markers; preserve unrelated client settings.
 Do not print whole client configuration files, which may contain other credentials.
 Use the canonical repository: https://github.com/prabchevski/telegram-mcp.
@@ -34,13 +37,21 @@ permissions of system Python or replace an unrelated Python environment.
 
 ## 3. Install and adopt a compatible saved login
 
-From the downloaded source, run:
+From the downloaded source, run the command for the selected client.
+
+For Codex:
 
 ```sh
 bash install-macos.command --clients codex --prepare-only --upgrade --auto-update on
 ```
 
-Use `--clients gemini` or `both` if requested. `--upgrade` also refreshes recognized
+For Gemini CLI:
+
+```sh
+bash install-macos.command --clients gemini --prepare-only --upgrade --auto-update on
+```
+
+Use `--clients both` if requested. `--upgrade` also refreshes recognized
 existing Telegram entries in the other client; it does not enable an absent client.
 Respect the user's existing CODEX_HOME or GEMINI_CLI_HOME, or pass absolute
 `--codex-config` / `--gemini-config` paths when needed. The installer creates private
@@ -115,6 +126,6 @@ The owner can disable updates with
 `current/tgsearch updates off`, check immediately with `current/tgsearch update
 --check`, or install a checked update with `current/tgsearch update`.
 
-See [INSTALL_MACOS.md](INSTALL_MACOS.md) for troubleshooting and
-[Codex MCP documentation](https://learn.chatgpt.com/docs/extend/mcp?surface=cli)
-for client configuration details.
+See [INSTALL_MACOS.md](INSTALL_MACOS.md) for troubleshooting. Client references:
+[Codex MCP](https://learn.chatgpt.com/docs/extend/mcp?surface=cli) and
+[Gemini CLI MCP](https://geminicli.com/docs/tools/mcp-server/).

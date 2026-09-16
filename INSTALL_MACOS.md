@@ -9,7 +9,7 @@
 
 Standard Homebrew paths support Apple Silicon and Intel layouts; see
 [VERIFICATION.md](VERIFICATION.md) for the devices actually tested.
-To let Codex handle setup, use [INSTALL_WITH_CODEX.md](INSTALL_WITH_CODEX.md).
+For setup through Codex or Gemini CLI, use [INSTALL_WITH_AI.md](INSTALL_WITH_AI.md).
 
 ## Download and install
 
@@ -42,7 +42,7 @@ installer does not itself verify that the client app is installed or has reloade
 
 ## Installation without interactive authorization
 
-For Codex-assisted setup and migration:
+For AI-assisted setup and migration (use `--clients gemini` for Gemini CLI):
 
 ```sh
 bash install-macos.command --clients codex --prepare-only --upgrade --auto-update on

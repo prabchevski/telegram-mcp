@@ -1,5 +1,32 @@
 # Verification
 
+## Version 0.7.2 — September 16, 2026
+
+- Rename the shared agent installation guide to `INSTALL_WITH_AI.md` and describe
+  Codex and Gemini CLI equally, including a separate command for each client.
+- Update all current documentation, required archive files and generated release
+  links to the new guide name. Historical releases retain their original files.
+- The unchanged 284-test suite, source inventory, archive/wheel verification and
+  actual isolated macOS install/0.6.1 migration checks cover this documentation release.
+- Runtime behavior, tool counts and verification limits remain those of 0.7.1.
+
+Current reproducible checks:
+
+```sh
+uv run --frozen pytest
+uv run --frozen python -I scripts/release.py audit
+uv run --frozen python -I scripts/release.py build --output dist
+uv build --wheel --out-dir dist
+uv run --frozen python -I scripts/release.py verify-wheel dist/telegram_search_mcp-0.7.2-py3-none-any.whl
+uv run --frozen python -I scripts/smoke-install-macos.py dist/telegram-mcp-macos-v0.7.2.zip
+uv run --frozen python -I scripts/smoke-upgrade-06.py dist/telegram-mcp-macos-v0.7.2.zip
+python3 -I scripts/publish-release.py dist
+```
+
+The last command only prepares and verifies publication files; publication is a
+separate CI step after the test and archive jobs succeed. Actual run results are
+available in [GitHub Actions](https://github.com/prabchevski/telegram-mcp/actions).
+
 ## Version 0.7.1 — September 16, 2026
 
 - 284 automated tests passed locally, including publication checks. The 272 core
@@ -18,23 +45,6 @@
 - Existing Telegram login/session files, Keychain and personal client settings are
   not accessed by the development/install tests. A full daily cycle on another
   person's computer and a live Gemini CLI model session remain unverified.
-
-Current reproducible checks:
-
-```sh
-uv run --frozen pytest
-uv run --frozen python -I scripts/release.py audit
-uv run --frozen python -I scripts/release.py build --output dist
-uv build --wheel --out-dir dist
-uv run --frozen python -I scripts/release.py verify-wheel dist/telegram_search_mcp-0.7.1-py3-none-any.whl
-uv run --frozen python -I scripts/smoke-install-macos.py dist/telegram-mcp-macos-v0.7.1.zip
-uv run --frozen python -I scripts/smoke-upgrade-06.py dist/telegram-mcp-macos-v0.7.1.zip
-python3 -I scripts/publish-release.py dist
-```
-
-The last command only prepares and verifies publication files; publication is a
-separate CI step after the test and archive jobs succeed. Actual run results are
-available in [GitHub Actions](https://github.com/prabchevski/telegram-mcp/actions).
 
 ## Version 0.7.0 — September 16, 2026
 

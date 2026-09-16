@@ -6,8 +6,8 @@ and mobile app are not supported.
 
 ## Before you start
 
-Prefer Codex to handle setup? Send it the repository link and ask it to follow
-[INSTALL_WITH_CODEX.md](INSTALL_WITH_CODEX.md). It can also upgrade an older archive.
+Prefer AI-assisted setup? Give Codex or Gemini CLI the repository link and ask it to follow
+[INSTALL_WITH_AI.md](INSTALL_WITH_AI.md). It can also upgrade an older archive.
 
 1. Install the client you want to use: Codex or Gemini CLI.
 2. Install [Homebrew](https://brew.sh/) if you do not already have it.
