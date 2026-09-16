@@ -24,7 +24,9 @@ will establish the exact installed revision.
 
 ## 2. Prepare dependencies
 
-The installer uses Homebrew uv and TDLib 1.8.0, then downloads a managed Python 3.13.
+The installer uses Homebrew uv and a managed Python 3.13. TDLib 1.8.67 is pinned:
+Apple Silicon uses a locked wheel; Intel builds the pinned official source with
+cmake, gperf, and OpenSSL (the first build can take several minutes).
 If Homebrew or Apple's command-line tools are missing, help install them using
 their official instructions. Any administrator password or system dialog belongs
 to the owner in their Terminal/UI. Do not request passwords in chat. Do not repair
@@ -83,8 +85,10 @@ auth; never stop an active operation without coordinating with the owner.
   clients), using the same explicit configuration paths if any.
 - Confirm `current/tgsearch --version` and `current/tgsearch updates status`.
 - Check standard MCP initialization/tool discovery when available: four read-only
-  tools by default, or seven tools when sending is enabled, without reading Telegram
+  tools plus voice listing and recognition by default (six total), or nine with sending, without reading Telegram
   messages. Registration alone is not a connection test.
+- Stop the old shared service once it is idle before connecting the new TDLib.
+  Reuse the existing profile in place; do not run an older TDLib against an upgraded database.
 - Restart/reload the selected MCP client to load the new registration. If restarting
   the app would end this conversation, finish the preparation and state that remaining
   user step clearly. Do not claim client integration is live without evidence.

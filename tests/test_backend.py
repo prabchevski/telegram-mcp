@@ -93,6 +93,7 @@ class FakeSession:
 
 
 def configured_backend(monkeypatch: pytest.MonkeyPatch) -> tuple[TDLibBackend, FakeSession]:
+    monkeypatch.setattr(backend_module, "SCHEMA", TdlibSchema.V1_8)
     policy = Policy(api_id=12345, expected_user_id=7)
     session = FakeSession(policy)
     monkeypatch.setattr(

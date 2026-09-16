@@ -462,6 +462,8 @@ def tdjson_library_candidates(explicit_path: str | os.PathLike[str] | None = Non
     # Do not accept TDJSON_LIBRARY from the ambient environment. Gemini CLI can
     # inherit workspace .env values, and loading a library named there would
     # let a project redirect this local server to arbitrary native code.
+    from .native_runtime import candidates
+    values.extend(candidates())
     values.extend(
         [
             "/opt/homebrew/opt/tdlib/lib/libtdjson.dylib",

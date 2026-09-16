@@ -36,15 +36,16 @@ async def main():
         expected = {
             'telegram_search_messages', 'telegram_get_message',
             'telegram_get_context', 'telegram_get_media',
+            'telegram_list_voice_messages', 'telegram_transcribe_voice',
         }
         sending = len(sys.argv) > 2 and sys.argv[2] == 'sending'
         if sending:
             expected.update({'telegram_prepare_message', 'telegram_send_message', 'telegram_get_send_status'})
         assert {tool.name for tool in result.tools} == expected
-        assert len(result.tools) == (7 if sending else 4)
+        assert len(result.tools) == (9 if sending else 6)
         for tool in result.tools:
             assert tool.annotations is not None
-            assert tool.annotations.read_only_hint is (tool.name not in {'telegram_prepare_message', 'telegram_send_message'})
+            assert tool.annotations.read_only_hint is (tool.name not in {'telegram_prepare_message', 'telegram_send_message', 'telegram_transcribe_voice'})
             assert tool.annotations.destructive_hint is False
 
 # Initialize/list only: never invoke a tool or ask the service to connect.

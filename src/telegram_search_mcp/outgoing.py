@@ -225,7 +225,7 @@ class Outbox:
             if time.time() - value["created_at"] > DRAFT_TTL:
                 raise ValueError("Draft expired; prepare a new reviewed message")
             content = {"@type": "inputMessageText", "text": {"@type": "formattedText", "text": value["text"], "entities": []},
-                       "disable_web_page_preview": True, "clear_draft": False}
+                       "link_preview_options": {"@type": "linkPreviewOptions", "is_disabled": True}, "clear_draft": False}
             if value["file_name"]:
                 path = self.directory / draft_id / value["file_name"]
                 _assert_private_file(path)
@@ -236,8 +236,8 @@ class Outbox:
             value.update(status="unknown", detail="Dispatch may have started; do not resend with a new draft ID")
             self._save(value)
         try:
-            message = session.request({"@type": "sendMessage", "chat_id": value["chat_id"], "message_thread_id": 0,
-                                       "reply_to_message_id": 0, "options": {"@type": "messageSendOptions", "disable_notification": False,
+            message = session.request({"@type": "sendMessage", "chat_id": value["chat_id"], "topic_id": None,
+                                       "reply_to": None, "options": {"@type": "messageSendOptions", "disable_notification": False,
                                        "from_background": False, "scheduling_state": None}, "reply_markup": None,
                                        "input_message_content": content}, timeout=30.0)
         except TdlibError:

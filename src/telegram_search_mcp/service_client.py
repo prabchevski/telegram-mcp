@@ -257,3 +257,9 @@ class SharedTelegramBackend:
 
     async def get_send_status(self, *, draft_id: str) -> dict:
         return await self._call("get_send_status", {"draft_id": draft_id})
+
+    async def list_voice_messages(self, *, chat_id: int, before_message_id: int, limit: int) -> RawMessagePage:
+        return await self._call("list_voice_messages", {"chat_id": chat_id, "before_message_id": before_message_id, "limit": limit})
+
+    async def transcribe_voice(self, *, chat_id: int, message_id: int, wait_seconds: int, start: bool) -> dict:
+        return await self._call("transcribe_voice", {"chat_id": chat_id, "message_id": message_id, "wait_seconds": wait_seconds, "start": start})

@@ -84,9 +84,13 @@ find_brew() {
 }
 if [[ "$SKIP_SYSTEM_DEPS" == false ]]; then
   BREW_BIN="$(find_brew)" || fail "Install Homebrew from https://brew.sh/ and try again."
-  printf '\nChecking uv and TDLib. Missing dependencies will be downloaded…\n'
+  printf '\nChecking uv. Missing dependencies will be downloaded…\n'
   "$BREW_BIN" list --versions uv >/dev/null 2>&1 || "$BREW_BIN" install uv
-  "$BREW_BIN" list --versions tdlib >/dev/null 2>&1 || "$BREW_BIN" install tdlib
+  if [[ "$(/usr/bin/uname -m)" == x86_64 ]]; then
+    for dependency in cmake gperf openssl@3; do
+      "$BREW_BIN" list --versions "$dependency" >/dev/null 2>&1 || "$BREW_BIN" install "$dependency"
+    done
+  fi
   UV_BIN="$("$BREW_BIN" --prefix)/bin/uv"
 else
   UV_BIN="${TGSEARCH_INSTALL_UV:-$(command -v uv || true)}"

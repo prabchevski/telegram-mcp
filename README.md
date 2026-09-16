@@ -1,6 +1,6 @@
-# Telegram MCP · 0.6.1
+# Telegram MCP · 0.7.0
 
-Search your Telegram chats and optionally send text and files with
+Search your Telegram chats, transcribe voice messages, and optionally send text and files with
 **Codex and Gemini CLI on macOS**.
 One installation and one Telegram login serve both clients at the same time.
 This is an unofficial project. Gemini's web and mobile apps are not supported.
@@ -33,11 +33,52 @@ See the [quick start](START_HERE.md).
 | `telegram_get_context` | Retrieve up to five text messages on either side of a matching message |
 | `telegram_get_media` | Retrieve a photo, supported audio, PDF, or video thumbnail; previews up to 2 MiB, full media up to 12 MiB |
 
-The default installation is read-only. Text and document sending can be enabled
+The default installation includes reading and explicitly requested Telegram speech recognition.
+Text and document sending can be enabled
 explicitly as described below. Editing and deletion are not supported. Secret Chats are not supported.
 Protected and self-destructing media are rejected. Access to history follows your
 Telegram account's permissions. Returned text and titles are marked as external,
 untrusted data. Retrieved Telegram content is shared with the selected AI client.
+
+## Voice messages and Telegram transcription
+
+| Tool | Result |
+| --- | --- |
+| `telegram_list_voice_messages` | List up to 20 recent voice notes and video notes in a known chat, newest first, with pagination |
+| `telegram_transcribe_voice` | Ask Telegram for the transcript of one voice note or video note and return text |
+
+For example: “Transcribe the penultimate voice message in this chat.” The agent can
+find the chat ID using a relevant text search, list voice messages, then transcribe
+the selected message. Voice messages without captions also remain available through
+`telegram_get_message` and `telegram_get_context`.
+
+Recognition runs in Telegram. No separate speech API key, local model, or audio
+upload to another transcription provider is required. Telegram's Premium/free-quota,
+duration, and account restrictions apply. Only start recognition on an explicit
+user request; it may consume the user's Telegram transcription quota.
+
+The result is `completed`, `pending`, `not_started`, `unavailable`, or `failed`.
+A pending result may contain partial text. Poll it with `start=false`; repeated calls
+reuse Telegram's cached result. A private request marker prevents a second start
+after a timeout or process restart. If dispatch was interrupted before Telegram
+accepted it, the result can remain pending and needs manual checking in Telegram.
+Protected, self-destructing, and secret-chat messages are excluded. Text is bounded
+to 32,000 characters, with an explicit truncation flag, and is untrusted content.
+
+The default tool set now contains six tools; enabling sending makes nine.
+For an existing 0.6 installation, rerun the installer once with `--upgrade` to refresh
+the client tool allowlists. The old background updater preserves those allowlists;
+it cannot expose newly added tools by itself.
+
+### Native runtime upgrade
+
+TDLib is pinned to 1.8.67 and its exact source commit. Apple Silicon Macs use the
+hash-locked `tdjson` wheel from PyPI; Intel Macs build the same pinned official TDLib
+source once with Homebrew cmake, gperf and OpenSSL. Both version and commit are checked
+before opening a profile. The build is reused by subsequent Intel installations.
+The existing Telegram profile and Keychain remain in place. TDLib can upgrade its
+database format: do not manually launch an older installation against that upgraded
+profile. Close the idle old shared service or let it exit before first use.
 
 ## Optional text and file sending
 

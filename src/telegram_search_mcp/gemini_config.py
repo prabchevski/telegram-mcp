@@ -20,8 +20,10 @@ TOOLS = (
     "telegram_get_message",
     "telegram_get_context",
     "telegram_get_media",
+    "telegram_list_voice_messages",
+    "telegram_transcribe_voice",
 )
-DESCRIPTION = "Local bounded read-only Telegram search (unofficial)"
+DESCRIPTION = "Local bounded Telegram search and native voice transcription (unofficial)"
 TIMEOUT_MS = 150_000
 RegistrationState = Literal["absent", "refresh", "exact"]
 

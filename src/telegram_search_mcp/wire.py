@@ -18,7 +18,8 @@ MAX_REQUEST_BYTES = 32 * 1024
 MAX_MEDIA_BYTES = 12 * 1024 * 1024
 MAX_RESPONSE_BYTES = 18 * 1024 * 1024
 MAX_TIMEOUT = 120.0
-READ_OPERATIONS = frozenset({"search_messages", "get_message", "get_context", "get_media"})
+READ_OPERATIONS = frozenset({"search_messages", "get_message", "get_context", "get_media", "list_voice_messages"})
+SPEECH_OPERATIONS = frozenset({"transcribe_voice"})
 MANAGEMENT_OPERATIONS = frozenset({"status", "stop", "check_ready"})
 OUTGOING_OPERATIONS = frozenset({"prepare_message", "send_message", "get_send_status"})
 
@@ -60,7 +61,7 @@ def validate_request(value: Any) -> dict[str, Any]:
     if type(timeout) not in (int, float) or not math.isfinite(timeout) or not 0 < timeout <= MAX_TIMEOUT:
         raise ServiceProtocolError("Invalid request timeout")
     operation, params = value["operation"], value["params"]
-    if not isinstance(operation, str) or operation not in READ_OPERATIONS | MANAGEMENT_OPERATIONS | OUTGOING_OPERATIONS:
+    if not isinstance(operation, str) or operation not in READ_OPERATIONS | MANAGEMENT_OPERATIONS | OUTGOING_OPERATIONS | SPEECH_OPERATIONS:
         raise ServiceProtocolError("Operation is not permitted")
     if not isinstance(params, dict):
         raise ServiceProtocolError("Invalid operation parameters")
@@ -69,6 +70,8 @@ def validate_request(value: Any) -> dict[str, Any]:
         "get_message": {"chat_id", "message_id"},
         "get_context": {"chat_id", "message_id", "before", "after"},
         "get_media": {"chat_id", "message_id", "quality", "max_bytes"},
+        "list_voice_messages": {"chat_id", "before_message_id", "limit"},
+        "transcribe_voice": {"chat_id", "message_id", "wait_seconds", "start"},
         "status": set(), "stop": set(), "check_ready": set(),
         "prepare_message": {"draft_id", "recipient", "text", "file_path"},
         "send_message": {"draft_id"}, "get_send_status": {"draft_id"},
@@ -87,7 +90,15 @@ def validate_request(value: Any) -> dict[str, Any]:
             raise ServiceProtocolError(str(exc)) from exc
     if "chat_id" in params:
         _integer(params["chat_id"], -(2**63), 2**63 - 1, "chat_id")
+    if "message_id" in params:
         _integer(params["message_id"], 1, 2**63 - 1, "message_id")
+    if operation == "transcribe_voice":
+        _integer(params["wait_seconds"], 0, 60, "wait_seconds")
+        if type(params["start"]) is not bool:
+            raise ServiceProtocolError("Invalid start flag")
+    if operation == "list_voice_messages":
+        _integer(params["before_message_id"], 0, 2**63 - 1, "before_message_id")
+        _integer(params["limit"], 1, 20, "limit")
     if operation == "search_messages":
         query, cursor = params["query"], params["cursor"]
         if not isinstance(query, str) or not 2 <= len(query) <= 200 or not query.strip():
@@ -136,11 +147,14 @@ def _encode_message(message: RawMessage) -> dict[str, Any]:
 
 
 def encode_result(operation: str, result: Any) -> Any:
+    if operation in SPEECH_OPERATIONS:
+        from .models import TranscriptionResult
+        return TranscriptionResult.model_validate(result).model_dump(exclude={"trust_boundary"})
     if operation in OUTGOING_OPERATIONS:
         return _outgoing_result(result)
     if operation in MANAGEMENT_OPERATIONS:
         return result
-    if operation == "search_messages":
+    if operation in {"search_messages", "list_voice_messages"}:
         if len(result.items) > 20:
             raise ServiceProtocolError("Too many messages in service result")
         return {"items": [_encode_message(item) for item in result.items], "next_cursor": result.next_cursor}
@@ -180,6 +194,9 @@ def _decode_message(value: Any) -> RawMessage:
 
 
 def decode_result(operation: str, value: Any) -> Any:
+    if operation in SPEECH_OPERATIONS:
+        from .models import TranscriptionResult
+        return TranscriptionResult.model_validate(value).model_dump(exclude={"trust_boundary"})
     if operation in OUTGOING_OPERATIONS:
         return _outgoing_result(value)
     if operation in MANAGEMENT_OPERATIONS:
@@ -192,7 +209,7 @@ def decode_result(operation: str, value: Any) -> Any:
         if not isinstance(value, list) or len(value) > 11:
             raise ServiceProtocolError("Invalid context result")
         return tuple(_decode_message(item) for item in value)
-    if operation == "search_messages":
+    if operation in {"search_messages", "list_voice_messages"}:
         if not isinstance(value, dict) or set(value) != {"items", "next_cursor"}:
             raise ServiceProtocolError("Invalid search result")
         items, cursor = value["items"], value["next_cursor"]

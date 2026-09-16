@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.0 — 2026-09-16
+
+- Add Telegram-native voice/video-note transcription with final and pending text, account-limit errors, and duplicate-start protection.
+- Add bounded voice-message listing and preserve voice-only messages in message/context retrieval.
+- Pin TDLib 1.8.67 and its source commit; adapt authorization, search pagination, and outgoing requests.
+- Register six default tools or nine with sending for both Codex and Gemini CLI.
+
 ## 0.6.1 — 2026-09-15
 
 - Rename the public repository and project to Telegram MCP.

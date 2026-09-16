@@ -495,7 +495,7 @@ async def test_two_actual_mcp_stdio_processes_share_service_and_can_exit(private
                 command=sys.executable, args=[helper, "mcp", str(private_paths.directory)])))) for _ in range(2)]
             for client in clients:
                 assert {tool.name for tool in (await client.list_tools()).tools} == {
-                    "telegram_search_messages", "telegram_get_message", "telegram_get_context", "telegram_get_media"}
+                    "telegram_search_messages", "telegram_get_message", "telegram_get_context", "telegram_get_media", "telegram_list_voice_messages", "telegram_transcribe_voice"}
             assert not private_paths.socket.exists(), "MCP initialization must stay lazy"
             replies = await asyncio.gather(*(client.call_tool("telegram_get_message", {"chat_id": 1, "message_id": i + 1})
                 for i, client in enumerate(clients * 3)))
@@ -521,3 +521,21 @@ async def test_full_12_mib_media_crosses_real_socket(private_paths):
         backend = SharedTelegramBackend(paths=private_paths, autostart=False)
         result = await backend.get_media(chat_id=1, message_id=1, quality="full", max_bytes=MAX_MEDIA_BYTES)
         assert len(result.data) == 12 * 1024 * 1024 and result.data == b"x" * MAX_MEDIA_BYTES
+
+
+@pytest.mark.asyncio
+async def test_two_clients_share_native_transcription_without_second_start(private_paths, tmp_path):
+    from test_speech import Session, dispatched
+    from telegram_search_mcp.speech import transcribe
+    session = Session()
+    class Backend(ThreadBackend):
+        async def transcribe_voice(self, **params):
+            return await asyncio.to_thread(transcribe, session, tmp_path / 'recognition', **params)
+        async def list_voice_messages(self, **params):
+            return RawMessagePage((await self.get_message(chat_id=params['chat_id'], message_id=10),), None)
+    async with running(private_paths, Backend()):
+        a, b = [SharedTelegramBackend(paths=private_paths, autostart=False) for _ in range(2)]
+        assert (await a.list_voice_messages(chat_id=123, before_message_id=0, limit=10)).items[0].message_id == 10
+        results = await asyncio.gather(*[client.transcribe_voice(chat_id=123, message_id=10, wait_seconds=0, start=True) for client in (a, b)])
+        assert all(result['status'] == 'completed' and result['text'] == 'Привет!' for result in results)
+        assert len(dispatched(session)) == 1

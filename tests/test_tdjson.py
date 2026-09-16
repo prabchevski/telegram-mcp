@@ -371,13 +371,15 @@ class DiscoveryTests(unittest.TestCase):
             candidates = tdjson_library_candidates(explicit)
 
         self.assertEqual(
-            candidates,
+            (candidates[0], *candidates[-2:]),
             (
                 Path(explicit),
                 Path("/opt/homebrew/opt/tdlib/lib/libtdjson.dylib"),
                 Path("/usr/local/opt/tdlib/lib/libtdjson.dylib"),
             ),
         )
+
+        self.assertNotIn(Path(injected), candidates)
 
     def test_homebrew_cellar_path_infers_legacy_schema(self) -> None:
         self.assertIs(

@@ -44,8 +44,9 @@ from .tdjson import (
     TdlibSchema,
 )
 
-SCHEMA = TdlibSchema.V1_8
-EXPECTED_TDLIB_VERSION = "1.8.0"
+from .native_runtime import VERSION as EXPECTED_TDLIB_VERSION
+
+SCHEMA = TdlibSchema.CURRENT
 CURSOR_VERSION = 1
 MAX_RAW_PAGES = 5
 RAW_PAGE_SIZE = 50
@@ -138,6 +139,8 @@ class TdlibSession:
                     application_version=__version__,
                 )
                 self.transport = CtypesTdJsonTransport(log_verbosity=0)
+                from .native_runtime import verify
+                verify(self.transport.library_path)
                 self.client = TdClient(self.transport)
                 machine = AuthorizationMachine(parameters, SCHEMA)
                 self.authorization = AuthorizationController(self.client, machine)
@@ -313,6 +316,50 @@ class TDLibBackend:
             limit=limit,
         )
 
+    async def list_voice_messages(self, *, chat_id: int, before_message_id: int = 0, limit: int = 10) -> RawMessagePage:
+        return await asyncio.to_thread(self._list_voice_sync, chat_id=chat_id, before_message_id=before_message_id, limit=limit)
+
+    def _list_voice_sync(self, *, chat_id: int, before_message_id: int, limit: int) -> RawMessagePage:
+        if not 1 <= limit <= 20 or before_message_id < 0:
+            raise ValueError("Invalid voice-list bounds")
+        policy = Policy.load(self.profile)
+        with self._operation_lock:
+            session = self._ready(policy)
+            chat = session.get_chat(chat_id)
+            _reject_secret_chat(chat)
+            response = session.request(TdApi(SCHEMA).search_chat_messages(
+                chat_id, "", from_message_id=before_message_id, limit=limit + 1,
+                filter_={"@type": "searchMessagesFilterVoiceAndVideoNote"}))
+            items = []
+            for message in response.get("messages", []):
+                if message.get("chat_id") != chat_id or (before_message_id and message.get("id", 0) >= before_message_id):
+                    continue
+                from .speech import voice_payload
+                if voice_payload(message) is None:
+                    continue
+                item = _raw_message(session, message, {chat_id: str(chat.get("title", ""))})
+                if item is not None:
+                    items.append(item)
+            items.sort(key=lambda item: (item.sent_at, item.message_id), reverse=True)
+            selected = items[:limit]
+            next_id = selected[-1].message_id if selected and (len(items) >= limit or response.get("next_from_message_id")) else 0
+            self._verify_profile(policy, session)
+            return RawMessagePage(tuple(selected), str(next_id) if next_id else None)
+
+    async def transcribe_voice(self, *, chat_id: int, message_id: int, wait_seconds: int = 20, start: bool = True) -> dict:
+        return await asyncio.to_thread(self._transcribe_sync, chat_id=chat_id, message_id=message_id, wait_seconds=wait_seconds, start=start)
+
+    def _transcribe_sync(self, **params) -> dict:
+        from .paths import profile_root
+        from .speech import transcribe
+        policy = Policy.load(self.profile)
+        with self._operation_lock:
+            session = self._ready(policy)
+            _reject_secret_chat(session.get_chat(params["chat_id"]))
+            result = transcribe(session, profile_root(self.profile) / "recognition", **params)
+            self._verify_profile(policy, session)
+            return result
+
     async def get_message(
         self, *, chat_id: int, message_id: int
     ) -> RawMessage | None:
@@ -416,6 +463,8 @@ class TDLibBackend:
     def _search_messages_sync(
         self, *, query: str, cursor: str | None, limit: int
     ) -> RawMessagePage:
+        if SCHEMA is TdlibSchema.CURRENT:
+            return self._search_current(query=query, cursor=cursor, limit=limit)
         normalized = query.strip()
         if not normalized:
             raise ValueError("query must not be blank")
@@ -480,6 +529,56 @@ class TDLibBackend:
                 else None
             )
             return RawMessagePage(tuple(results[:limit]), next_cursor)
+
+    def _search_current(self, *, query: str, cursor: str | None, limit: int) -> RawMessagePage:
+        normalized = query.strip()
+        if not normalized or not 1 <= limit <= 20:
+            raise ValueError("Invalid search bounds")
+        offset, skip = "", 0
+        if cursor:
+            try:
+                data = json.loads(base64.b64decode(cursor + "=" * (-len(cursor) % 4), altchars=b"-_", validate=True))
+                if (data.get("v") != 2 or data.get("q") != _query_digest(normalized)
+                        or not isinstance(data.get("o"), str) or type(data.get("s")) is not int
+                        or not 0 <= data["s"] <= RAW_PAGE_SIZE):
+                    raise ValueError
+                offset, skip = data["o"], data["s"]
+            except (ValueError, TypeError, AttributeError, binascii.Error) as exc:
+                raise CursorError("Invalid search cursor; restart the search after upgrading") from exc
+        policy = Policy.load(self.profile)
+        with self._operation_lock:
+            deadline = time.monotonic() + OPERATION_TIMEOUT
+            session = self._ready(policy, timeout=_remaining(deadline, 30.0))
+            api = TdApi(TdlibSchema.CURRENT)
+            titles, items, visited = {}, [], set()
+            next_cursor = None
+            for _ in range(MAX_RAW_PAGES):
+                if offset in visited:
+                    next_cursor = None
+                    break
+                visited.add(offset)
+                next_cursor = None
+                response = session.request(api.search_messages(normalized, cursor=GlobalSearchCursor(offset=offset), limit=RAW_PAGE_SIZE), timeout=_remaining(deadline, 15.0))
+                page = api.parse_search_messages(response)
+                next_offset = page.next_cursor.offset if page.next_cursor else ""
+                for index, message in enumerate(page.messages):
+                    if index < skip:
+                        continue
+                    item = _raw_message(session, message, titles, deadline=deadline)
+                    if item is not None:
+                        items.append(item)
+                    if len(items) == limit:
+                        if index + 1 < len(page.messages):
+                            next_cursor = _modern_cursor(normalized, offset, index + 1)
+                        elif next_offset and next_offset != offset:
+                            next_cursor = _modern_cursor(normalized, next_offset, 0)
+                        break
+                if len(items) == limit or not next_offset or next_offset == offset:
+                    break
+                offset, skip = next_offset, 0
+                next_cursor = _modern_cursor(normalized, offset, 0)
+            self._verify_profile(policy, session)
+            return RawMessagePage(tuple(items), next_cursor)
 
     def _get_message_sync(self, *, chat_id: int, message_id: int) -> RawMessage | None:
         policy = Policy.load(self.profile)
@@ -577,7 +676,7 @@ class TDLibBackend:
                 raise MediaError("Telegram marks this message as protected from saving")
             if int(message.get("ttl", 0) or 0) > 0 or float(
                 message.get("ttl_expires_in", 0) or 0
-            ) > 0:
+            ) > 0 or message.get("self_destruct_type") or message.get("self_destruct_in", 0):
                 raise MediaError("Self-destructing Telegram media is not available")
 
             content = message.get("content")
@@ -652,6 +751,14 @@ class TDLibBackend:
             or current.expected_user_id != session.user_id
         ):
             raise PolicyError("Telegram profile changed during the request")
+
+
+def _modern_cursor(query: str, offset: str, skip: int) -> str:
+    payload = {"v": 2, "q": _query_digest(query), "o": offset, "s": skip}
+    value = base64.urlsafe_b64encode(json.dumps(payload, separators=(",", ":")).encode()).decode().rstrip("=")
+    if len(value) > 512:
+        raise CursorError("Telegram returned an oversized search cursor")
+    return value
 
 
 def encode_search_cursor(cursor: GlobalSearchCursor, query: str) -> str:
@@ -767,6 +874,16 @@ def _extract_text(content: Any) -> tuple[str, str] | None:
     if not isinstance(content, dict):
         return None
     content_type = str(content.get("@type", ""))
+    if content_type in {"messageVoiceNote", "messageVideoNote"}:
+        key = "voice_note" if content_type == "messageVoiceNote" else "video_note"
+        media = content.get(key) or {}
+        result = media.get("speech_recognition_result") or {}
+        if result.get("@type") == "speechRecognitionResultText" and isinstance(result.get("text"), str):
+            return result["text"], content_type
+        caption = (content.get("caption") or {}).get("text")
+        if isinstance(caption, str) and caption:
+            return caption, content_type
+        return ("[Voice note]" if key == "voice_note" else "[Video note]"), content_type
     formatted = content.get("text") if content_type == "messageText" else content.get("caption")
     if not isinstance(formatted, dict):
         return None

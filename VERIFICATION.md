@@ -1,5 +1,20 @@
 # Verification
 
+## Version 0.7.0 — September 16, 2026
+
+- 254 automated tests passed locally. An actual isolated macOS install and update
+  preserved both client configurations and discovered six/nine tools as configured.
+
+- Native Telegram recognition is covered for voice notes and video notes, cached
+  results, pending text, timeout/restart duplicate protection, account binding,
+  protected/self-destructing content, Premium/quota errors and bounded transcripts.
+- Voice listing and modern TDLib pagination are tested, including partial-page
+  continuation and exhausted cursors. Voice-only messages remain addressable.
+- Both MCP clients share serialized recognition and receive text with a trust boundary.
+- The pinned native TDLib parser/version/commit are checked without opening a profile.
+- Intel compilation is implemented but not verified on physical Intel hardware.
+
+
 ## Version 0.6.1 — September 15, 2026
 
 - All 228 automated tests passed after updating the repository address and expected

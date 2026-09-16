@@ -92,3 +92,20 @@ class OutgoingState(OutputModel):
 
 class OutgoingResult(OutgoingState):
     trust_boundary: TrustBoundary = Field(default_factory=TrustBoundary)
+
+
+class VoiceMessagePage(OutputModel):
+    trust_boundary: TrustBoundary = Field(default_factory=TrustBoundary)
+    items: list[MessageRecord]
+    next_before_message_id: int = Field(ge=0)
+
+
+class TranscriptionResult(OutputModel):
+    trust_boundary: TrustBoundary = Field(default_factory=TrustBoundary)
+    chat_id: int
+    message_id: int = Field(ge=1)
+    status: Literal["completed", "pending", "not_started", "unavailable", "failed"]
+    text: str = Field(max_length=32000)
+    truncated: bool = False
+    error_code: str | None = Field(default=None, max_length=100)
+    retry_after_seconds: int | None = Field(default=None, ge=0)

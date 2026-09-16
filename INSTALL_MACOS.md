@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- macOS with Homebrew and TDLib **1.8.0**.
+- macOS with Homebrew; the installer supplies pinned TDLib **1.8.67**.
 - Codex app/CLI with local MCP support and/or Gemini CLI.
 - Your own Telegram account and API credentials for a new login.
 - Internet access for dependencies, GitHub updates, and Telegram.
@@ -25,7 +25,7 @@ bash install-macos.command --clients both
 
 The interactive installer upgrades recognized older registrations, reuses a
 compatible saved login, and enables daily checked-main updates by default.
-It installs missing uv and TDLib through Homebrew and obtains a managed Python 3.13.
+It installs uv through Homebrew, obtains managed Python 3.13, and prepares pinned TDLib.
 Homebrew must already be installed. The account owner handles any required system
 approval and first Telegram login in Terminal. Existing credentials stay local.
 
@@ -158,7 +158,8 @@ request starts it again. Restart/reload clients to apply a new registration.
 
 In Codex CLI, inspect `codex mcp get telegram_search`. In Gemini CLI, use
 `gemini mcp list` and `/mcp`; the working directory must be trusted by Gemini.
-Standard MCP discovery exposes four read-only tools before authorization. Opt-in
+Standard MCP discovery exposes six tools before authorization, including voice listing
+and explicitly requested speech recognition. Opt-in
 sending adds three tools; see README.md, Optional text and file sending.
 
 | Situation | Action |
@@ -168,7 +169,7 @@ sending adds three tools; see README.md, Optional text and file sending.
 | Old profile in use | Close/restart its old MCP client; preserve tdlib.lock |
 | Two different old accounts | Choose --migrate-profile codex or gemini |
 | Queue full / timeout | Wait and retry a narrower query; check connectivity |
-| Unsupported TDLib | Use Homebrew TDLib 1.8.0, not HEAD |
+| Unsupported TDLib | Rerun the installer to restore the pinned TDLib runtime |
 | MCP missing | Verify the selected registration and restart the client |
 | waiting_for_ci | The current main commit has not completed successful checks |
 | registration_changed | Review the owner's changed settings; updates did not restore them |
@@ -188,3 +189,12 @@ Keychain data, databases, QR codes, login codes, or passwords.
 Official references: [Codex MCP](https://learn.chatgpt.com/docs/extend/mcp?surface=cli),
 [Gemini CLI MCP](https://geminicli.com/docs/tools/mcp-server/),
 [Telegram API credentials](https://core.telegram.org/api/obtaining_api_id).
+
+## Voice recognition in 0.7
+
+Telegram-native transcription and voice listing are registered by default: six tools,
+or nine when sending is enabled. Stop the idle old service and restart the MCP client
+after this upgrade. Apple Silicon uses a locked TDLib wheel; Intel builds pinned
+source once and reuses it. Keep the adopted profile and Keychain in place. Do not
+roll back the native library after it has upgraded the Telegram database.
+See README.md for transcription states and Telegram account limits.

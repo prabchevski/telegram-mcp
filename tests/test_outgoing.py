@@ -248,7 +248,7 @@ async def test_opt_in_mcp_tools_and_dispatch(prepared):
             return box.status(session, **kwargs)
     async with Client(create_server(Backend(), enable_sending=True)) as client:
         tools = {t.name: t for t in (await client.list_tools()).tools}
-        assert len(tools) == 7
+        assert len(tools) == 9
         assert tools["telegram_send_message"].annotations.read_only_hint is False
         assert tools["telegram_send_message"].annotations.idempotent_hint is True
         assert tools["telegram_get_send_status"].annotations.read_only_hint is True

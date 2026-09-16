@@ -129,6 +129,8 @@ def _stage_version(source: Path, root: Path, uv: str, python: str) -> Path:
         subprocess.run([uv, "sync", "--project", str(version), "--frozen", "--no-dev", "--python", python],
                        check=True, env=safe_environment(), timeout=600)
         interpreter = str(version / ".venv/bin/python")
+        subprocess.run([interpreter, "-I", "-m", "telegram_search_mcp.native_runtime", str(version)],
+                       check=True, env=safe_environment(), timeout=4200)
         import shlex
         for name, module in (("tgsearch", "telegram_search_mcp.cli"), ("client-config", "telegram_search_mcp.registration")):
             _write_launcher(version / name, "#!/bin/sh\nexec " + shlex.join(["/usr/bin/env", *launcher_arguments(interpreter, module)]) + ' "$@"\n')
