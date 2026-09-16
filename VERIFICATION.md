@@ -1,5 +1,41 @@
 # Verification
 
+## Version 0.7.1 — September 16, 2026
+
+- 281 automated tests passed locally, including publication checks. The 272 core
+  tests and the Linux/macOS Python 3.12/3.14
+  matrix passed for the migration implementation. Publication checks additionally
+  cover matching artifacts, release notes and immutable published versions.
+- The real unmodified 0.6.1 installer/updater installed the candidate in disposable
+  macOS directories. The new updater refreshed both client registrations, preserved
+  unrelated settings and sending off/on, and exposed six/nine tools over real MCP stdio.
+  GitHub responses and desktop notification delivery were substituted in this test.
+- Repeat runs, private backups, removed/edited registrations, concurrent edits,
+  notification failure and graceful service replacement are covered.
+- The actual source ZIP installation/update and wheel/source inventory checks passed.
+- Intel background preparation and build serialization have simulated coverage;
+  compilation on physical Intel hardware remains unverified.
+- Existing Telegram login/session files, Keychain and personal client settings are
+  not accessed by the development/install tests. A full daily cycle on another
+  person's computer and a live Gemini CLI model session remain unverified.
+
+Current reproducible checks:
+
+```sh
+uv run --frozen pytest
+uv run --frozen python -I scripts/release.py audit
+uv run --frozen python -I scripts/release.py build --output dist
+uv build --wheel --out-dir dist
+uv run --frozen python -I scripts/release.py verify-wheel dist/telegram_search_mcp-0.7.1-py3-none-any.whl
+uv run --frozen python -I scripts/smoke-install-macos.py dist/telegram-mcp-macos-v0.7.1.zip
+uv run --frozen python -I scripts/smoke-upgrade-06.py dist/telegram-mcp-macos-v0.7.1.zip
+python3 -I scripts/publish-release.py dist
+```
+
+The last command only prepares and verifies publication files; publication is a
+separate CI step after the test and archive jobs succeed. Actual run results are
+available in [GitHub Actions](https://github.com/prabchevski/telegram-mcp/actions).
+
 ## Version 0.7.0 — September 16, 2026
 
 - 254 automated tests passed locally. An actual isolated macOS install and update
@@ -13,6 +49,11 @@
 - Both MCP clients share serialized recognition and receive text with a trust boundary.
 - The pinned native TDLib parser/version/commit are checked without opening a profile.
 - Intel compilation is implemented but not verified on physical Intel hardware.
+- After the owner restarted Codex, two explicitly selected real voice notes were
+  transcribed through the installed MCP using Telegram-native recognition. Both
+  returned `completed`; polling without starting returned the same cached result.
+  One Telegram transcript ended mid-word without MCP truncation. Audio accuracy
+  was not independently assessed. No private transcript is included in this repo.
 
 
 ## Version 0.6.1 — September 15, 2026
@@ -71,7 +112,7 @@ search/service/registration suite and new migration/update checks:
 - The updater's unauthenticated GitHub API lookup recognized the already successful
   canonical main workflow. No personal installation was updated by that lookup.
 
-Run the checks from the repository:
+Historical 0.5.0 check commands (use the current commands above for main):
 
 ```sh
 uv run --frozen pytest

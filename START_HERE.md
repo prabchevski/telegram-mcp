@@ -21,8 +21,8 @@ separately. The archive contains no other person's account, history, or keys.
 
 ## Install
 
-1. [Download the latest source ZIP](https://github.com/prabchevski/telegram-mcp/archive/refs/heads/main.zip)
-   and extract it. Open the `telegram-mcp-main` folder.
+1. [Download the latest verified ZIP](https://github.com/prabchevski/telegram-mcp/releases/latest/download/telegram-mcp-macos.zip)
+   and extract it. Open the `telegram-mcp-macos` folder.
 2. Open `install-macos.command`. Choose **Codex**, **Gemini CLI**, or **both**.
 3. On the first installation, enter your `api_id` and hidden `api_hash` in Terminal.
 4. Scan the QR code from Telegram on your phone: **Settings → Devices → Link
@@ -47,8 +47,14 @@ results expose the retrieved messages from your account to the selected AI clien
 ## Check the installation
 
 Ask your client: "Find messages in my Telegram containing …" and use a phrase you
-recognize. Four tools are available: search, message, context, and media.
-This MCP cannot send or change messages.
+recognize. Six tools are available by default: search, message, context, media,
+voice-message listing, and Telegram-native transcription. You can also ask it to
+transcribe a specific voice message; Telegram's account and quota limits apply.
+
+To enable text and document sending, run `current/tgsearch sending on` from the
+printed installation root and restart the clients. This adds three tools, for nine
+in total. Sending requires your explicit instruction; editing/deleting messages
+is not supported. See [sending instructions](README.md#optional-text-and-file-sending).
 
 To check the installation in Terminal:
 

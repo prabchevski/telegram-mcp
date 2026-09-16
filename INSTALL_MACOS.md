@@ -13,7 +13,7 @@ To let Codex handle setup, use [INSTALL_WITH_CODEX.md](INSTALL_WITH_CODEX.md).
 
 ## Download and install
 
-[Download the source ZIP](https://github.com/prabchevski/telegram-mcp/archive/refs/heads/main.zip),
+[Download the verified release ZIP](https://github.com/prabchevski/telegram-mcp/releases/latest/download/telegram-mcp-macos.zip),
 extract it, and open `install-macos.command`. No GitHub account or manual build is
 required. You can also run a command from the extracted directory:
 
@@ -66,7 +66,7 @@ Homebrew packages. Do not enable a real background schedule in development tests
 ## Upgrade old archives and preserve a login
 
 Codex 0.2, Gemini 0.3, and shared 0.4 archives do not contain this updater. Their
-owners need **one installation of 0.5 or later**, using the command above or Codex.
+owners need **one installation of the current release**, using the command above or Codex.
 The maintainer cannot remotely change already downloaded archives.
 
 - A configured shared 0.4 profile remains selected.
@@ -105,8 +105,21 @@ before switching `current`. It refuses version downgrades and divergent Git hist
 Failed downloads or dependency installs keep the current program. A changed or
 removed client registration is left alone; update installation is cancelled.
 
-New MCP processes use the new version. Existing proxies start the latest shared
-service after the previous service exits, normally after 10 idle minutes. Active
+For managed 0.6.1 installs with updates enabled, the new package also upgrades
+unchanged standard Codex/Gemini tool lists on the next updater or MCP start.
+This normally takes up to two daily checks on Apple Silicon. A macOS notification
+asks for a client restart; `updates status` retains the same notice. Sending settings
+are preserved. If migration happens during client startup, restart the client again
+to reload its settings. Intel may need an extra check while pinned TDLib builds in
+the background; the previous version remains active until preparation succeeds.
+
+The pre-rename 0.6.0 archive needs a one-time installer run because it requires the
+old GitHub repository identity. An installation already on 0.7.0 with the old 0.6
+tool lists also needs that repair: its updater stops at `registration_changed`.
+See [upgrade details](README.md#voice-messages-and-telegram-transcription).
+
+New MCP processes use the new version. A new client gracefully replaces an idle
+older shared service; otherwise the service exits after 10 idle minutes. Active
 requests are not interrupted. To activate immediately, finish requests, stop this
 package's service, and restart the client. Older version directories remain for
 recovery and are not automatically deleted while processes might use them.
@@ -121,7 +134,8 @@ recovery and are not automatically deleted while processes might use them.
 
 `update --check` only reports availability; `update` installs a checked update now,
 even if daily checking is disabled. `updates status` reports saved settings and
-installed revision. A ZIP installation may show no revision until its first update.
+installed revision and any saved restart notice. A ZIP installation may show no
+revision until its first update.
 The schedule lives in `~/Library/LaunchAgents/io.github.prabchevski.telegram-search-mcp.update.<id>.plist`.
 The private `updates.log` in the program root records update outcomes/errors, not
 Telegram messages. If enabling reports that launchd could not start, run
@@ -172,16 +186,19 @@ sending adds three tools; see README.md, Optional text and file sending.
 | Unsupported TDLib | Rerun the installer to restore the pinned TDLib runtime |
 | MCP missing | Verify the selected registration and restart the client |
 | waiting_for_ci | The current main commit has not completed successful checks |
-| registration_changed | Review the owner's changed settings; updates did not restore them |
+| registration_changed | Preserve owner edits; for 0.7.0 with old 0.6 tool lists, rerun the latest installer once |
 | Update failed / offline | Existing version remains; retry update when connected |
 | Media does not display | Try a preview; rendering depends on the client |
 
 ## Fixed releases
 
-[Releases](https://github.com/prabchevski/telegram-mcp/releases) contain tagged
-source and optional checksum files. Their features are those of the selected tag;
-older releases lack daily updates. Verify the matching `.sha256` before installing
-a release archive. Use `--auto-update off` on 0.5+ if you want to keep a fixed version.
+[Releases](https://github.com/prabchevski/telegram-mcp/releases/latest) contain
+the tested source archive, `.sha256`, inventory and Python wheel. The direct download
+uses the stable asset name `telegram-mcp-macos.zip`; its version is recorded inside.
+Verify its matching `.sha256` before installing. Historical tags retain their
+original features; 0.4.0 lacks daily updates. Use `--auto-update off` if you want to
+keep a fixed version. Release publication follows successful tests and installer
+checks for each new version on main.
 
 When asking for help, share the version and error message, not chat history,
 Keychain data, databases, QR codes, login codes, or passwords.

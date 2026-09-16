@@ -20,7 +20,7 @@ client, and check the installation. First-time Telegram authorization, passwords
 and any required macOS approval remain with the owner in their private Terminal.
 A client restart may be needed.
 
-Prefer a manual installation? **[Download for macOS](https://github.com/prabchevski/telegram-mcp/archive/refs/heads/main.zip)**,
+Prefer a manual installation? **[Download for macOS](https://github.com/prabchevski/telegram-mcp/releases/latest/download/telegram-mcp-macos.zip)**,
 extract the ZIP, and open `install-macos.command`. No manual build is needed.
 See the [quick start](START_HERE.md).
 
@@ -30,7 +30,7 @@ See the [quick start](START_HERE.md).
 | --- | --- |
 | `telegram_search_messages` | Search accessible cloud chats, with up to 20 results and a cursor for the next page |
 | `telegram_get_message` | Retrieve one message by chat and message IDs |
-| `telegram_get_context` | Retrieve up to five text messages on either side of a matching message |
+| `telegram_get_context` | Retrieve up to five supported text or voice/video-note messages on either side of an anchor |
 | `telegram_get_media` | Retrieve a photo, supported audio, PDF, or video thumbnail; previews up to 2 MiB, full media up to 12 MiB |
 
 The default installation includes reading and explicitly requested Telegram speech recognition.
@@ -213,8 +213,11 @@ uv run --frozen python -I scripts/release.py build --output dist
 Tests use isolated profiles and settings and do not require a Telegram account.
 CI tests Linux/macOS and builds and installs an allowlisted source archive on a
 GitHub-hosted Mac. This is a test environment, not the maintainer's or users' Macs.
-Archive building supports these checks and optional versioned releases; users can
-install directly from the repository.
+After these checks pass on main, CI publishes each new package version to
+[GitHub Releases](https://github.com/prabchevski/telegram-mcp/releases/latest), with
+the verified archive, checksum, file inventory and wheel. Existing published tags
+and assets stay unchanged. The download button follows the latest published release.
+Developers can also [download main source](https://github.com/prabchevski/telegram-mcp/archive/refs/heads/main.zip).
 
 ## License
 
@@ -226,6 +229,6 @@ Third-party dependencies retain their own licenses.
 - [Codex: MCP integration](https://learn.chatgpt.com/docs/extend/mcp?surface=cli)
 - [Gemini CLI: MCP servers](https://geminicli.com/docs/tools/mcp-server/)
 - [Telegram: API credentials](https://core.telegram.org/api/obtaining_api_id)
-- [Homebrew: TDLib](https://formulae.brew.sh/formula/tdlib)
+- [TDLib: pinned source](https://github.com/tdlib/td/tree/d1085f9cebc5a62379991ae1652673954f229c1f)
 
-Integration settings were checked on September 15, 2026.
+Integration settings and native voice transcription were checked on September 16, 2026.

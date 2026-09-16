@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.7.1 — 2026-09-16
+
+- Complete managed 0.6.1 updates by migrating unchanged standard Codex/Gemini
+  registrations to six default tools or nine with sending; preserve login and preferences.
+- Add a saved restart notice and macOS notification after tool migration.
+- Prepare pinned TDLib in the background for old Intel updaters while retaining
+  the previous working version; gracefully replace idle older shared services.
+- Test the transition through the actual, unmodified 0.6.1 updater on Apple Silicon.
+- Document the one-time repair required for pre-rename 0.6.0 and stranded 0.7.0 installs.
+- Refresh quick-start, architecture and verification documentation for voice support.
+- Publish tested versioned GitHub Releases automatically, with a stable download
+  link, SHA-256 checksum, source inventory and wheel; preserve historical releases.
+
 ## 0.7.0 — 2026-09-16
 
 - Add Telegram-native voice/video-note transcription with final and pending text, account-limit errors, and duplicate-start protection.

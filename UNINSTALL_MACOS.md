@@ -16,7 +16,7 @@ for this shared package and backs up the settings. It preserves unrelated MCP
 entries, old 0.2/0.3 installations, program files, the profile, and Keychain entries.
 Restart the selected clients. The shared service does not stop automatically,
 because another connected client may still be using it.
-Disconnecting the last client recorded by the 0.5 installer also removes its daily
+Disconnecting the last client recorded by the managed installer also removes its daily
 update schedule. If you edited client configuration manually, run
 `current/tgsearch updates off` before deleting the program directory.
 

@@ -1,4 +1,4 @@
-"""Global, bounded, read-only TDLib backend for the MCP boundary."""
+"""Bounded TDLib reads, native speech recognition and optional outgoing operations."""
 
 from __future__ import annotations
 

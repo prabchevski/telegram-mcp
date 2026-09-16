@@ -14,8 +14,9 @@ The service handles one profile belonging to the current macOS user; other users
 and profiles are isolated. A separate lock prevents simultaneous service startups.
 The `tdlib.lock` file continues to protect the TDLib database.
 
-The service accepts a fixed set of requests: four read-only operations, local
-diagnostics/shutdown, and three bounded outgoing operations. Sending is disabled
+The service accepts a fixed set of requests: the original four read operations,
+voice listing, explicitly requested speech recognition, local diagnostics/shutdown,
+and three bounded outgoing operations. Sending is disabled
 unless enabled locally. It does not accept arbitrary TDLib methods, Python function
 names, or commands to execute through the connection. Only outgoing preparation
 can accept a bounded local attachment path.
@@ -34,7 +35,8 @@ software already running under your account. The AI client receives the Telegram
 results returned by tools and handles them under its own policies.
 
 Client launchers clear the inherited environment and use an absolute Python path
-with `-I` isolation. TDLib paths are fixed for Homebrew on Apple Silicon/Intel.
+with `-I` isolation. TDLib 1.8.67 is loaded from the locked wheel on Apple Silicon
+or a pinned source build on Intel; its version and source commit are verified.
 Project environment variables cannot select another database through
 `TGSEARCH_DATA_DIR` or another library through `TDJSON_LIBRARY`.
 Secrets are not placed in MCP configuration.
@@ -44,7 +46,7 @@ Secrets are not placed in MCP configuration.
 By default, the queue holds up to 16 waiting requests plus one active operation.
 Each request has a 120-second deadline including time spent in the queue. Client
 configurations allow 150 seconds to leave room for startup. The service exits after
-10 minutes without read requests. The local connection is limited to 40 connections
+10 minutes without operations. The local connection is limited to 40 connections
 and 18 MiB per response message; media is encoded as base64.
 
 A client cancelling its wait does not mean the native TDLib operation has stopped.
@@ -65,7 +67,7 @@ requests and run `service stop` first.
 
 ## Data and compatibility
 
-| Area | Version 0.5 behavior |
+| Area | Current behavior |
 | --- | --- |
 | Data | `~/Library/Application Support/TelegramSearchMCPShared/profiles/default` |
 | Keychain service | `local.unofficial-telegram-search-mcp-shared` |
@@ -75,7 +77,7 @@ requests and run `service stop` first.
 | Media | Text and structured metadata for both clients |
 | Full image | Additional `_meta` containing the Codex `original` hint |
 | Transfer | Preview ≤2 MiB, full ≤12 MiB; format rendering varies by client |
-| TDLib | Version and schema 1.8.0; unknown versions are rejected |
+| TDLib | 1.8.67, commit `d1085f9cebc5a62379991ae1652673954f229c1f`; other builds are rejected |
 
 A profile is bound to one Telegram account; an account mismatch is rejected.
 A private `profile-source.json` in the shared root can select the fixed `codex` or
@@ -91,14 +93,18 @@ The managed installation has immutable version directories and stable launchers.
 Each launcher resolves `current` to an immutable path before executing Python, so
 switching the symlink cannot change a running process's import path. An existing
 proxy also resolves the newest installed interpreter when starting a shared service.
-The existing service finishes its active work and exits after its normal idle delay.
+New clients gracefully replace an idle older service; a busy service finishes its
+work before an upgrade is retried. No process is killed to release a profile.
 
 A per-user macOS LaunchAgent checks once a day. The updater accepts only the exact
 canonical main SHA with a successful push workflow, downloads a pinned source ZIP,
 and validates paths, file types, size, and source allowlists. It stages locked
 dependencies and checks imports before activation. Installation locks prevent
 concurrent activation; client settings and the receipt are checked for changes
-during download. Background updates do not rewrite client settings. Disabling
+during download. Activation migrates only exact known standard 0.6 tool lists to
+the new schema, with locked comparisons and private backups. Removed/customized
+registrations and sending preferences are preserved. A restart notice is saved
+locally and requested through macOS notifications. Disabling
 updates removes the schedule; disconnecting the last registered client also disables it.
 
 An installation receipt records version, revision, client config paths, and update
@@ -108,11 +114,22 @@ check, not proof against every malicious or faulty future change.
 
 ## Limitations
 
-Full-text search depends on the history available in Telegram. Messages without
-supported text may not work as context anchors. Videos are returned as thumbnails;
+Full-text search depends on the history available in Telegram. Text and voice/video
+notes work as context anchors; other messages without supported text may not.
+Videos are returned as thumbnails;
 the application does not perform bulk history exports. TDLib caches media locally
-in the profile. Read-only restrictions apply to Telegram operations; authorization,
-the local database, cache, and installation settings still change as needed.
+in the profile. Sending and transcription are explicit operations; transcription
+may consume Telegram's free quota. Authorization, the local database, cache, and
+installation settings also change as needed.
+
+## Telegram-native transcription
+
+The same serialized session calls `recognizeSpeech` and reads
+`speech_recognition_result`. Results distinguish final, pending, not-started,
+unavailable and failed states. Private account-bound markers prevent a second
+start after an ambiguous timeout or restart. Text is bounded to 32,000 characters
+with an explicit truncation flag. No separate speech provider or local model is
+used. Telegram Premium/free-quota and duration limits apply.
 
 
 ## Optional outgoing operations (0.6)
@@ -125,9 +142,9 @@ and approval prompts. Existing proxies cannot bypass a later local disable switc
 The fixed local protocol adds prepare_message, send_message and get_send_status.
 No generic TDLib request transport is exposed. They use the same serialized worker
 and account-bound session as reads. Requests are bounded to 32 KiB; files are local
-snapshots, never JSON payloads. Attachments use TDLib 1.8 inputMessageDocument, plain
+snapshots, never JSON payloads. Attachments use TDLib 1.8.67 inputMessageDocument, plain
 text uses inputMessageText, and updates distinguish SendSucceeded from SendFailed.
-Schema reference: https://github.com/tdlib/td/blob/v1.8.0/td/generate/scheme/td_api.tl
+Schema reference: https://github.com/tdlib/td/blob/d1085f9cebc5a62379991ae1652673954f229c1f/td/generate/scheme/td_api.tl
 
 Each UUID draft has a private durable state file under the profile outbox. Preparation
 pins a numeric cloud-chat recipient and copies a bounded local attachment. Sending

@@ -56,7 +56,7 @@ READ_ONLY = ToolAnnotations(
 
 
 def create_server(backend: TelegramBackend, *, enable_sending: bool = False) -> MCPServer:
-    """Build MCP around the global, bounded, read-only TDLib backend."""
+    """Expose bounded reads, native speech recognition and optional sending."""
 
     mcp = MCPServer(
         "telegram-search",
