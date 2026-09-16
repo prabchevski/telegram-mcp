@@ -2,7 +2,7 @@
 
 ## Version 0.7.2 — September 16, 2026
 
-- Rename the shared agent installation guide to `INSTALL_WITH_AI.md` and describe
+- Rename the shared agent installation guide to `INSTALL.md` and describe
   Codex and Gemini CLI equally, including a separate command for each client.
 - Update all current documentation, required archive files and generated release
   links to the new guide name. Historical releases retain their original files.

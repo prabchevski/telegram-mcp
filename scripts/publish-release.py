@@ -45,7 +45,7 @@ def current_notes(source: Path, version: str) -> str:
 
 Download **telegram-mcp-macos.zip** and its **.sha256**, verify the checksum, extract it and open **install-macos.command**. A compatible Telegram login is preserved. Restart Codex/Gemini CLI after installation. Each user keeps their own Telegram account and credentials on their Mac.
 
-[Installation guide](https://github.com/{REPOSITORY}/blob/v{version}/INSTALL_WITH_AI.md) · [Verification and limits](https://github.com/{REPOSITORY}/blob/v{version}/VERIFICATION.md)
+[Installation guide](https://github.com/{REPOSITORY}/blob/v{version}/INSTALL.md) · [Verification and limits](https://github.com/{REPOSITORY}/blob/v{version}/VERIFICATION.md)
 
 Managed 0.6.1 installations with automatic updates enabled migrate standard tool registrations automatically. Pre-rename 0.6.0 and 0.7.0 installations stranded with old tool lists need the installer once. Removed/customized registrations are preserved. Intel preparation is implemented but has not been tested on physical Intel hardware. Gemini web/mobile are not supported.
 

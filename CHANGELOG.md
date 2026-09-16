@@ -2,7 +2,7 @@
 
 ## 0.7.2 — 2026-09-16
 
-- Rename the installation guide to `INSTALL_WITH_AI.md` for both Codex and Gemini CLI.
+- Rename the installation guide to `INSTALL.md` for both Codex and Gemini CLI.
 - Let either agent configure its own client directly; document a Gemini CLI command.
 - Update documentation links, archive requirements and generated release notes.
 

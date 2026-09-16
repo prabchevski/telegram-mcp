@@ -9,7 +9,7 @@
 
 Standard Homebrew paths support Apple Silicon and Intel layouts; see
 [VERIFICATION.md](VERIFICATION.md) for the devices actually tested.
-For setup through Codex or Gemini CLI, use [INSTALL_WITH_AI.md](INSTALL_WITH_AI.md).
+For setup through Codex or Gemini CLI, use [INSTALL.md](INSTALL.md).
 
 ## Download and install
 

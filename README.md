@@ -10,11 +10,11 @@ This is an unofficial project. Gemini's web and mobile apps are not supported.
 Send this to Codex or Gemini CLI on your Mac:
 
 > Install https://github.com/prabchevski/telegram-mcp for the client I am using. Follow
-> INSTALL_WITH_AI.md, upgrade my older installation if present, preserve my
+> INSTALL.md, upgrade my older installation if present, preserve my
 > Telegram login, and enable daily updates from main after successful checks.
 
 **For the installing agent:** read [AGENTS.md](AGENTS.md) and
-[INSTALL_WITH_AI.md](INSTALL_WITH_AI.md) before changing the installation.
+[INSTALL.md](INSTALL.md) before changing the installation.
 Either assistant can prepare dependencies, migrate a compatible saved login, configure the
 client, and check the installation. First-time Telegram authorization, passwords,
 and any required macOS approval remain with the owner in their private Terminal.
@@ -189,7 +189,7 @@ data, Keychain entries, policy.json, TDLib database, or session.
 ## Documentation
 
 - [Quick start](START_HERE.md)
-- [Install with AI: Codex or Gemini CLI](INSTALL_WITH_AI.md)
+- [Install with AI: Codex or Gemini CLI](INSTALL.md)
 - [Installation, updates, and troubleshooting](INSTALL_MACOS.md)
 - [Uninstallation and Telegram session revocation](UNINSTALL_MACOS.md)
 - [Architecture and limitations](ARCHITECTURE.md)
