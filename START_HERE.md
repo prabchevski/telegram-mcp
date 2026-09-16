@@ -52,7 +52,7 @@ voice-message listing, and Telegram-native transcription. You can also ask it to
 transcribe a specific voice message; Telegram's account and quota limits apply.
 
 To enable text and document sending, run `current/tgsearch sending on` from the
-printed installation root and restart the clients. This adds three tools, for nine
+printed installation root and restart the clients. This adds four tools, for 17
 in total. Sending requires your explicit instruction; editing/deleting messages
 is not supported. See [sending instructions](README.md#optional-text-and-file-sending).
 

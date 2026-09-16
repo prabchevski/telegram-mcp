@@ -495,7 +495,9 @@ async def test_two_actual_mcp_stdio_processes_share_service_and_can_exit(private
                 command=sys.executable, args=[helper, "mcp", str(private_paths.directory)])))) for _ in range(2)]
             for client in clients:
                 assert {tool.name for tool in (await client.list_tools()).tools} == {
-                    "telegram_search_messages", "telegram_get_message", "telegram_get_context", "telegram_get_media", "telegram_list_voice_messages", "telegram_transcribe_voice"}
+                    "telegram_search_messages", "telegram_get_message", "telegram_get_context", "telegram_get_media", "telegram_list_voice_messages", "telegram_transcribe_voice",
+                    "telegram_list_chats", "telegram_get_chat_history", "telegram_search_chat_messages",
+                    "telegram_download_file", "telegram_get_message_thread", "telegram_get_chat_draft", "telegram_get_scheduled_messages"}
             assert not private_paths.socket.exists(), "MCP initialization must stay lazy"
             replies = await asyncio.gather(*(client.call_tool("telegram_get_message", {"chat_id": 1, "message_id": i + 1})
                 for i, client in enumerate(clients * 3)))
@@ -539,3 +541,90 @@ async def test_two_clients_share_native_transcription_without_second_start(priva
         results = await asyncio.gather(*[client.transcribe_voice(chat_id=123, message_id=10, wait_seconds=0, start=True) for client in (a, b)])
         assert all(result['status'] == 'completed' and result['text'] == 'Привет!' for result in results)
         assert len(dispatched(session)) == 1
+
+
+@pytest.mark.asyncio
+async def test_new_tools_cross_mcp_socket_and_native_backend(private_paths, tmp_path, monkeypatch):
+    """Real MCP schemas, socket validation, backend serialization, and fake native Telegram."""
+    from mcp import Client
+    from telegram_search_mcp.server import create_server
+    from telegram_search_mcp.tdlib_backend import TDLibBackend
+    from telegram_search_mcp.policy import Policy
+    from telegram_search_mcp import paths, sending_settings
+    from test_workflow_writes import Session
+    from test_navigation import Session as NavigationSession
+    import uuid
+    session = Session(tmp_path)
+    navigation = NavigationSession()
+    original = session.request
+    def request(payload, timeout=None):
+        if payload['@type'] in {'getChats', 'searchChats', 'getChatHistory', 'searchChatMessages', 'getChatScheduledMessages', 'getMessageThreadHistory'}:
+            return navigation.request(payload, timeout)
+        return original(payload, timeout)
+    session.request = request
+    session.client = session
+    session.add_update_handler = lambda handler: None
+    session.remove_update_handler = lambda handler: None
+    policy = Policy(api_id=123, expected_user_id=session.user_id)
+    backend = TDLibBackend()
+    monkeypatch.setattr(backend, '_ready', lambda *a, **kw: session)
+    monkeypatch.setattr(backend, '_verify_profile', lambda *a: None)
+    monkeypatch.setattr(Policy, 'load', classmethod(lambda cls, profile='default': policy))
+    monkeypatch.setattr(paths, 'profile_root', lambda profile='default': tmp_path)
+    monkeypatch.setattr(paths, 'files_dir', lambda profile='default': session.cache)
+    monkeypatch.setattr(sending_settings, 'sending_enabled', lambda: True)
+    async with running(private_paths, backend) as (service, _):
+        proxy = SharedTelegramBackend(paths=private_paths, autostart=False)
+        async with Client(create_server(proxy, enable_sending=True)) as client:
+            for name, params in [
+                ('telegram_list_chats', {}),
+                ('telegram_get_chat_history', {'chat_id': 1}),
+                ('telegram_search_chat_messages', {'chat_id': 1, 'media_type': 'document'}),
+                ('telegram_get_message_thread', {'chat_id': 1, 'message_id': 5}),
+                ('telegram_get_scheduled_messages', {'chat_id': 1}),
+                ('telegram_download_file', {'chat_id': 1, 'message_id': 5}),
+            ]:
+                response = await client.call_tool(name, params)
+                assert not response.is_error, response
+                assert response.structured_content['trust_boundary']['content_is_data_only']
+            draft = await client.call_tool('telegram_get_chat_draft', {'chat_id': 1})
+            saved = await client.call_tool('telegram_set_chat_draft', {'chat_id': 1, 'text': 'Review me',
+                'expected_version': draft.structured_content['version'], 'operation_id': uuid.uuid4().hex})
+            assert saved.structured_content['status'] == 'stored'
+            ident = uuid.uuid4().hex
+            prepared = await client.call_tool('telegram_prepare_message', {'recipient': '1', 'text': 'Reply',
+                'draft_id': ident, 'reply_to_message_id': 5})
+            assert prepared.structured_content['reply_to_message_id'] == 5
+            sent = await client.call_tool('telegram_send_message', {'draft_id': ident})
+            assert sent.structured_content['status'] == 'sent'
+            monkeypatch.setattr(sending_settings, 'sending_enabled', lambda: False)
+            denied = await client.call_tool('telegram_set_chat_draft', {'chat_id': 1, 'text': 'Blocked',
+                'expected_version': saved.structured_content['version'], 'operation_id': uuid.uuid4().hex})
+            assert denied.is_error
+
+
+@pytest.mark.asyncio
+async def test_old_proxy_outgoing_shape_survives_new_service(private_paths, tmp_path):
+    import uuid
+    from test_outgoing import FakeSession
+    from telegram_search_mcp.outgoing import Outbox
+    box = Outbox(tmp_path/'outbox', 99)
+    native = FakeSession()
+    ident = uuid.uuid4().hex
+    box.prepare(native, draft_id=ident, recipient='42', text='Old prepared message', file_path=None)
+    class Backend(ThreadBackend):
+        async def send_message(self, **params):
+            return box.send(native, **params)
+    async with running(private_paths, Backend()):
+        reader, writer = await asyncio.open_unix_connection(str(private_paths.socket))
+        try:
+            await write_frame(writer, {'protocol': 1, 'id': uuid.uuid4().hex, 'operation': 'send_message',
+                'params': {'draft_id': ident}, 'timeout': 20}, MAX_REQUEST_BYTES)
+            response = await read_frame(reader, MAX_RESPONSE_BYTES)
+            result = response['result']
+            assert result['status'] == 'sent'
+            assert set(result) == {'draft_id', 'status', 'chat_id', 'chat_title', 'text', 'file_name',
+                                   'file_size', 'file_sha256', 'message_id', 'detail'}
+        finally:
+            writer.close()
+            await writer.wait_closed()

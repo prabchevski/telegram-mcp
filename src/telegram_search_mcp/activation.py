@@ -18,7 +18,9 @@ from .registration import ALIASES, NAMES, _load, configure, expected_entry
 
 NOTICE = "update-notice.json"
 VOICE_TOOLS = {"telegram_list_voice_messages", "telegram_transcribe_voice"}
-RESTART_MESSAGE = "Telegram MCP updated. Restart Codex / Gemini CLI to enable voice transcription. Your Telegram login is preserved."
+BASE_TOOLS = {"telegram_search_messages", "telegram_get_message", "telegram_get_context", "telegram_get_media"}
+OLD_SEND_TOOLS = {"telegram_prepare_message", "telegram_send_message", "telegram_get_send_status"}
+RESTART_MESSAGE = "Telegram MCP updated. Restart Codex / Gemini CLI to enable the new Telegram tools. Your Telegram login is preserved."
 
 
 def running_version() -> Path:
@@ -29,12 +31,26 @@ def legacy_entry(client: str, wanted: dict) -> dict:
     """Exact 0.6 generated entry, including the original sending preference."""
     result = dict(wanted)
     key = "enabled_tools" if client == "codex" else "includeTools"
-    result[key] = [tool for tool in wanted[key] if tool not in VOICE_TOOLS]
+    result[key] = [tool for tool in wanted[key] if tool in BASE_TOOLS | OLD_SEND_TOOLS]
     if client == "gemini":
         result["description"] = (
             "Local Telegram search and optional text/document sending (unofficial)"
             if "telegram_send_message" in result[key]
             else "Local bounded read-only Telegram search (unofficial)"
+        )
+    return result
+
+
+def previous_entry(client: str, wanted: dict) -> dict:
+    """Exact 0.7 generated entry; preserve the owner's sending preference."""
+    result = dict(wanted)
+    key = "enabled_tools" if client == "codex" else "includeTools"
+    result[key] = [tool for tool in wanted[key] if tool in BASE_TOOLS | VOICE_TOOLS | OLD_SEND_TOOLS]
+    if client == "gemini":
+        result["description"] = (
+            "Local Telegram search, native voice transcription and optional text/document sending (unofficial)"
+            if "telegram_send_message" in result[key]
+            else "Local bounded Telegram search and native voice transcription (unofficial)"
         )
     return result
 
@@ -51,7 +67,7 @@ def notify_restart() -> bool:
     try:
         result = subprocess.run([
             "/usr/bin/osascript", "-e",
-            'display notification "Restart Codex / Gemini CLI to enable voice transcription. Telegram login is preserved." with title "Telegram MCP updated"',
+            'display notification "Restart Codex / Gemini CLI to enable the new Telegram tools. Telegram login is preserved." with title "Telegram MCP updated"',
         ], capture_output=True, timeout=5, check=False)
         return result.returncode == 0
     except (OSError, subprocess.TimeoutExpired):
@@ -72,7 +88,7 @@ def migrate(root: Path, *, notify: bool = False) -> dict:
             wanted = expected_entry(client, str(version / ".venv/bin/python"), root)
             if entry == wanted:
                 continue
-            if entry != legacy_entry(client, wanted):
+            if entry not in (legacy_entry(client, wanted), previous_entry(client, wanted)):
                 skipped.append(client)
                 continue
             targets[client], snapshots[client] = path, source

@@ -248,7 +248,7 @@ async def test_opt_in_mcp_tools_and_dispatch(prepared):
             return box.status(session, **kwargs)
     async with Client(create_server(Backend(), enable_sending=True)) as client:
         tools = {t.name: t for t in (await client.list_tools()).tools}
-        assert len(tools) == 9
+        assert len(tools) == 17
         assert tools["telegram_send_message"].annotations.read_only_hint is False
         assert tools["telegram_send_message"].annotations.idempotent_hint is True
         assert tools["telegram_get_send_status"].annotations.read_only_hint is True
@@ -257,3 +257,21 @@ async def test_opt_in_mcp_tools_and_dispatch(prepared):
         assert result.structured_content["status"] == "sent"
         assert result.structured_content["trust_boundary"]["content_is_data_only"] is True
     assert len(sends(session)) == 1
+
+
+def test_preparation_rpc_does_not_block_pending_send_callback(prepared):
+    import threading
+    box, session, first_id, _ = prepared
+    session.behavior = 'pending'
+    box.send(session, draft_id=first_id, wait_seconds=0)
+    original = session.get_chat
+    def get_chat(chat_id):
+        thread = threading.Thread(target=box._update, args=({'@type': 'updateMessageSendSucceeded',
+            'old_message_id': 123, 'message': session.message()},))
+        thread.start()
+        thread.join(timeout=1)
+        assert not thread.is_alive(), 'Preparation held the callback lock during a Telegram RPC'
+        return original(chat_id)
+    session.get_chat = get_chat
+    box.prepare(session, draft_id=uuid.uuid4().hex, recipient='42', text='Second message', file_path=None)
+    assert box.status(session, draft_id=first_id)['status'] == 'sent'

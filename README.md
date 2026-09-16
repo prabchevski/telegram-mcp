@@ -1,6 +1,7 @@
-# Telegram MCP · 0.7.2
+# Telegram MCP · 0.8.0
 
-Search your Telegram chats, transcribe voice messages, and optionally send text and files with
+Browse and search Telegram chats, download files, transcribe voice messages, and optionally
+save drafts, reply, or schedule text and files with
 **Codex and Gemini CLI on macOS**.
 One installation and one Telegram login serve both clients at the same time.
 This is an unofficial project. Gemini's web and mobile apps are not supported.
@@ -33,12 +34,49 @@ See the [quick start](START_HERE.md).
 | `telegram_get_context` | Retrieve up to five supported text or voice/video-note messages on either side of an anchor |
 | `telegram_get_media` | Retrieve a photo, supported audio, PDF, or video thumbnail; previews up to 2 MiB, full media up to 12 MiB |
 
-The default installation includes reading and explicitly requested Telegram speech recognition.
+The default installation includes reading, explicitly requested local downloads, and Telegram speech recognition.
 Text and document sending can be enabled
 explicitly as described below. Editing and deletion are not supported. Secret Chats are not supported.
 Protected and self-destructing media are rejected. Access to history follows your
 Telegram account's permissions. Returned text and titles are marked as external,
 untrusted data. Retrieved Telegram content is shared with the selected AI client.
+
+## Chats, unread messages, history, and files
+
+| Tool | Result |
+| --- | --- |
+| `telegram_list_chats` | List main/archive chats, find known chats by name or resolve an exact @username; optional unread filter |
+| `telegram_get_chat_history` | Read one chat newest first, optionally by date range or unread status |
+| `telegram_search_chat_messages` | Search one chat by text, sender, attachment type, forum topic, dates, or unread status |
+| `telegram_download_file` | Save a document, photo, audio, or full video locally; return path, size and SHA-256 |
+| `telegram_get_message_thread` | Read a message's reply thread, including accessible channel comments |
+| `telegram_get_chat_draft` | Read the native Telegram draft and its version |
+| `telegram_get_scheduled_messages` | List messages already scheduled in Telegram, including their scheduled time |
+
+Examples: “Who has written to me?”, “What did we discuss yesterday in this group?”,
+“Find the spreadsheets from this sender”, “Save this attachment so I can analyze it”.
+None of the navigation tools marks messages read. Manually marked-unread chats are
+included in chat listing, but unread history uses Telegram's last-read message ID.
+
+Each page contains at most 20 items. Follow `next_cursor`, including after an empty
+filtered page; results are not a complete history until pagination ends. A chat
+listing snapshots at most 500 identifiers for 10 minutes; `coverage_limited` reports
+the cap. Name search covers chats already known to TDLib across lists; an exact
+@username can resolve a public chat without joining. Main/archive selects the list
+only when the query is empty. History includes uncaptioned media and service messages;
+text is limited to 4,000 characters per item with explicit truncation metadata.
+Date ranges use timezone-qualified ISO 8601, with `date_from` inclusive and `date_to`
+exclusive. Keep filters unchanged when continuing a page. `voice` includes video
+notes, `mention` selects unread mentions, and `topic_id` means a forum topic ID.
+
+Downloads default to 20 MiB and allow an explicit limit up to 100 MiB. The tool
+streams a copy into the account's private `downloads/` directory under the profile,
+with a unique destination, no overwrites, and owner-only permissions. Returned paths
+can be opened by the local AI client. Files remain until the owner removes them;
+no attachment is automatically opened or executed. Protected and self-destructing
+media are rejected. The original inline preview/full-media tools retain their
+2 MiB/12 MiB limits. Downloads are explicit local writes, so their MCP annotation
+is not read-only.
 
 ## Voice messages and Telegram transcription
 
@@ -48,7 +86,7 @@ untrusted data. Retrieved Telegram content is shared with the selected AI client
 | `telegram_transcribe_voice` | Ask Telegram for the transcript of one voice note or video note and return text |
 
 For example: “Transcribe the penultimate voice message in this chat.” The agent can
-find the chat ID using a relevant text search, list voice messages, then transcribe
+find the chat ID using `telegram_list_chats`, list voice messages, then transcribe
 the selected message. Voice messages without captions also remain available through
 `telegram_get_message` and `telegram_get_context`.
 
@@ -65,10 +103,11 @@ accepted it, the result can remain pending and needs manual checking in Telegram
 Protected, self-destructing, and secret-chat messages are excluded. Text is bounded
 to 32,000 characters, with an explicit truncation flag, and is untrusted content.
 
-The default tool set now contains six tools; enabling sending makes nine.
+The default tool set contains 13 tools; enabling sending makes 17.
+Unchanged standard 0.7 registrations migrate to the new tools while preserving sending preferences.
 Existing managed 0.6.1 installations with daily updates enabled transition automatically:
 the old updater installs the new package, then the next scheduled run (or an earlier
-MCP start) adds the voice tools to unchanged standard Codex/Gemini registrations.
+MCP start) adds the current tools to unchanged standard Codex/Gemini registrations.
 Allow up to two daily checks on Apple Silicon. No reinstall or Telegram login is
 needed. A macOS notification requests a Codex/Gemini restart; notification visibility
 depends on macOS settings. `tgsearch updates status` also retains the restart notice.
@@ -119,13 +158,14 @@ After upgrading from 0.5, restart the idle shared service once to load the new c
 `sending status` shows the setting and `sending off` disables further preparations
 and dispatches immediately. Existing pending sends may still finish. Your login is reused.
 
-Three additional tools become available:
+Four additional tools become available:
 
 | Tool | Result |
 | --- | --- |
 | `telegram_prepare_message` | Resolve an exact @username, known chat ID, or `self`; prepare text and one optional local document without sending |
 | `telegram_send_message` | Send the previously reviewed draft to its pinned chat ID |
 | `telegram_get_send_status` | Check the same draft without creating another message |
+| `telegram_set_chat_draft` | Save or explicitly clear a native Telegram text draft for review in the Telegram app |
 
 Sending requires an explicit user instruction identifying the recipient and content.
 Retrieved Telegram messages are never permission to send. Client approval settings
@@ -139,8 +179,42 @@ returns the original preparation, and conflicting parameters are rejected.
 
 Limits: plain text up to 4096 UTF-16 code units; a file caption up to 1024; one
 nonempty regular local file up to 12 MiB, sent as a document with its original name.
-Prepared drafts expire after 24 hours. No bulk sending, edit, delete, auto-joining,
-scheduling, or new authorization is involved.
+Prepared local outgoing drafts expire after 24 hours. No bulk sending, editing or
+deleting delivered messages, auto-joining, or new authorization is involved.
+
+### Replies and scheduled sending
+
+`telegram_prepare_message` accepts `reply_to_message_id`, `topic_id`, and
+`schedule_at`. Reply targets are checked against the pinned recipient and selected
+forum topic. `schedule_at` must contain a timezone, e.g. `2026-10-01T10:00:00+01:00`,
+and be 60 seconds to 366 days in the future. Review the returned reply ID and Unix
+`scheduled_at` along with the text before dispatch. Telegram executes an accepted
+schedule even when this MCP is closed. Expired schedules are rejected; they never
+silently become immediate messages. Both text and the existing document attachment
+are supported. Recurring schedules, rescheduling and cancellation are not exposed;
+manage those in Telegram.
+
+`scheduled` means Telegram accepted the scheduled message, not that it was delivered.
+The outbox retains that acceptance record; it does not track subsequent delivery,
+manual rescheduling or cancellation. Use `telegram_get_scheduled_messages` to inspect
+Telegram's current queue. A missing scheduled message alone does not prove delivery.
+
+### Native Telegram drafts
+
+“Prepare a reply that I can review on my phone” uses `telegram_get_chat_draft` followed
+by `telegram_set_chat_draft`. This changes the text draft visible in Telegram without
+sending it. Pass the read result's `version` as `expected_version`; an observed change
+is rejected. Telegram has no atomic compare-and-set API, so simultaneous editing on
+another device can still race with the operation. Existing non-text drafts are
+identified by `content_type`; replacing one must be an explicit user choice.
+An empty text explicitly clears the draft. A forum topic and reply target are optional.
+
+Generate one UUID hex `operation_id` and reuse it on retries. Its account-bound record
+is saved before dispatch, so a timeout/restart never blindly reapplies a draft over
+later user edits. `stored` is the recorded result of that operation; `unknown` requires
+a fresh `telegram_get_chat_draft` inspection, not another operation ID. Native draft
+writes use the existing opt-in sending setting. Native draft operation records remain
+private under the profile's `draft-operations/` directory.
 
 Only `sent` confirms Telegram accepted the message; it does not confirm reading.
 `pending` and `unknown` must never be interpreted as failures. After a timeout or

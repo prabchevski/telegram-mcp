@@ -61,7 +61,7 @@ for client, value in receipt['clients'].items():
     entry = data['mcp_servers']['telegram_search'] if client == 'codex' else data['mcpServers']['telegram-search']
     tools = entry['enabled_tools' if client == 'codex' else 'includeTools']
     assert {'telegram_list_voice_messages', 'telegram_transcribe_voice'} <= set(tools)
-    assert len(tools) == (9 if sys.argv[2] == 'on' else 6)
+    assert len(tools) == (17 if sys.argv[2] == 'on' else 13)
     assert (data['model'] if client == 'codex' else data['ui']['theme']) == 'preserved'
 assert len(notifications) == 1
 assert updater.update(root, scheduled=True)['status'] == 'not_due'

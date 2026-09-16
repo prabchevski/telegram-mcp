@@ -37,16 +37,24 @@ async def main():
             'telegram_search_messages', 'telegram_get_message',
             'telegram_get_context', 'telegram_get_media',
             'telegram_list_voice_messages', 'telegram_transcribe_voice',
+            'telegram_list_chats',
+            'telegram_get_chat_history',
+            'telegram_search_chat_messages',
+            'telegram_download_file',
+            'telegram_get_message_thread',
+            'telegram_get_chat_draft',
+            'telegram_get_scheduled_messages',
+
         }
         sending = len(sys.argv) > 2 and sys.argv[2] == 'sending'
         if sending:
-            expected.update({'telegram_prepare_message', 'telegram_send_message', 'telegram_get_send_status'})
+            expected.update({'telegram_prepare_message', 'telegram_send_message', 'telegram_get_send_status', 'telegram_set_chat_draft'})
         assert {tool.name for tool in result.tools} == expected
-        assert len(result.tools) == (9 if sending else 6)
+        assert len(result.tools) == (17 if sending else 13)
         for tool in result.tools:
             assert tool.annotations is not None
-            assert tool.annotations.read_only_hint is (tool.name not in {'telegram_prepare_message', 'telegram_send_message', 'telegram_transcribe_voice'})
-            assert tool.annotations.destructive_hint is False
+            assert tool.annotations.read_only_hint is (tool.name not in {'telegram_prepare_message', 'telegram_send_message', 'telegram_transcribe_voice', 'telegram_download_file', 'telegram_set_chat_draft'})
+            assert tool.annotations.destructive_hint is (tool.name == 'telegram_set_chat_draft')
 
 # Initialize/list only: never invoke a tool or ask the service to connect.
 asyncio.run(main())

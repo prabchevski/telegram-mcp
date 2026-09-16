@@ -48,7 +48,7 @@ def expected_entry(client: str, python: str, install_root: Path | None = None) -
         if sending_enabled(install_root):
             entry["enabled_tools" if client == "codex" else "includeTools"].extend(OUTGOING_TOOLS)
             if client == "gemini":
-                entry["description"] = "Local Telegram search, native voice transcription and optional text/document sending (unofficial)"
+                entry["description"] = "Local Telegram history, files, voice, drafts and optional scheduled sending (unofficial)"
     return entry
 
 

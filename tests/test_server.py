@@ -92,10 +92,18 @@ async def test_server_exposes_reads_and_explicit_speech_request() -> None:
         "telegram_get_message",
         "telegram_get_context",
         "telegram_get_media", "telegram_list_voice_messages", "telegram_transcribe_voice",
+        "telegram_list_chats",
+        "telegram_get_chat_history",
+        "telegram_search_chat_messages",
+        "telegram_download_file",
+        "telegram_get_message_thread",
+        "telegram_get_chat_draft",
+        "telegram_get_scheduled_messages",
+
     }
     for tool in result.tools:
         assert tool.annotations is not None
-        assert tool.annotations.read_only_hint is (tool.name != "telegram_transcribe_voice")
+        assert tool.annotations.read_only_hint is (tool.name not in {"telegram_transcribe_voice", "telegram_download_file"})
         assert tool.annotations.destructive_hint is False
         assert tool.annotations.open_world_hint is True
 

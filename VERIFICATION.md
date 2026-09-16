@@ -1,5 +1,50 @@
 # Verification
 
+## Version 0.8.0 — September 16, 2026
+
+- Local result: 308 tests passed on Apple Silicon macOS / Python 3.13.
+- Source audit passed; source ZIP, wheel and publication asset verification passed.
+- The actual macOS archive installer, background update path and both-client MCP
+  discovery passed with sending disabled/enabled (13/17 tools).
+- The unmodified 0.6.1 updater installed 0.8.0 in two disposable installations;
+  subsequent activation migrated both clients and requested a restart exactly once,
+  preserving sending off/on and unrelated settings. No live profile was used.
+
+- Navigation tests cover snapshot pagination, unread state without read receipts,
+  exclusive upper dates, timezone validation, sender/media/topic filters, uncaptioned
+  files, short native pages and channel discussions in linked groups.
+- Download tests cover exact bytes, owner-only permissions, unique destinations,
+  forbidden paths/symlinks, protected content and size limits before transfer.
+- Draft tests cover changed versions, clearing, account binding, ambiguous timeouts
+  and retries that must never overwrite later Telegram edits.
+- Sending tests cover pinned replies/schedules, durable duplicate suppression,
+  scheduled acceptance and refusing expired schedules instead of sending immediately.
+- End-to-end tests exercise the actual MCP schema, Unix service connection and native
+  backend with an injected fake Telegram session; no personal account is opened.
+- Old running proxies retain the original outgoing response shape; updated proxies
+  request reply/schedule metadata explicitly. The compatibility round trip is tested.
+- Standard 0.6/0.7 registrations migrate for both clients with sending on/off;
+  customized/removed registrations retain their existing settings.
+- Telegram request shapes were checked against the pinned TDLib source commit
+  `d1085f9cebc5a62379991ae1652673954f229c1f`, including its updated draft content schema.
+- These new workflows have not yet been tested against a signed-in real Telegram
+  account. Native draft synchronization, real downloads, and scheduled delivery need
+  an explicitly authorized live acceptance run. Existing voice live evidence below
+  does not establish these new behaviors. Physical Intel and live Gemini model-session
+  limitations from previous releases remain.
+
+Current reproduction commands:
+
+```sh
+uv run --frozen pytest
+uv run --frozen python -I scripts/release.py audit
+uv run --frozen python -I scripts/release.py build --output dist
+uv build --wheel
+uv run --frozen python -I scripts/smoke-install-macos.py dist/telegram-mcp-macos-v0.8.0.zip
+uv run --frozen python -I scripts/smoke-upgrade-06.py dist/telegram-mcp-macos-v0.8.0.zip
+python3 -I scripts/publish-release.py dist
+```
+
 ## Version 0.7.2 — September 16, 2026
 
 - Rename the shared agent installation guide to `INSTALL.md` and describe

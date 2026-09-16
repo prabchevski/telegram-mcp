@@ -226,7 +226,10 @@ async def stop_service(profile: str = "default", *, wait: bool = True,
     return {"running": False, "stopped": True}
 
 
-class SharedTelegramBackend:
+from .workflows import WorkflowMethods
+
+
+class SharedTelegramBackend(WorkflowMethods):
     """A disposable client. Closing MCP never closes another client's session."""
 
     def __init__(self, profile: str = "default", *, paths: ServicePaths | None = None,
@@ -239,6 +242,9 @@ class SharedTelegramBackend:
         self.autostart = autostart
 
     async def _call(self, operation: str, params: dict[str, Any]) -> Any:
+        from .wire import OUTGOING_OPERATIONS
+        if operation in OUTGOING_OPERATIONS:
+            params = {**params, "include_details": True}
         if self.autostart:
             await ensure_service(self.profile, paths=self.paths)
         try:
@@ -250,6 +256,9 @@ class SharedTelegramBackend:
             # silently re-send a request whose response was lost.
             await ensure_service(self.profile, paths=self.paths)
             return await _request(self.paths, operation, params, timeout=self.timeout)
+
+    async def _workflow(self, operation: str, params: dict) -> dict:
+        return await self._call(operation, params)
 
     async def search_messages(self, *, query: str, cursor: str | None, limit: int) -> RawMessagePage:
         return await self._call("search_messages", {"query": query, "cursor": cursor, "limit": limit})
@@ -268,8 +277,8 @@ class SharedTelegramBackend:
         # The daemon closes on explicit management stop or ten minutes idle.
         pass
 
-    async def prepare_message(self, *, draft_id: str, recipient: str, text: str, file_path: str | None) -> dict:
-        return await self._call("prepare_message", {"draft_id": draft_id, "recipient": recipient, "text": text, "file_path": file_path})
+    async def prepare_message(self, *, draft_id: str, recipient: str, text: str, file_path: str | None, reply_to_message_id: int | None = None, topic_id: int | None = None, schedule_at: str | None = None) -> dict:
+        return await self._call("prepare_message", {"draft_id": draft_id, "recipient": recipient, "text": text, "file_path": file_path, "reply_to_message_id": reply_to_message_id, "topic_id": topic_id, "schedule_at": schedule_at})
 
     async def send_message(self, *, draft_id: str) -> dict:
         return await self._call("send_message", {"draft_id": draft_id})

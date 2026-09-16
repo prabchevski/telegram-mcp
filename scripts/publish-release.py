@@ -35,7 +35,7 @@ def current_notes(source: Path, version: str) -> str:
         if expected not in (source / name).read_text():
             raise RuntimeError(f'{name} does not describe the current version')
     changes = sections[0].split('\n', 1)[1].strip()
-    return f'''Telegram MCP for Codex and Gemini CLI on macOS: cloud-chat search, Telegram-native voice/video-note transcription, and optional text/document sending. Six tools by default, nine with sending enabled.
+    return f'''Telegram MCP for Codex and Gemini CLI on macOS: chat navigation, unread history, search, local file downloads, Telegram-native voice/video-note transcription, and optional drafts, replies and scheduled text/document sending. Thirteen tools by default, seventeen with sending enabled.
 
 ## Changes in {version}
 
@@ -47,7 +47,7 @@ Download **telegram-mcp-macos.zip** and its **.sha256**, verify the checksum, ex
 
 [Installation guide](https://github.com/{REPOSITORY}/blob/v{version}/INSTALL.md) · [Verification and limits](https://github.com/{REPOSITORY}/blob/v{version}/VERIFICATION.md)
 
-Managed 0.6.1 installations with automatic updates enabled migrate standard tool registrations automatically. Pre-rename 0.6.0 and 0.7.0 installations stranded with old tool lists need the installer once. Removed/customized registrations are preserved. Intel preparation is implemented but has not been tested on physical Intel hardware. Gemini web/mobile are not supported.
+Managed 0.6.1 and 0.7 installations with automatic updates enabled migrate standard tool registrations automatically. Pre-rename 0.6.0 and 0.7.0 installations stranded with old tool lists need the installer once. Removed/customized registrations are preserved. Intel preparation is implemented but has not been tested on physical Intel hardware. Gemini web/mobile are not supported.
 
 Assets contain source code and package metadata, never Telegram credentials, sessions or chat history.
 '''

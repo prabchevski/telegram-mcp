@@ -172,9 +172,9 @@ request starts it again. Restart/reload clients to apply a new registration.
 
 In Codex CLI, inspect `codex mcp get telegram_search`. In Gemini CLI, use
 `gemini mcp list` and `/mcp`; the working directory must be trusted by Gemini.
-Standard MCP discovery exposes six tools before authorization, including voice listing
-and explicitly requested speech recognition. Opt-in
-sending adds three tools; see README.md, Optional text and file sending.
+Standard MCP discovery exposes 13 tools before authorization, including navigation,
+local downloads, voice listing and explicitly requested speech recognition. Opt-in
+sending adds four tools; see README.md, Optional text and file sending.
 
 | Situation | Action |
 | --- | --- |
@@ -207,10 +207,10 @@ Official references: [Codex MCP](https://learn.chatgpt.com/docs/extend/mcp?surfa
 [Gemini CLI MCP](https://geminicli.com/docs/tools/mcp-server/),
 [Telegram API credentials](https://core.telegram.org/api/obtaining_api_id).
 
-## Voice recognition in 0.7
+## Voice recognition and workflow tools
 
-Telegram-native transcription and voice listing are registered by default: six tools,
-or nine when sending is enabled. Stop the idle old service and restart the MCP client
+Telegram-native transcription, navigation and local downloads are registered by default:
+13 tools, or 17 when sending is enabled. Stop the idle old service and restart the MCP client
 after this upgrade. Apple Silicon uses a locked TDLib wheel; Intel builds pinned
 source once and reuses it. Keep the adopted profile and Keychain in place. Do not
 roll back the native library after it has upgraded the Telegram database.

@@ -1,6 +1,6 @@
 [project]
 name = "telegram-search-mcp"
-version = "0.7.2"
+version = "0.8.0"
 description = "Local Telegram search, voice transcription and optional sending for Codex and Gemini CLI on macOS"
 readme = "README.md"
 license = "MIT"

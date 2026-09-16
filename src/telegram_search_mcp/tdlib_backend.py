@@ -296,7 +296,10 @@ class TdlibSession:
                 self._lock_handle = None
 
 
-class TDLibBackend:
+from .workflows import WorkflowMethods
+
+
+class TDLibBackend(WorkflowMethods):
     """Global cloud-chat search with bounded results and serialized TDLib RPCs."""
 
     def __init__(self, profile: str = "default") -> None:
@@ -397,8 +400,8 @@ class TDLibBackend:
     async def close(self) -> None:
         await asyncio.to_thread(self.close_sync)
 
-    async def prepare_message(self, *, draft_id: str, recipient: str, text: str, file_path: str | None) -> dict:
-        return await asyncio.to_thread(self._outgoing_sync, "prepare", draft_id=draft_id, recipient=recipient, text=text, file_path=file_path)
+    async def prepare_message(self, *, draft_id: str, recipient: str, text: str, file_path: str | None, reply_to_message_id: int | None = None, topic_id: int | None = None, schedule_at: str | None = None) -> dict:
+        return await asyncio.to_thread(self._outgoing_sync, "prepare", draft_id=draft_id, recipient=recipient, text=text, file_path=file_path, reply_to_message_id=reply_to_message_id, topic_id=topic_id, schedule_at=schedule_at)
 
     async def send_message(self, *, draft_id: str) -> dict:
         return await asyncio.to_thread(self._outgoing_sync, "send", draft_id=draft_id)
@@ -421,6 +424,21 @@ class TDLibBackend:
                 raise ValueError("Outgoing account changed; restart the service")
             self._outbox.attach(session.client)
             return getattr(self._outbox, operation)(session, **params)
+
+    async def _workflow(self, operation: str, params: dict) -> dict:
+        return await asyncio.to_thread(self._workflow_sync, operation, params)
+
+    def _workflow_sync(self, operation: str, params: dict) -> dict:
+        from .workflows import execute, WRITE_OPERATIONS, BoundedSession
+        from .sending_settings import sending_enabled
+        if operation in WRITE_OPERATIONS and not sending_enabled():
+            raise ValueError("Sending is disabled. Enable it locally with `tgsearch sending on` first")
+        with self._operation_lock:
+            policy = Policy.load(self.profile)
+            session = self._ready(policy)
+            result = execute(self, BoundedSession(session), operation, params)
+            self._verify_profile(policy, session)
+            return result
 
     async def check_ready(self) -> dict[str, bool]:
         """Check saved authorization through the same serialized TDLib session."""

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.8.0 — 2026-09-16
+
+- Add chat discovery, unread chat/history views, date ranges and per-chat sender/media/topic search.
+- Include uncaptioned attachments and expose reply-thread history with bounded pagination.
+- Download documents, photos, audio and full video into private local files, up to 100 MiB.
+- Add native Telegram text drafts with observed-version checks and durable operation IDs.
+- Extend prepared text/document sending with pinned replies, forum topics and native scheduled delivery.
+- Distinguish scheduled acceptance from delivery and expose Telegram's current scheduled queue.
+- Migrate unchanged 0.6/0.7 client registrations to 13 default tools or 17 with sending, preserving preferences.
+- Keep the original four tool limits, login and runtime permissions unchanged.
+
 ## 0.7.2 — 2026-09-16
 
 - Rename the installation guide to `INSTALL.md` for both Codex and Gemini CLI.

@@ -12,6 +12,7 @@ from datetime import datetime
 from typing import Any
 
 from .backend import RawMedia, RawMessage, RawMessagePage
+from .workflows import WORKFLOW_OPERATIONS
 
 PROTOCOL_VERSION = 1
 MAX_REQUEST_BYTES = 32 * 1024
@@ -61,10 +62,19 @@ def validate_request(value: Any) -> dict[str, Any]:
     if type(timeout) not in (int, float) or not math.isfinite(timeout) or not 0 < timeout <= MAX_TIMEOUT:
         raise ServiceProtocolError("Invalid request timeout")
     operation, params = value["operation"], value["params"]
-    if not isinstance(operation, str) or operation not in READ_OPERATIONS | MANAGEMENT_OPERATIONS | OUTGOING_OPERATIONS | SPEECH_OPERATIONS:
+    if not isinstance(operation, str) or operation not in READ_OPERATIONS | MANAGEMENT_OPERATIONS | OUTGOING_OPERATIONS | SPEECH_OPERATIONS | WORKFLOW_OPERATIONS:
         raise ServiceProtocolError("Operation is not permitted")
     if not isinstance(params, dict):
         raise ServiceProtocolError("Invalid operation parameters")
+    if operation in WORKFLOW_OPERATIONS:
+        from .workflows import contracts
+        from pydantic import ValidationError
+        requests, _ = contracts()
+        try:
+            value["params"] = requests[operation].model_validate(params).model_dump()
+        except ValidationError as exc:
+            raise ServiceProtocolError("Invalid " + operation + " parameters") from exc
+        return value
     required = {
         "search_messages": {"query", "cursor", "limit"},
         "get_message": {"chat_id", "message_id"},
@@ -76,7 +86,27 @@ def validate_request(value: Any) -> dict[str, Any]:
         "prepare_message": {"draft_id", "recipient", "text", "file_path"},
         "send_message": {"draft_id"}, "get_send_status": {"draft_id"},
     }[operation]
-    if set(params) != required:
+    checked_params = set(params)
+    if operation in OUTGOING_OPERATIONS and "include_details" in params:
+        if type(params["include_details"]) is not bool:
+            raise ServiceProtocolError("Invalid outgoing detail flag")
+        checked_params.remove("include_details")
+    if operation == "prepare_message":
+        optional = {"reply_to_message_id", "topic_id", "schedule_at"}
+        if not required <= checked_params or checked_params - required - optional:
+            raise ServiceProtocolError("Invalid operation parameters")
+        for key in ("reply_to_message_id", "topic_id"):
+            if params.get(key) is not None:
+                _integer(params[key], 1, 2**31 - 1 if key == "topic_id" else 2**53 - 1, key)
+        from .navigation import timestamp
+        try:
+            schedule = params.get("schedule_at")
+            if schedule is not None and (not isinstance(schedule, str) or len(schedule) > 40):
+                raise ValueError()
+            timestamp(schedule)
+        except (ValueError, TypeError):
+            raise ServiceProtocolError("Invalid schedule_at") from None
+    elif checked_params != required:
         raise ServiceProtocolError("Invalid operation parameters")
     if operation in OUTGOING_OPERATIONS:
         from .outgoing import valid_id, validate_content
@@ -146,12 +176,18 @@ def _encode_message(message: RawMessage) -> dict[str, Any]:
     return value
 
 
-def encode_result(operation: str, result: Any) -> Any:
+def encode_result(operation: str, result: Any, *, include_details: bool = True) -> Any:
+    if operation in WORKFLOW_OPERATIONS:
+        return _workflow_result(operation, result)
     if operation in SPEECH_OPERATIONS:
         from .models import TranscriptionResult
         return TranscriptionResult.model_validate(result).model_dump(exclude={"trust_boundary"})
     if operation in OUTGOING_OPERATIONS:
-        return _outgoing_result(result)
+        value = _outgoing_result(result)
+        if not include_details:
+            for key in ("reply_to_message_id", "topic_id", "scheduled_at"):
+                value.pop(key)
+        return value
     if operation in MANAGEMENT_OPERATIONS:
         return result
     if operation in {"search_messages", "list_voice_messages"}:
@@ -194,6 +230,8 @@ def _decode_message(value: Any) -> RawMessage:
 
 
 def decode_result(operation: str, value: Any) -> Any:
+    if operation in WORKFLOW_OPERATIONS:
+        return _workflow_result(operation, value)
     if operation in SPEECH_OPERATIONS:
         from .models import TranscriptionResult
         return TranscriptionResult.model_validate(value).model_dump(exclude={"trust_boundary"})
@@ -253,3 +291,13 @@ def _outgoing_result(value: Any) -> dict:
         return OutgoingState.model_validate(value, strict=True).model_dump()
     except ValidationError as exc:
         raise ServiceProtocolError("Invalid outgoing result") from exc
+
+
+def _workflow_result(operation: str, value: Any) -> dict:
+    from .workflows import contracts
+    from pydantic import ValidationError
+    _, results = contracts()
+    try:
+        return results[operation].model_validate(value).model_dump(mode="json")
+    except ValidationError as exc:
+        raise ServiceProtocolError("Invalid " + operation + " result") from exc

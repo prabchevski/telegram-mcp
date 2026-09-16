@@ -320,7 +320,7 @@ def test_06_activation_migrates_both_clients_once_preserving_login_and_sending(m
     for client, path in {"codex": codex, "gemini": gemini}.items():
         actual = registration._load(client, path, path.read_bytes())[registration.NAMES[client]][registration.ALIASES[client]]
         assert actual == wanted[client]
-        assert len(actual["enabled_tools" if client == "codex" else "includeTools"]) == (9 if sending else 6)
+        assert len(actual["enabled_tools" if client == "codex" else "includeTools"]) == (17 if sending else 13)
         assert list(path.parent.glob(path.name + ".telegram-search-backup-*"))
 
 
@@ -415,3 +415,34 @@ async def test_service_upgrade_drains_without_downgrading_or_interrupting_work(m
     else:
         assert await service_client._compatible_service("default", None) == (None if stopped else state)
     assert bool(calls) is stopped
+
+
+@pytest.mark.parametrize('sending', [False, True])
+@pytest.mark.parametrize('edited', [False, True])
+def test_07_activation_preserves_preferences_and_custom_registrations(managed, monkeypatch, sending, edited):
+    root, version, codex = managed
+    from telegram_search_mcp.sending_settings import set_sending
+    if sending:
+        set_sending(root, True)
+    gemini = root / 'gemini/settings.json'
+    updater.remember_clients(root, {'gemini': gemini})
+    entries = {}
+    for client, path in {'codex': codex, 'gemini': gemini}.items():
+        wanted = registration.expected_entry(client, str(version / '.venv/bin/python'), root)
+        entries[client] = wanted
+        previous = activation.previous_entry(client, wanted)
+        key = 'enabled_tools' if client == 'codex' else 'includeTools'
+        assert len(previous[key]) == (9 if sending else 6)
+        if edited:
+            previous[key].pop(0)
+        write_entry(client, path, previous)
+    before = (codex.read_bytes(), gemini.read_bytes())
+    monkeypatch.setattr(activation, 'running_version', lambda: version)
+    migrated = activation.migrate(root)
+    assert migrated['status'] == ('unchanged' if edited else 'migrated')
+    if edited:
+        assert (codex.read_bytes(), gemini.read_bytes()) == before
+    else:
+        for client, path in {'codex': codex, 'gemini': gemini}.items():
+            actual = registration._load(client, path, path.read_bytes())[registration.NAMES[client]][registration.ALIASES[client]]
+            assert actual == entries[client]

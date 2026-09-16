@@ -279,8 +279,12 @@ class LocalService:
                 operation = job.request["operation"]
                 try:
                     # Validated against a closed allowlist; no generic TDLib RPCs.
-                    result = await getattr(self.backend, operation)(**job.request["params"])
-                    response = {"result": encode_result(operation, result)}
+                    params = dict(job.request["params"])
+                    # Old proxies validate an exact outgoing result shape. Negotiate
+                    # new reply/schedule metadata without breaking their pending sends.
+                    include_details = params.pop("include_details", False)
+                    result = await getattr(self.backend, operation)(**params)
+                    response = {"result": encode_result(operation, result, include_details=include_details)}
                 except Exception as exc:
                     response = {"error": error_result(exc)}
                     # A completed native failure can leave native asynchronous

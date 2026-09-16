@@ -23,7 +23,7 @@ def test_codex_and_gemini_enable_same_tools_preserving_approval_and_other_settin
     entry = data["mcpServers"]["telegram-search"]
     codex_entry = tomllib.loads(codex.read_text())["mcp_servers"]["telegram_search"]
     assert entry["includeTools"] == codex_entry["enabled_tools"]
-    assert len(entry["includeTools"]) == 9
+    assert len(entry["includeTools"]) == 17
     assert entry["trust"] is False
     assert codex_entry["default_tools_approval_mode"] == "prompt"
     assert data["ui"] == before["ui"]
@@ -41,7 +41,7 @@ def test_sending_is_opt_in_and_restores_read_only_registration(managed):
     set_sending(root, True)
     assert sending_enabled(root)
     entry = tomllib.loads(config.read_text())["mcp_servers"]["telegram_search"]
-    assert len(entry["enabled_tools"]) == 9
+    assert len(entry["enabled_tools"]) == 17
     assert set(OUTGOING_TOOLS) <= set(entry["enabled_tools"])
     assert entry["default_tools_approval_mode"] == "prompt"
     set_sending(root, False)

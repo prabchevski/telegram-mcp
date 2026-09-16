@@ -23,7 +23,7 @@ from .tdjson import TdlibError
 MAX_FILE_BYTES = 12 * 1024 * 1024
 DRAFT_TTL = 24 * 3600
 ID_PATTERN = r"^[0-9a-f]{32}$"
-FINAL_STATES = {"sent", "failed"}
+FINAL_STATES = {"sent", "failed", "scheduled"}
 
 
 def valid_id(value: str) -> None:
@@ -112,13 +112,36 @@ class Outbox:
     def public(value: dict) -> dict:
         return {key: value.get(key) for key in (
             "draft_id", "status", "chat_id", "chat_title", "text", "file_name",
-            "file_size", "file_sha256", "message_id", "detail",
+            "file_size", "file_sha256", "message_id", "detail", "reply_to_message_id", "topic_id", "scheduled_at",
         )}
 
-    def prepare(self, session: Any, *, draft_id: str, recipient: str, text: str, file_path: str | None) -> dict:
+    def prepare(self, session: Any, *, draft_id: str, recipient: str, text: str, file_path: str | None,
+                reply_to_message_id: int | None = None, topic_id: int | None = None, schedule_at: str | None = None) -> dict:
         valid_id(draft_id)
         validate_content(text, file_path)
+        from .navigation import timestamp
+        for name, identifier in (("reply_to_message_id", reply_to_message_id), ("topic_id", topic_id)):
+            if identifier is not None and (type(identifier) is not int or not 0 < identifier < (2**31 if name == "topic_id" else 2**53)):
+                raise ValueError("Invalid " + name)
+        scheduled_at = timestamp(schedule_at)
         spec = {"recipient": recipient, "text": text, "file_path": file_path}
+        # Preserve old preparation identity when all new options are omitted.
+        if reply_to_message_id is not None or topic_id is not None or schedule_at is not None:
+            spec.update(reply_to_message_id=reply_to_message_id, topic_id=topic_id, schedule_at=schedule_at)
+        with self.lock:
+            if (self.directory / draft_id).exists():
+                previous = self._load(draft_id)
+                if previous["spec"] != spec:
+                    raise ValueError("draft_id already belongs to different content; never reuse it for another message")
+                return self.public(previous)
+        # TDLib dispatches updates on its receiver thread. Do not hold the outbox
+        # lock across RPCs: an unrelated send update must not block their responses.
+        _validate_schedule(scheduled_at)
+        chat = resolve_recipient(session, recipient)
+        from .chat_drafts import reply
+        reply(session, chat["id"], reply_to_message_id, topic_id)
+        if topic_id:
+            session.request({"@type": "getForumTopic", "chat_id": chat["id"], "forum_topic_id": topic_id})
         with self.lock:
             if (self.directory / draft_id).exists():
                 previous = self._load(draft_id)
@@ -139,13 +162,13 @@ class Outbox:
                     unfinished += 1
             if unfinished >= 32:
                 raise ValueError("Too many unfinished outgoing drafts; review the local outbox")
-            chat = resolve_recipient(session, recipient)
             folder = self.directory / draft_id
             folder.mkdir(mode=0o700)
             try:
                 value = {"draft_id": draft_id, "user_id": self.user_id, "status": "prepared", "spec": spec,
                          "chat_id": int(chat["id"]), "chat_title": str(chat.get("title", ""))[:256],
                          "text": text, "file_name": None, "file_size": None, "file_sha256": None,
+                         "reply_to_message_id": reply_to_message_id, "topic_id": topic_id, "scheduled_at": scheduled_at,
                          "message_id": None, "detail": "Prepared locally; nothing sent", "created_at": time.time()}
                 if file_path is not None:
                     path = Path(file_path)
@@ -186,8 +209,10 @@ class Outbox:
     def _finish(self, value: dict, message: dict, *, failed: bool = False) -> None:
         if message.get("chat_id") != value["chat_id"] or not message.get("is_outgoing"):
             raise ValueError("Outgoing message response did not match the recipient")
-        value.update(status="failed" if failed else "sent", message_id=int(message["id"]),
-                     detail="Telegram confirmed failure; no automatic retry" if failed else "Telegram confirmed sending")
+        scheduled = bool(message.get("scheduling_state"))
+        value.update(status="failed" if failed else "scheduled" if scheduled else "sent", message_id=int(message["id"]),
+                     detail="Telegram confirmed failure; no automatic retry" if failed else
+                     "Telegram accepted the schedule; delivery is not yet confirmed" if scheduled else "Telegram confirmed sending")
         self._save(value)
         for key, draft_id in tuple(self.pending.items()):
             if draft_id == value["draft_id"]:
@@ -222,8 +247,16 @@ class Outbox:
             value = self._load(draft_id)
             if value["status"] != "prepared":
                 return self.public(value)
+        from .chat_drafts import reply
+        from .navigation import topic
+        reply_to = reply(session, value["chat_id"], value.get("reply_to_message_id"), value.get("topic_id"))
+        with self.lock:
+            value = self._load(draft_id)
+            if value["status"] != "prepared":
+                return self.public(value)
             if time.time() - value["created_at"] > DRAFT_TTL:
                 raise ValueError("Draft expired; prepare a new reviewed message")
+            _validate_schedule(value.get("scheduled_at"))
             content = {"@type": "inputMessageText", "text": {"@type": "formattedText", "text": value["text"], "entities": []},
                        "link_preview_options": {"@type": "linkPreviewOptions", "is_disabled": True}, "clear_draft": False}
             if value["file_name"]:
@@ -236,9 +269,10 @@ class Outbox:
             value.update(status="unknown", detail="Dispatch may have started; do not resend with a new draft ID")
             self._save(value)
         try:
-            message = session.request({"@type": "sendMessage", "chat_id": value["chat_id"], "topic_id": None,
-                                       "reply_to": None, "options": {"@type": "messageSendOptions", "disable_notification": False,
-                                       "from_background": False, "scheduling_state": None}, "reply_markup": None,
+            message = session.request({"@type": "sendMessage", "chat_id": value["chat_id"], "topic_id": topic(value.get("topic_id")),
+                                       "reply_to": reply_to, "options": {"@type": "messageSendOptions", "disable_notification": False,
+                                       "from_background": False, "scheduling_state": ({"@type": "messageSchedulingStateSendAtDate",
+                                       "send_date": value["scheduled_at"], "repeat_period": 0} if value.get("scheduled_at") else None)}, "reply_markup": None,
                                        "input_message_content": content}, timeout=30.0)
         except TdlibError:
             with self.lock:
@@ -289,3 +323,8 @@ class Outbox:
                 pass
         with self.lock:
             return self.public(self._load(draft_id))
+
+
+def _validate_schedule(when: int | None) -> None:
+    if when is not None and not time.time() + 60 <= when <= time.time() + 366 * 86400:
+        raise ValueError("schedule_at must be at least 60 seconds and at most 366 days in the future; expired schedules are never sent immediately")

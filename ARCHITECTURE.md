@@ -16,10 +16,10 @@ The `tdlib.lock` file continues to protect the TDLib database.
 
 The service accepts a fixed set of requests: the original four read operations,
 voice listing, explicitly requested speech recognition, local diagnostics/shutdown,
-and three bounded outgoing operations. Sending is disabled
+bounded navigation/download operations, and four optional outgoing/draft operations. Sending is disabled
 unless enabled locally. It does not accept arbitrary TDLib methods, Python function
 names, or commands to execute through the connection. Only outgoing preparation
-can accept a bounded local attachment path.
+can accept a bounded local attachment path; downloads export into a fixed private profile directory.
 
 ## Local connection
 
@@ -101,7 +101,7 @@ canonical main SHA with a successful push workflow, downloads a pinned source ZI
 and validates paths, file types, size, and source allowlists. It stages locked
 dependencies and checks imports before activation. Installation locks prevent
 concurrent activation; client settings and the receipt are checked for changes
-during download. Activation migrates only exact known standard 0.6 tool lists to
+during download. Activation migrates only exact known standard 0.6 and 0.7 tool lists to
 the new schema, with locked comparisons and private backups. Removed/customized
 registrations and sending preferences are preserved. A restart notice is saved
 locally and requested through macOS notifications. Disabling
@@ -154,3 +154,33 @@ the initial response. Repeated dispatch never invokes sendMessage again. Across 
 crash without a native ID the result remains uncertain; at-most-once dispatch is not
 a guarantee that every attempted message reaches Telegram. Unknown results require
 inspection, never a blind resend with a new draft ID.
+
+## Navigation, downloads, native drafts, and scheduling (0.8)
+
+The additional operations have separate typed request/result contracts and a fixed
+allowlist in the local wire protocol. Their imports stay lazy so installation can
+bootstrap with the standard library before dependencies are installed. All operations
+share the existing serialized account-bound session. Multi-request workflows use one
+75-second native budget, within the 120-second service deadline.
+
+Navigation never invokes read acknowledgements. Chat pagination snapshots IDs in
+memory for ten minutes, caps each snapshot at 500 IDs and returns an explicit coverage
+flag. Message cursors bind the account, operation and filters; results include media
+metadata even when a message has no text. Message text, names and filenames remain
+untrusted. History reads use bounded scans and continuation cursors.
+
+A download checks cloud-chat access, message identity, Telegram saving permissions,
+self-destruct restrictions and size before copying. Only files under the fixed TDLib
+cache, owned by the current user, can be exported. Copies are streamed into unique
+private destinations with no symlink traversal, overwrites or automatic execution.
+The separate local-download ceiling is 100 MiB; inline transfer limits are unchanged.
+
+Native drafts have independent durable UUID operation records. A supplied hash detects
+changes since the last read; Telegram offers no atomic remote version guard. An
+uncertain mutation is never retried automatically. Repeated operation IDs return the
+recorded result without overwriting later changes on the user's other devices.
+
+Outgoing preparation pins reply/topic IDs and an optional timezone-qualified schedule.
+Expired schedules are rejected before dispatch. Scheduled acceptance is a distinct
+terminal outbox state and must not be described as delivery. Subsequent rescheduling,
+cancellation and delivery of accepted scheduled messages are managed in Telegram.

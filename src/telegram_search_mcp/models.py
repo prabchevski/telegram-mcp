@@ -79,7 +79,7 @@ class MediaResult(OutputModel):
 
 class OutgoingState(OutputModel):
     draft_id: str = Field(pattern=r"^[0-9a-f]{32}$")
-    status: Literal["prepared", "unknown", "pending", "sent", "failed"]
+    status: Literal["prepared", "unknown", "pending", "sent", "failed", "scheduled"]
     chat_id: int
     chat_title: str = Field(max_length=256)
     text: str = Field(max_length=4096)
@@ -88,6 +88,11 @@ class OutgoingState(OutputModel):
     file_sha256: str | None = Field(pattern=r"^[0-9a-f]{64}$")
     message_id: int | None
     detail: str = Field(max_length=256)
+
+
+    reply_to_message_id: int | None = None
+    topic_id: int | None = None
+    scheduled_at: int | None = None
 
 
 class OutgoingResult(OutgoingState):
