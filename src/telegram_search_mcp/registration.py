@@ -182,7 +182,7 @@ def _prepare(client: str, path: Path, python: str, mode: str, replace_legacy: bo
     return source, output
 
 
-def configure(mode: str, *, clients: list[str], python: str, paths: dict[str, Path] | None = None, replace_legacy: bool = False, install_root: Path | None = None) -> list[Path]:
+def configure(mode: str, *, clients: list[str], python: str, paths: dict[str, Path] | None = None, replace_legacy: bool = False, install_root: Path | None = None, expected_sources: dict[str, bytes | None] | None = None) -> list[Path]:
     if mode not in ("register", "verify", "unregister"):
         raise ValueError("Unknown registration operation")
     python = _validated_python(python)
@@ -204,7 +204,12 @@ def configure(mode: str, *, clients: list[str], python: str, paths: dict[str, Pa
             descriptor = os.open(lock, os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
             handle = stack.enter_context(os.fdopen(descriptor, "a+b"))
             fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        if expected_sources is not None:
+            if set(expected_sources) != set(targets) or any(read_source(path) != expected_sources[client] for client, path in targets.items()):
+                raise RuntimeError("Client registration changed during migration; it was not restored")
         prepared = [(targets[client], *_prepare(client, targets[client], python, mode, replace_legacy, install_root)) for client in clients]
+        if expected_sources is not None and any(before != expected_sources[client] for client, (_, before, _) in zip(clients, prepared)):
+            raise RuntimeError("Client registration changed during migration; it was not restored")
         changed = []
         try:
             for path, before, after in prepared:

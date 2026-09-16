@@ -7,6 +7,7 @@ import errno
 import fcntl
 import os
 import pwd
+import re
 import stat
 import subprocess
 import sys
@@ -140,7 +141,7 @@ def _spawn(profile: str, paths: ServicePaths) -> subprocess.Popen[bytes]:
 
 async def ensure_service(profile: str = "default", *, paths: ServicePaths | None = None) -> dict[str, Any]:
     paths = paths or service_paths(profile)
-    existing = await _status(paths)
+    existing = await _compatible_service(profile, paths)
     if existing is not None:
         if existing.get("stopping"):
             raise ServiceStoppingError("Telegram service is stopping; retry after it exits")
@@ -157,7 +158,7 @@ async def ensure_service(profile: str = "default", *, paths: ServicePaths | None
                 if time.monotonic() >= deadline:
                     raise ServiceTimeoutError("Telegram service startup is busy; retry later")
                 await asyncio.sleep(0.05)
-        existing = await _status(paths)
+        existing = await _compatible_service(profile, paths)
         if existing is not None:
             if existing.get("stopping"):
                 raise ServiceStoppingError("Telegram service is stopping; retry after it exits")
@@ -175,6 +176,24 @@ async def ensure_service(profile: str = "default", *, paths: ServicePaths | None
         raise ServiceTimeoutError("Telegram service startup timed out; run `tgsearch service status`")
     finally:
         os.close(startup_fd)
+
+
+async def _compatible_service(profile: str, paths: ServicePaths) -> dict[str, Any] | None:
+    from . import __version__
+    existing = await _status(paths)
+    if existing is None or existing.get("stopping"):
+        return existing
+    running = existing.get("version", "")
+    if not isinstance(running, str) or not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", running):
+        return existing
+    if tuple(map(int, running.split("."))) >= tuple(map(int, __version__.split("."))):
+        return existing
+    if existing.get("busy") or existing.get("queued"):
+        raise ServiceBusyError("Telegram is finishing work in the previous version; retry shortly to activate the update")
+    # The stop request drains accepted work and closes TDLib before releasing
+    # the lock. Never kill a process or delete a profile lock for an upgrade.
+    await stop_service(profile, paths=paths)
+    return None
 
 
 async def service_status(profile: str = "default", *, connect: bool = False,

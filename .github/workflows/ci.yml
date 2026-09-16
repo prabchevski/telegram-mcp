@@ -61,6 +61,8 @@ jobs:
         run: uv run --frozen python -I scripts/release.py verify-wheel dist/*.whl
       - name: Verify actual macOS archive installation and update
         run: uv run --frozen python -I scripts/smoke-install-macos.py dist/*.zip
+      - name: Verify transition through the unmodified 0.6.1 updater
+        run: uv run --frozen python -I scripts/smoke-upgrade-06.py dist/*.zip
       - name: Save workflow artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:

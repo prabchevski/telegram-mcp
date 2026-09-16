@@ -4,6 +4,7 @@ from __future__ import annotations
 from importlib.metadata import PackageNotFoundError, distribution
 from pathlib import Path
 import ctypes
+import fcntl
 import json
 import os
 import platform
@@ -31,13 +32,42 @@ def candidates() -> list[Path]:
 
 
 def check_staged_runtime() -> None:
-    # The 0.6 updater stages new Python code using its old installer. On Intel
-    # it cannot build TDLib. Fail its import preflight before it activates an
-    # unusable version. The 0.7 installer prepares native code before this check.
+    # The 0.6 installer allows only 30 seconds for this import. Build Intel
+    # TDLib separately, retaining the working installation until a later retry.
     if platform.system() == "Darwin" and platform.machine() == "x86_64":
         version = Path(__file__).resolve().parents[2]
         if (version.parent / ".telegram-search-install-root").is_file() and not (version / "native/libtdjson.dylib").is_file():
-            raise RuntimeError("Run the 0.7 macOS installer once to upgrade TDLib on this Intel Mac; the previous installation remains available")
+            cached = version.parent / "native" / COMMIT / "libtdjson.dylib"
+            if cached.is_file():
+                prepare(version)
+                return
+            start_background_prepare(version.parent)
+            raise RuntimeError("Pinned TDLib is being prepared in the background. The previous installation remains active; the next automatic update retries the upgrade.")
+
+
+def start_background_prepare(root: Path) -> None:
+    from .config_io import atomic_write, read_source
+    from .installation import safe_environment
+    from .launchers import current_version
+    from .service import open_private_file
+    current = current_version(root)
+    directory = root / "native"
+    directory.mkdir(mode=0o700, exist_ok=True)
+    script = directory / ("prepare-" + COMMIT + ".py")
+    # The old installer deletes a failed staging directory. Keep this reviewed,
+    # stdlib-only helper outside it and execute the still-installed interpreter.
+    content = Path(__file__).read_bytes()
+    before = read_source(script)
+    if before != content:
+        atomic_write(script, content, expected=before)
+    descriptor = open_private_file(directory / "prepare.log")
+    try:
+        os.lseek(descriptor, 0, os.SEEK_END)
+        subprocess.Popen([str(current / ".venv/bin/python"), "-I", str(script), "--cache-only", str(root)],
+                         env=safe_environment(), cwd=str(root), stdin=subprocess.DEVNULL,
+                         stdout=descriptor, stderr=descriptor, close_fds=True, start_new_session=True)
+    finally:
+        os.close(descriptor)
 
 
 def verify(path: Path) -> None:
@@ -50,15 +80,8 @@ def verify(path: Path) -> None:
             raise RuntimeError("TDLib runtime does not match the pinned version and commit")
 
 
-def prepare(version: Path) -> None:
-    """Use locked wheels where available; compile the same official source on Intel Macs."""
-    bundled = bundled_candidates()
-    if bundled:
-        verify(bundled[0])
-        return
-    if platform.system() != "Darwin" or platform.machine() != "x86_64":
-        raise RuntimeError("No supported pinned TDLib runtime is installed")
-    cache = version.parent / "native" / COMMIT
+def _build_cache(root: Path) -> Path:
+    cache = root / "native" / COMMIT
     library = cache / "libtdjson.dylib"
     if not library.exists():
         cache.parent.mkdir(mode=0o700, exist_ok=True)
@@ -81,12 +104,55 @@ def prepare(version: Path) -> None:
             shutil.copyfile(source / "LICENSE_1_0.txt", staged / "LICENSE_1_0.txt")
             staged.rename(cache)
     verify(library)
+    return cache
+
+
+def prepare_cache(root: Path, *, background: bool = False) -> Path | None:
+    from telegram_search_mcp.config_io import validate_path
+    from telegram_search_mcp.launchers import validate_root
+    from telegram_search_mcp.service import open_private_file
+    validate_root(root)
+    directory = root / "native"
+    directory.mkdir(mode=0o700, exist_ok=True)
+    validate_path(directory / "prepare.lock")
+    descriptor = open_private_file(directory / "prepare.lock")
+    try:
+        try:
+            fcntl.flock(descriptor, fcntl.LOCK_EX | (fcntl.LOCK_NB if background else 0))
+        except BlockingIOError:
+            return None
+        if background and not (directory / COMMIT / "libtdjson.dylib").is_file():
+            # The old 0.6 installer may only have installed the Homebrew TDLib
+            # bottle, without the tools needed for this pinned source build.
+            subprocess.run(["/usr/local/bin/brew", "install", "cmake", "gperf", "openssl@3"], check=True, timeout=1800)
+        return _build_cache(root)
+    finally:
+        os.close(descriptor)
+
+
+def prepare(version: Path) -> None:
+    """Use locked wheels where available; compile the same official source on Intel Macs."""
+    bundled = bundled_candidates()
+    if bundled:
+        verify(bundled[0])
+        return
+    if platform.system() != "Darwin" or platform.machine() != "x86_64":
+        raise RuntimeError("No supported pinned TDLib runtime is installed")
+    cache = prepare_cache(version.parent)
+    library = cache / "libtdjson.dylib"
     destination = version / "native"
-    destination.mkdir(mode=0o700)
+    destination.mkdir(mode=0o700, exist_ok=True)
     shutil.copyfile(library, destination / library.name)
     shutil.copyfile(cache / "LICENSE_1_0.txt", destination / "LICENSE_1_0.txt")
 
 
 if __name__ == "__main__":
     import sys
-    prepare(Path(sys.argv[1]))
+    if sys.argv[1] == "--cache-only":
+        try:
+            prepare_cache(Path(sys.argv[2]), background=True)
+        except Exception:
+            subprocess.run(["/usr/bin/osascript", "-e", 'display notification "Automatic update needs attention. Run the latest Telegram MCP installer; your old installation and login are preserved." with title "Telegram MCP update"'], capture_output=True, timeout=5, check=False)
+            raise
+    else:
+        prepare(Path(sys.argv[1]))

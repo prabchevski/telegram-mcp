@@ -9,6 +9,7 @@ import zipfile
 import pytest
 
 from telegram_search_mcp import installation, launchers, registration, updater
+from telegram_search_mcp import activation
 
 REVISION = "a" * 40
 
@@ -280,3 +281,137 @@ def test_receipt_tracks_second_client_and_preserves_custom_path_on_unrelated_rem
     updater.remember_clients(root, {"gemini": gemini})
     updater.forget_clients(root, ["codex"], {"codex": root / "elsewhere/config.toml"})
     assert installation.read_receipt(root)["clients"] == {"codex": str(config), "gemini": str(gemini)}
+
+
+def write_entry(client, path, entry):
+    if client == "codex":
+        path.write_bytes(registration._replace_codex(b'model = "preserved"\n', entry))
+    else:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps({"ui": {"theme": "preserved"}, "mcpServers": {registration.ALIASES[client]: entry}}))
+
+
+@pytest.mark.parametrize("sending", [False, True])
+def test_06_activation_migrates_both_clients_once_preserving_login_and_sending(managed, monkeypatch, sending):
+    root, version, codex = managed
+    from telegram_search_mcp.sending_settings import set_sending
+    if sending:
+        set_sending(root, True)
+    gemini = root / "gemini/settings.json"
+    updater.remember_clients(root, {"gemini": gemini})
+    wanted = {}
+    for client, path in {"codex": codex, "gemini": gemini}.items():
+        wanted[client] = registration.expected_entry(client, str(version / ".venv/bin/python"), root)
+        write_entry(client, path, activation.legacy_entry(client, wanted[client]))
+    # Stand-ins outside the installation: migration must never even open these.
+    profile = root.parent / "saved-profile"
+    profile.write_bytes(b"existing login must be preserved")
+    receipt = (root / installation.RECEIPT).read_bytes()
+    monkeypatch.setattr(activation, "running_version", lambda: version)
+    calls = []
+    monkeypatch.setattr(activation, "notify_restart", lambda: calls.append(True) or True)
+    assert activation.migrate(root, notify=True)["clients"] == ["codex", "gemini"]
+    assert activation.migrate(root, notify=True)["status"] == "unchanged"
+    assert len(calls) == 1
+    assert profile.read_bytes() == b"existing login must be preserved"
+    assert (root / installation.RECEIPT).read_bytes() == receipt
+    assert tomllib.loads(codex.read_text())["model"] == "preserved"
+    assert json.loads(gemini.read_text())["ui"] == {"theme": "preserved"}
+    for client, path in {"codex": codex, "gemini": gemini}.items():
+        actual = registration._load(client, path, path.read_bytes())[registration.NAMES[client]][registration.ALIASES[client]]
+        assert actual == wanted[client]
+        assert len(actual["enabled_tools" if client == "codex" else "includeTools"]) == (9 if sending else 6)
+        assert list(path.parent.glob(path.name + ".telegram-search-backup-*"))
+
+
+@pytest.mark.parametrize("change", ["removed", "tools", "approval", "disabled", "command"])
+def test_06_activation_never_restores_owner_edits(managed, monkeypatch, change):
+    root, version, config = managed
+    wanted = registration.expected_entry("codex", str(version / ".venv/bin/python"), root)
+    entry = activation.legacy_entry("codex", wanted)
+    if change == "removed":
+        entry = None
+    elif change == "tools":
+        entry["enabled_tools"].pop()
+    elif change == "approval":
+        entry["default_tools_approval_mode"] = "never"
+    elif change == "disabled":
+        entry["enabled"] = False
+    else:
+        entry["command"] = "/custom/launcher"
+    write_entry("codex", config, entry)
+    before = config.read_bytes()
+    monkeypatch.setattr(activation, "running_version", lambda: version)
+    assert activation.migrate(root) == {"status": "unchanged", "clients": [], "skipped": ["codex"]}
+    assert config.read_bytes() == before
+    assert not (root / activation.NOTICE).exists()
+
+
+def test_staged_or_old_version_cannot_migrate_live_clients(managed, monkeypatch):
+    root, _, config = managed
+    monkeypatch.setattr(activation, "running_version", lambda: root / "not-current")
+    before = config.read_bytes()
+    assert activation.migrate(root)["status"] == "inactive_version"
+    assert config.read_bytes() == before
+
+
+def test_concurrent_owner_edit_during_activation_is_not_overwritten(managed, monkeypatch):
+    root, version, config = managed
+    wanted = registration.expected_entry("codex", str(version / ".venv/bin/python"), root)
+    write_entry("codex", config, activation.legacy_entry("codex", wanted))
+    monkeypatch.setattr(activation, "running_version", lambda: version)
+    real_configure = activation.configure
+    def edited(*args, **kwargs):
+        config.write_text("# disconnected by owner\n")
+        return real_configure(*args, **kwargs)
+    monkeypatch.setattr(activation, "configure", edited)
+    with pytest.raises(RuntimeError, match="changed during migration"):
+        activation.migrate(root)
+    assert config.read_text() == "# disconnected by owner\n"
+
+
+def test_activation_runs_before_throttle_and_does_not_need_another_release(managed, monkeypatch):
+    root, version, config = managed
+    wanted = registration.expected_entry("codex", str(version / ".venv/bin/python"), root)
+    write_entry("codex", config, activation.legacy_entry("codex", wanted))
+    monkeypatch.setattr(activation, "running_version", lambda: version)
+    monkeypatch.setattr(activation, "notify_restart", lambda: False)
+    (root / "last-update-check.json").write_text(json.dumps({"time": updater.time.time()}))
+    monkeypatch.setattr(updater, "checked_revision", lambda: pytest.fail("not due"))
+    assert updater.update(root, scheduled=True)["status"] == "not_due"
+    assert tomllib.loads(config.read_text())["mcp_servers"]["telegram_search"] == wanted
+    assert activation.read_notice(root)["notification_requested"] is False
+
+
+def test_notification_failure_does_not_revert_successful_migration(managed, monkeypatch):
+    root, version, config = managed
+    wanted = registration.expected_entry("codex", str(version / ".venv/bin/python"), root)
+    write_entry("codex", config, activation.legacy_entry("codex", wanted))
+    monkeypatch.setattr(activation, "running_version", lambda: version)
+    monkeypatch.setattr(activation, "notify_restart", lambda: False)
+    assert activation.migrate(root, notify=True)["status"] == "migrated"
+    assert activation.read_notice(root)["notification_requested"] is False
+    monkeypatch.setattr(activation, "notify_restart", lambda: True)
+    activation.migrate(root, notify=True)
+    assert activation.read_notice(root)["notification_requested"] is True
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("running,busy,stopped", [("0.6.1", False, True), ("0.6.1", True, False), ("99.0.0", False, False)])
+async def test_service_upgrade_drains_without_downgrading_or_interrupting_work(managed, monkeypatch, running, busy, stopped):
+    from telegram_search_mcp import service_client
+    from telegram_search_mcp.wire import ServiceBusyError
+    state = {"version": running, "busy": busy, "queued": 0}
+    calls = []
+    async def status(_):
+        return state
+    async def stop(*args, **kwargs):
+        calls.append("graceful-stop")
+    monkeypatch.setattr(service_client, "_status", status)
+    monkeypatch.setattr(service_client, "stop_service", stop)
+    if busy:
+        with pytest.raises(ServiceBusyError):
+            await service_client._compatible_service("default", None)
+    else:
+        assert await service_client._compatible_service("default", None) == (None if stopped else state)
+    assert bool(calls) is stopped

@@ -98,8 +98,20 @@ auth; never stop an active operation without coordinating with the owner.
 Daily updates run locally while the Mac user is logged in. They use the canonical
 main SHA only after successful GitHub checks, preserve the saved login, and activate
 for new MCP processes and the next shared-service start. The service exits after
-10 idle minutes; active work is not interrupted. Existing archives need this one
-time upgrade before they can auto-update. The owner can disable updates with
+10 idle minutes; a new client can also gracefully replace an idle older service.
+Active work is not interrupted. Managed 0.6.1 installations with updates enabled
+automatically refresh unchanged standard client tool lists on the next scheduled
+run of the new package, or when its MCP server starts. A restart notification and
+`tgsearch updates status` explain the remaining client restart. Sending preferences
+and removed/customized registrations are preserved. Apple Silicon normally needs
+at most two daily checks. Intel may need an additional check while the pinned
+native library builds in the background; the old version stays active meanwhile.
+Archives without an enabled managed updater need this one-time installation.
+The pre-rename 0.6.0 updater requires the old GitHub repository identity; it also
+needs the installer once and cannot be repaired only by publishing in the new repo.
+An installation already on 0.7.0 with the old 0.6 tool lists also needs the installer:
+its existing updater returns `registration_changed` before loading new code.
+The owner can disable updates with
 `current/tgsearch updates off`, check immediately with `current/tgsearch update
 --check`, or install a checked update with `current/tgsearch update`.
 

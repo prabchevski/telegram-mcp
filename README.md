@@ -1,4 +1,4 @@
-# Telegram MCP · 0.7.0
+# Telegram MCP · 0.7.1
 
 Search your Telegram chats, transcribe voice messages, and optionally send text and files with
 **Codex and Gemini CLI on macOS**.
@@ -66,9 +66,24 @@ Protected, self-destructing, and secret-chat messages are excluded. Text is boun
 to 32,000 characters, with an explicit truncation flag, and is untrusted content.
 
 The default tool set now contains six tools; enabling sending makes nine.
-For an existing 0.6 installation, rerun the installer once with `--upgrade` to refresh
-the client tool allowlists. The old background updater preserves those allowlists;
-it cannot expose newly added tools by itself.
+Existing managed 0.6.1 installations with daily updates enabled transition automatically:
+the old updater installs the new package, then the next scheduled run (or an earlier
+MCP start) adds the voice tools to unchanged standard Codex/Gemini registrations.
+Allow up to two daily checks on Apple Silicon. No reinstall or Telegram login is
+needed. A macOS notification requests a Codex/Gemini restart; notification visibility
+depends on macOS settings. `tgsearch updates status` also retains the restart notice.
+If migration happens while a client is starting, restart that client once more so it
+rereads its settings. Sending stays on/off as previously configured. Removed or
+manually customized connections are never restored or overwritten; those require
+an explicit configuration review. Installations without managed daily updates need
+the installer once with `--upgrade --auto-update on`.
+The pre-rename 0.6.0 archive also needs that one-time installer: its updater requires
+the old GitHub repository identity and rejects CI from the renamed repository.
+A change published only in this repository cannot reach that updater.
+If 0.6.1 already installed 0.7.0 while retaining its old tool lists, 0.7.0's updater
+stops with `registration_changed` before downloading another package. That stranded
+installation needs the installer once as well. A normally configured 0.7.0 installation
+continues updating automatically.
 
 ### Native runtime upgrade
 
@@ -76,6 +91,13 @@ TDLib is pinned to 1.8.67 and its exact source commit. Apple Silicon Macs use th
 hash-locked `tdjson` wheel from PyPI; Intel Macs build the same pinned official TDLib
 source once with Homebrew cmake, gperf and OpenSSL. Both version and commit are checked
 before opening a profile. The build is reused by subsequent Intel installations.
+When updating from 0.6.1 on Intel, the first attempt starts a separate pinned TDLib
+build and leaves the old installation active. A later daily check retries after
+the cache is ready, then registration migration completes as above. Homebrew and
+Apple's command-line tools must already work. A failed build requests a macOS
+notification directing the owner to the installer; diagnostics remain under the
+installation's `native/prepare.log`. This Intel path is covered by simulated tests;
+the full historical-updater smoke test runs on Apple Silicon.
 The existing Telegram profile and Keychain remain in place. TDLib can upgrade its
 database format: do not manually launch an older installation against that upgraded
 profile. Close the idle old shared service or let it exit before first use.

@@ -220,6 +220,14 @@ def update(root: Path, *, scheduled: bool = False, check_only: bool = False) -> 
         raise RuntimeError("Install the current package once to enable managed updates")
     if scheduled and not receipt.get("auto_update"):
         return {"status": "disabled"}
+    # Also runs when the candidate is already installed or a daily network
+    # check isn't due. The 0.6 updater leaves its old tool allowlists behind.
+    if not check_only:
+        from .activation import migrate
+        activation = migrate(root, notify=scheduled)
+        if activation["status"] == "migrated":
+            from .activation import RESTART_MESSAGE
+            print(RESTART_MESSAGE)
     check_file = root / "last-update-check.json"
     if scheduled:
         previous_check = read_source(check_file)
@@ -268,6 +276,11 @@ def update(root: Path, *, scheduled: bool = False, check_only: bool = False) -> 
         install(source, root, uv=uv, python=str(version / ".venv/bin/python"), clients=list(receipt["clients"]),
                 paths={client: Path(path) for client, path in receipt["clients"].items()}, auto_update="keep", revision=candidate,
                 registration_snapshot=registration_snapshot, expected_receipt=receipt_source)
+    # Future upgrades finish immediately using the NEW package's registration
+    # schema. A 0.6 caller instead reaches this on its next scheduled run.
+    version = current_version(root)
+    subprocess.run([str(version / ".venv/bin/python"), "-I", "-m", "telegram_search_mcp.activation"],
+                   check=True, env=safe_environment(), timeout=30)
     return {"status": "updated", "revision": candidate, "activation": "new clients and the next service start"}
 
 

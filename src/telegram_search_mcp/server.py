@@ -335,7 +335,9 @@ def main() -> None:
 
     from .service_client import SharedTelegramBackend
     from .sending_settings import sending_enabled
+    from .activation import on_mcp_start
 
+    on_mcp_start()
     backend = SharedTelegramBackend()
     create_server(backend, enable_sending=sending_enabled()).run(transport="stdio")
 
