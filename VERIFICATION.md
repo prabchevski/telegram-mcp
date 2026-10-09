@@ -1,5 +1,9 @@
 # Verification
 
+Thread-history pagination also has sparse-ID coverage across short native pages,
+including a single cached row followed by enough rows to fill a 20-item MCP page.
+These checks use synthetic sessions and do not access account data.
+
 ## Version 0.9.3 — Read reliability and release alignment
 
 This release incorporates the September read-reliability fix that was installed
