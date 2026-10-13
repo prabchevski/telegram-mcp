@@ -119,7 +119,10 @@ def error_result(exc: Exception, operation: str = "service") -> dict[str, str]:
         "internal", "timeout", "unavailable", "busy",
     }
     ambiguous_draft = operation == "set_chat_draft" and category in {"internal", "timeout", "unavailable", "busy"}
-    if ambiguous_send or ambiguous_draft:
+    ambiguous_edit = operation in {"prepare_message_edit", "edit_message", "get_edit_status"} and category in {
+        "internal", "timeout", "unavailable", "busy",
+    }
+    if ambiguous_send or ambiguous_draft or ambiguous_edit:
         retryable = False
     ident = uuid.uuid4().hex
     metadata = f"operation={operation} category={category} retryable={str(retryable).lower()}"
@@ -131,6 +134,8 @@ def error_result(exc: Exception, operation: str = "service") -> dict[str, str]:
         message += " Check the existing draft ID with get_send_status; never create a replacement to retry."
     if ambiguous_draft:
         message += " Read get_chat_draft and reconcile using the same operation_id before retrying."
+    if ambiguous_edit:
+        message += " Check the same edit_id with get_edit_status; never create a replacement to retry."
 
     # Trace exception identity and code locations, but never str/repr(exc),
     # traceback source lines, request frames, exception args or local variables.

@@ -1,5 +1,27 @@
 # Verification
 
+## Version 0.10.0 — Own-message editing
+
+The edit workflow is verified with synthetic TDLib sessions and real MCP/private
+service transports. It covers preparation without a Telegram mutation, current
+personal authorship and edit permission, Saved Messages' native outgoing exception,
+exact signed/native IDs, text and media-caption payloads, option preservation,
+changed-message conflicts, expiry, disabled writes, restart/timeout recovery, and
+at-most-once dispatch across clients. Private result/parameter schemas reject
+altered application parameters and retain Telegram's trust boundary.
+
+The schema and ownership rules were checked against the pinned official TDLib
+source at commit `d1085f9cebc5a62379991ae1652673954f229c1f`. Telegram does not
+provide an atomic conditional edit; the last observed-version check cannot prevent
+a concurrent owner edit during the native request.
+
+Local installation acceptance checks package/source alignment, 22-tool discovery,
+authorization through `doctor --connect`, service version, and preserved sending,
+update and unrelated client settings. It does not modify a real Telegram message.
+Synthetic editing tests and discovery do not establish authenticated live-edit
+acceptance. This local candidate has not been published as a GitHub release;
+Windows desktop acceptance for 0.10.0 has not been run.
+
 ## Version 0.9.3 — Read reliability and release alignment
 
 This release incorporates the September read-reliability fix that was installed

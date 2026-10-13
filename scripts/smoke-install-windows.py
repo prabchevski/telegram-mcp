@@ -153,20 +153,21 @@ async def main():
         if sending:
             expected.update({
                 'telegram_prepare_message', 'telegram_send_message',
-                'telegram_get_send_status', 'telegram_set_chat_draft',
+                'telegram_get_send_status', 'telegram_set_chat_draft', 'telegram_prepare_message_edit', 'telegram_edit_message', 'telegram_get_edit_status',
             })
         assert {tool.name for tool in result.tools} == expected
-        assert len(result.tools) == (19 if sending else 15)
+        assert len(result.tools) == (22 if sending else 15)
         writes = {
             'telegram_prepare_message', 'telegram_send_message',
             'telegram_transcribe_voice', 'telegram_download_file',
             'telegram_set_chat_draft',
+            'telegram_prepare_message_edit', 'telegram_edit_message',
             'telegram_search_public_posts',
         }
         for tool in result.tools:
             assert tool.annotations is not None
             assert tool.annotations.read_only_hint is (tool.name not in writes)
-            assert tool.annotations.destructive_hint is (tool.name == 'telegram_set_chat_draft')
+            assert tool.annotations.destructive_hint is (tool.name in {'telegram_set_chat_draft', 'telegram_edit_message'})
             if tool.name == 'telegram_search_public_posts':
                 assert tool.annotations.idempotent_hint is False
                 properties = tool.input_schema['properties']

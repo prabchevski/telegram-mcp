@@ -399,7 +399,7 @@ def test_06_activation_migrates_both_clients_once_preserving_login_and_sending(m
     for client, path in {"codex": codex, "gemini": gemini}.items():
         actual = registration._load(client, path, path.read_bytes())[registration.NAMES[client]][registration.ALIASES[client]]
         assert actual == wanted[client]
-        assert len(actual["enabled_tools" if client == "codex" else "includeTools"]) == (19 if sending else 15)
+        assert len(actual["enabled_tools" if client == "codex" else "includeTools"]) == (22 if sending else 15)
         assert list(path.parent.glob(path.name + ".telegram-search-backup-*"))
 
 
@@ -531,6 +531,7 @@ def test_07_activation_preserves_preferences_and_custom_registrations(managed, m
 @pytest.mark.parametrize("old_entry,old_counts", [
     (activation.navigation_entry, (13, 17)),
     (activation.initial_public_entry, (14, 18)),
+    (activation.before_editing_entry, (15, 19)),
 ])
 @pytest.mark.parametrize("change", [None, "removed", "tools", "approval"])
 def test_public_search_activation_preserves_owner_changes(managed, monkeypatch, sending, old_entry, old_counts, change):
@@ -546,8 +547,9 @@ def test_public_search_activation_preserves_owner_changes(managed, monkeypatch, 
         old = old_entry(client, wanted[client])
         key = "enabled_tools" if client == "codex" else "includeTools"
         assert len(old[key]) == old_counts[int(sending)]
-        assert "telegram_get_public_search_quota" not in old[key]
-        assert ("telegram_search_public_posts" in old[key]) is (old_entry is activation.initial_public_entry)
+        assert ("telegram_get_public_search_quota" in old[key]) is (old_entry is activation.before_editing_entry)
+        assert ("telegram_search_public_posts" in old[key]) is (old_entry is not activation.navigation_entry)
+        assert not set(activation.EDIT_TOOLS) & set(old[key])
         if change == "removed":
             old = None
         elif change == "tools":
@@ -559,7 +561,8 @@ def test_public_search_activation_preserves_owner_changes(managed, monkeypatch, 
     monkeypatch.setattr(activation, "running_version", lambda: version)
     result = activation.migrate(root)
     if change is None:
-        assert result["status"] == "migrated"
+        expected_status = "unchanged" if old_entry is activation.before_editing_entry and not sending else "migrated"
+        assert result["status"] == expected_status
         for client, path in {"codex": codex, "gemini": gemini}.items():
             actual = registration._load(client, path, path.read_bytes())[registration.NAMES[client]][registration.ALIASES[client]]
             assert actual == wanted[client]

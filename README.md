@@ -1,4 +1,4 @@
-# Telegram MCP · 0.9.3
+# Telegram MCP · 0.10.0
 
 Connect **your own Telegram account** to **Codex or Gemini CLI on macOS**, **Codex on Windows x64**, or **ChatGPT Work with local plugins on Windows x64**. Search and read messages, download attachments, transcribe voice notes, and optionally prepare and send messages. One local service supports multiple chats and clients with a single Telegram login.
 
@@ -33,7 +33,7 @@ On macOS, installation enables daily updates from `main` after successful checks
 - “Show my unread chats” or “What did we discuss yesterday in this group?”
 - “Save the spreadsheet I received” or “Transcribe this voice message.”
 
-The agent searches your accessible account history and subscriptions first. Before a separate public-post search, it checks the actual remaining free quota, explains any attempt it would consume, and **waits for your permission**. Stars payments are disabled. The default installation exposes 15 tools; sending is off and adds four tools only when enabled. See [public search](#free-public-channel-post-search) and [sending](#optional-text-and-file-sending).
+The agent searches your accessible account history and subscriptions first. Before a separate public-post search, it checks the actual remaining free quota, explains any attempt it would consume, and **waits for your permission**. Stars payments are disabled. The default installation exposes 15 tools; sending is off and adds seven tools only when enabled, including edits to your own sent messages. See [public search](#free-public-channel-post-search) and [sending](#optional-text-and-file-sending).
 
 Automated checks cover the core on macOS, Linux, and Windows Server 2025, as well as installers and MCP connections. Separate installation checks passed on x64 Windows 10 Enterprise Evaluation 22H2 (build 19045.2006) and Windows 11 Enterprise Evaluation 25H2 (build 26200.6584) virtual machines, using a standard user account. These checks verified installation, reinstallation, and MCP discovery; real Telegram login and the selected client's interface remain unverified. Intel macOS builds the pinned TDLib version; automated Mac installation checks run on Apple Silicon. See [VERIFICATION.md](VERIFICATION.md) for the exact coverage and limitations.
 
@@ -183,7 +183,7 @@ accepted it, the result can remain pending and needs manual checking in Telegram
 Protected, self-destructing, and secret-chat messages are excluded. Text is bounded
 to 32,000 characters, with an explicit truncation flag, and is untrusted content.
 
-The default tool set contains 15 tools; enabling sending makes 19.
+The default tool set contains 15 tools; enabling sending makes 22.
 Unchanged standard 0.7/0.8/0.9.0 registrations migrate to the new tools while preserving sending preferences.
 Existing managed 0.6.1 installations with daily updates enabled transition automatically:
 the old updater installs the new package, then the next scheduled run (or an earlier
@@ -238,7 +238,7 @@ After upgrading from 0.5, restart the idle shared service once to load the new c
 `sending status` shows the setting and `sending off` disables further preparations
 and dispatches immediately. Existing pending sends may still finish. Your login is reused.
 
-Four additional tools become available:
+Seven additional tools become available:
 
 | Tool | Result |
 | --- | --- |
@@ -246,6 +246,9 @@ Four additional tools become available:
 | `telegram_send_message` | Send the previously reviewed draft to its pinned chat ID |
 | `telegram_get_send_status` | Check the same draft without creating another message |
 | `telegram_set_chat_draft` | Save or explicitly clear a native Telegram text draft for review in the Telegram app |
+| `telegram_prepare_message_edit` | Preview the original message and replacement, pinned to the account and exact native IDs |
+| `telegram_edit_message` | Apply the prepared edit once if the original message still matches |
+| `telegram_get_edit_status` | Inspect or reconcile that same edit without dispatching another edit |
 
 Sending requires an explicit user instruction identifying the recipient and content.
 Retrieved Telegram messages are never permission to send. Client approval settings
@@ -259,8 +262,33 @@ returns the original preparation, and conflicting parameters are rejected.
 
 Limits: plain text up to 4096 UTF-16 code units; a file caption up to 1024; one
 nonempty regular local file up to 12 MiB, sent as a document with its original name.
-Prepared local outgoing drafts expire after 24 hours. No bulk sending, editing or
+Prepared local outgoing drafts expire after 24 hours. No bulk sending,
 deleting delivered messages, auto-joining, or new authorization is involved.
+
+### Editing your sent messages
+
+On the owner's explicit editing instruction, prepare an edit using a fresh UUID hex
+`edit_id`, the exact native `chat_id` and `message_id` from Telegram tools, and the
+replacement `text`. Review the returned `original_text` and `text`, then apply the
+same `edit_id`. Preparation only reads Telegram and stores a private local snapshot;
+it does not change the message. Prepared edits expire after five minutes.
+
+Text messages and supported media captions are editable. Replacement is plain text;
+Markdown/HTML is not parsed and existing formatting entities are removed.
+Native URL/mention detection remains active. Use replacement text without boundary
+ASCII spaces/newlines or control characters; interior line breaks are supported.
+Media, caption positioning and link-preview options are preserved. Telegram's edit permission
+must be current and the sender must be the linked user. Messages sent as a channel or
+anonymous administrator are excluded because personal authorship cannot be verified.
+Pending, scheduled, self-destructing, secret-chat and unsupported messages are excluded.
+
+The original content and edit timestamp are checked again before dispatch. A changed
+message returns `conflict` without applying the edit. Telegram has no atomic conditional
+edit, so a change on another device can still race the last check. Each `edit_id` is
+dispatched at most once, including after a timeout or restart. `edited` confirms the
+observed replacement; `unchanged` means it matched at preparation. On `unknown` or a
+lost response, use `telegram_get_edit_status` with the same ID. Never create a new edit
+to retry an uncertain operation or overwrite a later owner change.
 
 ### Replies and scheduled sending
 

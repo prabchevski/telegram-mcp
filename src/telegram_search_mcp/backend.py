@@ -53,6 +53,18 @@ class RawMedia:
 class TelegramBackend(Protocol):
     """The complete interface the MCP process is allowed to call."""
 
+    async def prepare_message_edit(self, *, edit_id: str, chat_id: int, message_id: int, text: str) -> dict:
+        """Prepare an account-bound edit without changing Telegram."""
+        ...
+
+    async def edit_message(self, *, edit_id: str) -> dict:
+        """Apply the exact prepared edit at most once."""
+        ...
+
+    async def get_edit_status(self, *, edit_id: str) -> dict:
+        """Read or reconcile an edit without dispatching a mutation."""
+        ...
+
     async def get_public_search_quota(self, *, query: str) -> dict: ...
     async def search_public_posts(self, *, query: str, cursor: str | None, limit: int,
                                   confirmation_token: str | None = None, user_confirmed: bool = False) -> dict: ...

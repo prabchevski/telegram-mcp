@@ -75,7 +75,7 @@ To enable sending when needed:
 
 ```powershell
 & $tg sending on
-# Restart Codex or ChatGPT and start a new chat: 19 tools are now available.
+# Restart Codex or ChatGPT and start a new chat: 22 tools are now available.
 & $tg sending off
 ```
 

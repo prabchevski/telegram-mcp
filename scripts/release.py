@@ -37,7 +37,8 @@ REQUIRED_FILES = frozenset(
      "scripts/install.py", WINDOWS_ASSETS_SOURCE, "src/telegram_search_mcp/__init__.py",
      "scripts/verify-live-release.py", "tests/test_read_navigation_regressions.py",
      "tests/test_context_regressions.py", "tests/test_read_error_regressions.py",
-     "tests/test_read_service_regressions.py"}
+     "tests/test_read_service_regressions.py", "tests/test_editing.py",
+     "tests/test_editing_integration.py"}
 )
 ROOT_FILES = REQUIRED_FILES | {
     ".gitignore", "NOTICE", "update-macos.command", "uninstall-macos.command"

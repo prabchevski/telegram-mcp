@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.10.0 — 2026-10-13
+
+- Add optional preparation, application and status tools for editing the linked
+  user's own sent text messages and supported media captions. Sending-enabled
+  discovery now contains 22 tools; the default remains 15.
+- Pin exact native IDs, account, original content and replacement in a private
+  five-minute snapshot. Recheck authorship, edit permission and observed content
+  before application; preserve media, caption position and link-preview options.
+- Persist dispatch before the native call and never repeat an uncertain edit after
+  a timeout or service restart. Status checks reconcile by reading the same message.
+- Preserve sending preferences and migrate unchanged 0.9 registrations to the new
+  tools. Existing Telegram login and pinned TDLib 1.8.67 remain in place.
+
 ## 0.9.3 — 2026-10-08
 
 - Include the previously local read-reliability fix in the public release: preserve exact TDLib message IDs, native continuations, date boundaries, and context across short or empty pages.

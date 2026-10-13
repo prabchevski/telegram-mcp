@@ -7,7 +7,8 @@ from pathlib import Path
 from .config_io import atomic_write, read_source
 from .launchers import installed_root, validate_root
 
-OUTGOING_TOOLS = ("telegram_prepare_message", "telegram_send_message", "telegram_get_send_status", "telegram_set_chat_draft")
+EDIT_TOOLS = ("telegram_prepare_message_edit", "telegram_edit_message", "telegram_get_edit_status")
+OUTGOING_TOOLS = ("telegram_prepare_message", "telegram_send_message", "telegram_get_send_status", "telegram_set_chat_draft", *EDIT_TOOLS)
 FEATURE_FILE = "sending.json"
 
 
