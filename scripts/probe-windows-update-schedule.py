@@ -47,6 +47,10 @@ def main() -> None:
                     "probe": "task_scheduler_normalization", "task_name": name,
                     "generated_xml": generated, "registered_xml": registered_xml,
                     "mismatches": schedule._task_mismatches(registered_xml, root, sid, powershell),
+                    "native_principal_run_level": int(task.Definition.Principal.RunLevel),
+                    "native_enabled": bool(task.Enabled),
+                    "native_trigger_enabled": [bool(task.Definition.Triggers.Item(index).Enabled)
+                                               for index in range(1, task.Definition.Triggers.Count + 1)],
                     "task_run_called": False, "telegram_profile_accessed": False,
                 }, ensure_ascii=True), flush=True)
             finally:

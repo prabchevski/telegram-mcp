@@ -112,6 +112,28 @@ def _xml_digest(xml: str) -> str:
                                     separators=(",", ":")).encode()).hexdigest()
 
 
+def _resolve_account_sid(name: str) -> str | None:
+    if sys.platform != "win32":
+        return None
+    try:
+        import win32security
+        sid, _domain, _kind = win32security.LookupAccountName(None, name)
+        return win32security.ConvertSidToStringSid(sid)
+    except Exception:
+        return None
+
+
+def _same_user(value: str | None, user_sid: str) -> bool:
+    if value == user_sid:
+        return True
+    if (not isinstance(value, str) or not value or len(value) > 256
+            or value.startswith("S-") or any(char in value for char in "\x00\r\n")):
+        return False
+    # Task Scheduler exports a logon trigger's SID as a qualified account name.
+    # Resolve that name through Windows; textual similarity is never ownership.
+    return _resolve_account_sid(value) == user_sid
+
+
 def _task_mismatches(xml: str, root: Path, user_sid: str, powershell: Path) -> list[str]:
     """Return guard names only; diagnostics never expose task values or content."""
     tree = _xml_tree(xml)
@@ -124,7 +146,7 @@ def _task_mismatches(xml: str, root: Path, user_sid: str, powershell: Path) -> l
         ("Principals.count", len(principals) == 1),
         ("Principal.UserId", len(principals) == 1 and principals[0].findtext("UserId") == user_sid),
         ("Principal.LogonType", len(principals) == 1 and principals[0].findtext("LogonType") == "InteractiveToken"),
-        ("Principal.RunLevel", len(principals) == 1 and principals[0].findtext("RunLevel") == "LeastPrivilege"),
+        ("Principal.RunLevel", len(principals) == 1 and principals[0].findtext("RunLevel", "LeastPrivilege") == "LeastPrivilege"),
         ("Actions.count", len(actions) == 1),
         ("Action.type", len(actions) == 1 and actions[0].tag == "Exec"),
         ("Action.Command", len(actions) == 1 and actions[0].findtext("Command") == str(powershell)),
@@ -133,10 +155,10 @@ def _task_mismatches(xml: str, root: Path, user_sid: str, powershell: Path) -> l
         ("Triggers.count", len(triggers) == 2),
         ("Triggers.types", {trigger.tag for trigger in triggers} == {"CalendarTrigger", "LogonTrigger"}),
         ("CalendarTrigger.DaysInterval", tree.findtext("Triggers/CalendarTrigger/ScheduleByDay/DaysInterval") == "1"),
-        ("LogonTrigger.UserId", tree.findtext("Triggers/LogonTrigger/UserId") == user_sid),
+        ("LogonTrigger.UserId", _same_user(tree.findtext("Triggers/LogonTrigger/UserId"), user_sid)),
         ("LogonTrigger.Delay", tree.findtext("Triggers/LogonTrigger/Delay") == "PT5M"),
-        ("Triggers.Enabled", all(trigger.findtext("Enabled") == "true" for trigger in triggers)),
-        ("Settings.Enabled", tree.findtext("Settings/Enabled") == "true"),
+        ("Triggers.Enabled", all(trigger.findtext("Enabled", "true") == "true" for trigger in triggers)),
+        ("Settings.Enabled", tree.findtext("Settings/Enabled", "true") == "true"),
     ]
     return [name for name, matches in checks if not matches]
 

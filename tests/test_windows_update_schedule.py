@@ -59,7 +59,7 @@ class FakeTask:
 
     @property
     def Enabled(self):
-        return schedule._xml_tree(self.Xml).findtext("Settings/Enabled") == "true"
+        return schedule._xml_tree(self.Xml).findtext("Settings/Enabled", "true") == "true"
 
     def Run(self, *_):
         pytest.fail("Setup must never run an updater task")
@@ -223,6 +223,88 @@ def test_task_mismatch_diagnostics_report_only_guard_names(native_mock):
     result = schedule._task_mismatches(normalized, root, SID, schedule._powershell())
     assert result == ['Principal.UserId', 'LogonTrigger.UserId']
     assert 'account-name' not in str(result)
+
+
+def native_exported_xml(xml, account='HOSTNAME\\owner'):
+    import xml.etree.ElementTree as ET
+    tree = schedule._xml_tree(xml)
+    principal = tree.find('Principals/Principal')
+    principal.remove(principal.find('RunLevel'))
+    for trigger in tree.findall('Triggers/*'):
+        trigger.remove(trigger.find('Enabled'))
+    settings = tree.find('Settings')
+    settings.remove(settings.find('Enabled'))
+    tree.find('Triggers/LogonTrigger/UserId').text = account
+    return ET.tostring(tree, encoding='unicode')
+
+
+def test_actual_windows_export_defaults_and_current_account_name_are_owned(native_mock, monkeypatch):
+    root, folder = native_mock
+    monkeypatch.setattr(schedule, '_resolve_account_sid', lambda name: SID if name == 'HOSTNAME\\owner' else None)
+    folder.normalize = native_exported_xml
+    assert schedule.configure_schedule(root, True)['owned'] is True
+    assert schedule.schedule_status(root)['enabled'] is True
+    assert schedule.configure_schedule(root, True)['owned'] is True
+    assert len(folder.registered) == 1
+    schedule.configure_schedule(root, False)
+    assert folder.deleted == [schedule.task_name(root)]
+
+
+@pytest.mark.parametrize('element,value,guard', [
+    ('Principals/Principal/RunLevel', 'HighestAvailable', 'Principal.RunLevel'),
+    ('Triggers/CalendarTrigger/Enabled', 'false', 'Triggers.Enabled'),
+    ('Triggers/LogonTrigger/Enabled', 'false', 'Triggers.Enabled'),
+    ('Settings/Enabled', 'false', 'Settings.Enabled'),
+])
+def test_missing_native_defaults_do_not_accept_explicit_elevation_or_disabled_fields(
+    native_mock, monkeypatch, element, value, guard,
+):
+    import xml.etree.ElementTree as ET
+    root, _ = native_mock
+    monkeypatch.setattr(schedule, '_resolve_account_sid', lambda _: SID)
+    tree = schedule._xml_tree(native_exported_xml(schedule.task_definition(root, SID, schedule._powershell())))
+    parent_name, field = element.rsplit('/', 1)
+    ET.SubElement(tree.find(parent_name), field).text = value
+    mismatches = schedule._task_mismatches(ET.tostring(tree, encoding='unicode'), root, SID, schedule._powershell())
+    assert guard in mismatches
+
+
+@pytest.mark.parametrize('resolved', [None, 'S-1-5-21-111-222-333-1002'])
+def test_unknown_or_other_account_name_never_matches_current_user(native_mock, monkeypatch, resolved):
+    root, _ = native_mock
+    monkeypatch.setattr(schedule, '_resolve_account_sid', lambda _: resolved)
+    xml = native_exported_xml(schedule.task_definition(root, SID, schedule._powershell()), 'HOSTNAME\\other')
+    assert schedule._task_mismatches(xml, root, SID, schedule._powershell()) == ['LogonTrigger.UserId']
+
+
+def test_direct_current_sid_requires_no_lookup_and_other_sid_cannot_be_resolved(monkeypatch):
+    monkeypatch.setattr(schedule, '_resolve_account_sid', lambda _: pytest.fail('A SID must not be reinterpreted as an account name'))
+    assert schedule._same_user(SID, SID) is True
+    assert schedule._same_user('S-1-5-21-111-222-333-1002', SID) is False
+
+
+def test_denied_native_account_lookup_fails_closed(monkeypatch):
+    import sys
+    def denied(*_):
+        raise PermissionError('Synthetic lookup access denied')
+    monkeypatch.setattr(schedule, 'sys', SimpleNamespace(platform='win32'))
+    monkeypatch.setitem(sys.modules, 'win32security', SimpleNamespace(LookupAccountName=denied))
+    assert schedule._resolve_account_sid('HOSTNAME\\owner') is None
+
+
+def test_exact_saved_native_xml_still_rejects_owner_edits(native_mock, monkeypatch):
+    root, folder = native_mock
+    monkeypatch.setattr(schedule, '_resolve_account_sid', lambda _: SID)
+    folder.normalize = native_exported_xml
+    schedule.configure_schedule(root, True)
+    task = folder.tasks[schedule.task_name(root)]
+    # The account name remains the same SID, but changing the saved definition
+    # is still an owner edit and must not be silently restored or removed.
+    task.Xml = task.Xml.replace('HOSTNAME\\owner', 'HOSTNAME\\renamed-owner')
+    assert schedule.schedule_status(root)['state'] == 'modified_by_owner'
+    with pytest.raises(RuntimeError, match='preserved'):
+        schedule.configure_schedule(root, False)
+    assert folder.deleted == []
 
 
 def test_edited_launcher_is_preserved_and_never_registered(native_mock):
