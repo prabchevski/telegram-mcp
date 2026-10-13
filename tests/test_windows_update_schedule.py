@@ -17,6 +17,42 @@ class MissingTaskError(Exception):
     hresult = -2147024894
 
 
+class WrappedTaskError(Exception):
+    hresult = -2147352567
+    def __init__(self, inner, *, expose_attribute=True):
+        info = (0, None, None, None, 0, inner)
+        if expose_attribute:
+            self.excepinfo = info
+        super().__init__(self.hresult, 'Exception occurred.', info, None)
+
+
+@pytest.mark.parametrize('expose_attribute', [False, True])
+def test_native_dispatch_missing_task_is_absent(expose_attribute):
+    def missing(_name):
+        raise WrappedTaskError(-2147024894, expose_attribute=expose_attribute)
+    folder = SimpleNamespace(GetTask=missing)
+    assert schedule._get_task(folder, 'only-this-task') is None
+
+
+@pytest.mark.parametrize('inner', [-2147024891, -2147467259])
+def test_native_dispatch_access_denied_and_other_errors_fail_closed(inner):
+    def failed(_name):
+        raise WrappedTaskError(inner)
+    folder = SimpleNamespace(GetTask=failed)
+    with pytest.raises(RuntimeError, match='Unable to inspect') as result:
+        schedule._get_task(folder, 'only-this-task')
+    assert isinstance(result.value.__cause__, WrappedTaskError)
+
+
+def test_nested_not_found_does_not_override_an_unrelated_outer_error():
+    error = WrappedTaskError(-2147024894)
+    error.hresult = -2147024891
+    def failed(_name):
+        raise error
+    with pytest.raises(RuntimeError, match='Unable to inspect'):
+        schedule._get_task(SimpleNamespace(GetTask=failed), 'only-this-task')
+
+
 class FakeTask:
     def __init__(self, xml):
         self.Xml = xml

@@ -163,7 +163,15 @@ def _get_task(folder, name: str):
         code = getattr(exc, "hresult", None)
         if code is None and exc.args and isinstance(exc.args[0], int):
             code = exc.args[0]
-        if code is not None and code & 0xFFFFFFFF == 0x80070002:
+        if isinstance(code, int) and code & 0xFFFFFFFF == 0x80020009:  # DISP_E_EXCEPTION
+            # IDispatch wraps Task Scheduler's actual HRESULT in EXCEPINFO.
+            # Only its exact FILE_NOT_FOUND value means this task is absent.
+            info = getattr(exc, "excepinfo", None)
+            if info is None and len(exc.args) >= 3:
+                info = exc.args[2]
+            if isinstance(info, (tuple, list)) and len(info) == 6 and type(info[5]) is int:
+                code = info[5]
+        if type(code) is int and code & 0xFFFFFFFF == 0x80070002:
             return None
         raise RuntimeError("Unable to inspect this installation's updater task") from exc
 
