@@ -422,8 +422,10 @@ def test_stable_uv_is_verified_private_and_survives_bootstrap_deletion(tmp_path,
 
 
 def test_unverified_uv_is_not_copied(tmp_path):
-    uv = tmp_path / 'unverified.exe'
-    uv.write_bytes(b'unverified executable')
+    private = tmp_path / 'private-bootstrap'
+    ensure_private_dir(private)
+    uv = private / 'unverified.exe'
+    atomic_write(uv, b'unverified executable', expected=None)
     root = tmp_path / 'install'
     ensure_private_dir(root)
     with pytest.raises(RuntimeError, match='pinned verified build'):

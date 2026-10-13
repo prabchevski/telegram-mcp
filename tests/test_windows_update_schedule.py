@@ -67,7 +67,8 @@ def native_mock(tmp_path, monkeypatch):
     monkeypatch.setattr(schedule, "_scheduler", connected)
     monkeypatch.setattr(schedule, "validate_root", lambda _: None)
     monkeypatch.setattr(schedule, "current_version", lambda _: root / "version-0.11.0-abcdef012345")
-    monkeypatch.setattr(schedule, "_powershell", lambda: Path("/Windows/System32/WindowsPowerShell/v1.0/powershell.exe"))
+    powershell = Path(tmp_path.anchor) / "Windows/System32/WindowsPowerShell/v1.0/powershell.exe"
+    monkeypatch.setattr(schedule, "_powershell", lambda: powershell)
     return root, folder
 
 
