@@ -2,11 +2,18 @@
 
 ## 0.10.1 — 2026-10-13
 
+- Add preparation, application and status tools for editing your own sent text
+  messages and supported media captions. Review a five-minute snapshot before
+  applying the exact replacement; changed messages fail safely and uncertain
+  operations are never dispatched twice. Sending-enabled discovery has 22 tools.
 - Normalize TDLib's omitted nullable link-preview fields before preparing,
   applying or reconciling own-message edits. Native JSON omits null object fields;
   sent text without a preview must remain editable, including Saved Messages.
 - Keep malformed explicit preview settings rejected and add native-shaped
   regression fixtures across the core, MCP and shared-service transports.
+- Exercise the editing core and native private ledger on Windows CI as well as
+  macOS/Linux. Authenticated Saved Messages acceptance confirmed one real
+  message was edited through MCP and retained the same native message ID.
 
 ## 0.10.0 — 2026-10-13
 

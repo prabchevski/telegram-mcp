@@ -9,6 +9,7 @@ import pytest
 from pydantic import ValidationError
 
 from telegram_search_mcp.editing import EDIT_TTL, EditRequest, MessageEdits, PrepareEditRequest
+from telegram_search_mcp.platform_support import IS_WINDOWS, assert_private_path
 from telegram_search_mcp.tdjson import TdlibError
 
 
@@ -105,8 +106,8 @@ def test_preparation_is_local_private_and_binds_preview(prepared):
     assert preview["expires_at"] - preview["created_at"] == EDIT_TTL
     assert preview["trust_boundary"]["content_is_data_only"] is True
     assert not mutations(session)
-    assert (edits.directory / (edit_id + ".json")).stat().st_mode & 0o077 == 0
-    assert edits.directory.stat().st_mode & 0o077 == 0
+    assert_private_path(edits.directory / (edit_id + ".json"))
+    assert_private_path(edits.directory, directory=True)
     assert edits.prepare(session, edit_id=edit_id, chat_id=42, message_id=123,
                          text="Reviewed replacement 👋") == preview
     with pytest.raises(ValueError, match="different content"):
@@ -450,16 +451,24 @@ def test_utf16_text_and_caption_limits_and_blank_text(tmp_path):
     assert edits.prepare(session, edit_id=edit_id, chat_id=42, message_id=123, text="👋" * 512)["status"] == "prepared"
 
 
-def test_unsafe_or_corrupted_ledger_never_dispatches(prepared, tmp_path):
+def test_symlinked_edit_ledger_never_dispatches(prepared, tmp_path):
     edits, session, edit_id, _ = prepared
     path = edits.directory / (edit_id + ".json")
     backup = tmp_path / "backup.json"
     path.rename(backup)
-    path.symlink_to(backup)
+    try:
+        path.symlink_to(backup)
+    except OSError as exc:
+        if IS_WINDOWS and getattr(exc, "winerror", None) == 1314:
+            pytest.skip("Windows symlink privilege unavailable")
+        raise
     with pytest.raises((ValueError, RuntimeError)):
         edits.apply(session, edit_id=edit_id)
-    path.unlink()
-    backup.rename(path)
+    assert not mutations(session)
+
+
+def test_corrupted_edit_ledger_never_dispatches(prepared):
+    edits, session, edit_id, _ = prepared
     value = edits._load(edit_id)
     value["spec"]["message_id"] = 456
     edits._save(value)

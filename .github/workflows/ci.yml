@@ -102,6 +102,7 @@ jobs:
           tests/test_windows_install.py
           tests/test_windows_native_runtime.py
           tests/test_runtime_storage.py
+          tests/test_editing.py
           tests/test_public_posts.py
           tests/test_public_posts_safety.py
           tests/test_public_search_consent.py

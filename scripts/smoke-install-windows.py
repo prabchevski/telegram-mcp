@@ -282,7 +282,7 @@ def exercise_archive(archive_path: Path, manifest: dict, powershell: Path, check
         subprocess.run([str(first_python), "-I", "-m", "telegram_search_mcp.cli", "sending", "on"], check=True, timeout=30)
         configuration = plugin_configuration(marketplace, install, original)
         subprocess.run([str(first_python), "-I", "-c", MCP_DISCOVERY_CHECK, str(configuration), "sending"], check=True, timeout=60)
-        passed("sending_mcp_discovery_19_tools")
+        passed("sending_mcp_discovery_22_tools")
         configuration_before = configuration.read_bytes()
         # First install inherits the runner's PowerShell 7 -> Python environment.
         # Reinstall also works with an unrelated inherited module search path.
@@ -302,7 +302,7 @@ def exercise_archive(archive_path: Path, manifest: dict, powershell: Path, check
         subprocess.run([str(second_python), "-I", "-c", NATIVE_RUNTIME_CHECK, manifest["version"]], check=True, timeout=30)
         passed("reinstalled_pinned_python_package_and_tdlib")
         subprocess.run([str(second_python), "-I", "-c", MCP_DISCOVERY_CHECK, str(configuration), "sending"], check=True, timeout=60)
-        passed("reinstall_preserves_sending_19_tools")
+        passed("reinstall_preserves_sending_22_tools")
         subprocess.run([str(second_python), "-I", "-m", "telegram_search_mcp.cli", "sending", "off"], check=True, timeout=30)
         configuration = plugin_configuration(marketplace, install, original)
         subprocess.run([str(second_python), "-I", "-c", MCP_DISCOVERY_CHECK, str(configuration), "default"], check=True, timeout=60)

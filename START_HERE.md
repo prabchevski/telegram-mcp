@@ -84,7 +84,7 @@ check itself uses no attempt. **Stars payments are disabled.** Telegram transcri
 voice messages on your request, subject to its own quotas.
 
 Sending messages and changing drafts are disabled. Running `tgsearch sending on`
-through the installed entry point adds four more tools; restart your client afterward.
+through the installed entry point adds seven more tools, including own-message editing; restart your client afterward.
 See the [sending rules](README.md#optional-text-and-file-sending).
 
 One login serves multiple chats and clients. Share the

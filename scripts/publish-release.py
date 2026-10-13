@@ -35,7 +35,7 @@ def current_notes(source: Path, version: str) -> str:
         if expected not in (source / name).read_text():
             raise RuntimeError(f'{name} does not describe the current version')
     changes = sections[0].split('\n', 1)[1].strip()
-    return f'''Local Telegram MCP for **Codex on macOS and Windows x64**, **Gemini CLI on macOS**, and **ChatGPT Work on Windows x64**. Search chats and subscriptions, read history, download media, transcribe voice messages, and optionally prepare and send messages. Fifteen tools by default, nineteen with sending enabled.
+    return f'''Local Telegram MCP for **Codex on macOS and Windows x64**, **Gemini CLI on macOS**, and **ChatGPT Work on Windows x64**. Search chats and subscriptions, read history, download media, transcribe voice messages, and optionally prepare, send and edit your own messages. 15 tools by default, 22 with sending and own-message editing enabled.
 
 Public channel search is optional: first search account history, then check the account's actual free quota, explain the cost and wait for explicit user confirmation. Paid Stars searches are disabled in code.
 
