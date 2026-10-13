@@ -43,7 +43,8 @@ bash install-macos.command --clients both
 ```
 
 The interactive installer upgrades recognized older registrations, reuses a
-compatible saved login, and enables daily checked-main updates by default.
+compatible saved login, and enables daily checked-main updates on first setup.
+An ordinary upgrade preserves the existing update preference, including an explicit opt-out.
 It installs uv through Homebrew, obtains managed Python 3.13, and prepares pinned TDLib.
 Homebrew must already be installed. The account owner handles any required system
 approval and first Telegram login in Terminal. Existing credentials stay local.
@@ -61,16 +62,19 @@ installer does not itself verify that the client app is installed or has reloade
 
 ## Installation without interactive authorization
 
-For AI-assisted setup and migration (use `--clients gemini` for Gemini CLI):
+For AI-assisted upgrades and migration (use `--clients gemini` for Gemini CLI):
 
 ```sh
-bash install-macos.command --clients codex --prepare-only --upgrade --auto-update on
+bash install-macos.command --clients codex --prepare-only --upgrade
 ```
 
 `--prepare-only` skips signing in. Without explicit flags, it leaves update settings
 unchanged and does not select an old profile. `--upgrade` enables recognized legacy
 registration replacement and automatic compatible profile selection. An already
 configured second client is refreshed too; an absent second client is not enabled.
+For first AI-assisted setup, add `--auto-update on` to enable daily updates.
+During upgrades, omit that flag to retain the owner's existing setting; specify
+`on` or `off` only when the owner requests a change.
 
 Check a saved login with `current/tgsearch doctor`, then `doctor --connect`. For a
 new/expired login, open the root's `authorize.command` in your own Terminal. Never

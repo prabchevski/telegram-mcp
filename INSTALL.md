@@ -113,17 +113,18 @@ From the extracted directory, run one command:
 
 ```sh
 # Codex
-bash install-macos.command --clients codex --prepare-only --upgrade --auto-update on
+bash install-macos.command --clients codex --prepare-only --upgrade
 ```
 
 ```sh
 # Gemini CLI
-bash install-macos.command --clients gemini --prepare-only --upgrade --auto-update on
+bash install-macos.command --clients gemini --prepare-only --upgrade
 ```
 
-Use `--clients both` only when both clients are requested. If the user requested
-a fixed version or disabled automatic updates, replace `--auto-update on` with
-`--auto-update off`.
+Use `--clients both` only when both clients are requested. Upgrades preserve the
+existing automatic-update choice. For a first AI-assisted installation, add
+`--auto-update on` to enable daily updates; use `--auto-update off` if the user
+requested a fixed version or disabled automatic updates.
 
 `--prepare-only` leaves the first login for the owner's local window.
 `--upgrade` also updates recognized existing Telegram registrations in the other

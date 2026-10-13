@@ -215,6 +215,16 @@ def test_unexpected_registered_definition_is_removed_before_reporting_failure(na
     assert folder.deleted == [schedule.task_name(root)]
 
 
+def test_task_mismatch_diagnostics_report_only_guard_names(native_mock):
+    root, _ = native_mock
+    xml = schedule.task_definition(root, SID, schedule._powershell())
+    assert schedule._task_mismatches(xml, root, SID, schedule._powershell()) == []
+    normalized = xml.replace(SID, 'HOSTNAME\\account-name')
+    result = schedule._task_mismatches(normalized, root, SID, schedule._powershell())
+    assert result == ['Principal.UserId', 'LogonTrigger.UserId']
+    assert 'account-name' not in str(result)
+
+
 def test_edited_launcher_is_preserved_and_never_registered(native_mock):
     root, folder = native_mock
     (root / "update.ps1").write_text("owner launcher", encoding="utf-8")

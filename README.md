@@ -197,7 +197,7 @@ rereads its settings. Sending stays on/off as previously configured. Removed,
 disabled or custom connections are never restored. Known complete tool lists can
 be refreshed while retaining approval/trust and parallel-call preferences;
 unknown restrictions or launcher changes require review. Installations without managed daily updates need
-the installer once with `--upgrade --auto-update on`.
+the installer once with `--upgrade`; the existing update preference is preserved.
 The pre-rename 0.6.0 archive also needs that one-time installer: its updater requires
 the old GitHub repository identity and rejects CI from the renamed repository.
 A change published only in this repository cannot reach that updater.

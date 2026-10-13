@@ -2,7 +2,7 @@
 
 ## Version 0.11.0 — Updates across supported platforms and clients
 
-Local validation: 1013 tests passed, 10 platform/opt-in checks skipped on
+Local validation: 1031 tests passed, 10 platform/opt-in checks skipped on
 Apple Silicon macOS. Source inventory audit, actual isolated macOS installation
 and upgrade, and unmodified 0.6.1 updater checks passed. Native Windows release
 acceptance requires all 17 installer checks on Windows Server, Windows 10 and

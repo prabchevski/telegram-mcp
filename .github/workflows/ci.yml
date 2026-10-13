@@ -127,6 +127,8 @@ jobs:
         run: |
           uv run --frozen python -I scripts/release.py audit
           uv run --frozen python -I scripts/release.py build --output dist
+      - name: Inspect native scheduler XML normalization with an inert temporary task
+        run: uv run --frozen python -I scripts/probe-windows-update-schedule.py
       - name: Verify actual Windows archive installation and plugin discovery
         run: |
           $archives = @(Get-ChildItem -LiteralPath dist -Filter '*.zip')

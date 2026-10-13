@@ -112,30 +112,37 @@ def _xml_digest(xml: str) -> str:
                                     separators=(",", ":")).encode()).hexdigest()
 
 
-def _expected_task(xml: str, root: Path, user_sid: str, powershell: Path) -> bool:
+def _task_mismatches(xml: str, root: Path, user_sid: str, powershell: Path) -> list[str]:
+    """Return guard names only; diagnostics never expose task values or content."""
     tree = _xml_tree(xml)
     principals = tree.findall("Principals/Principal")
     actions = tree.findall("Actions/*")
     triggers = tree.findall("Triggers/*")
-    return (
-        tree.tag == "Task"
-        and tree.findtext("RegistrationInfo/URI") == "\\" + task_name(root)
-        and len(principals) == 1
-        and principals[0].findtext("UserId") == user_sid
-        and principals[0].findtext("LogonType") == "InteractiveToken"
-        and principals[0].findtext("RunLevel") == "LeastPrivilege"
-        and len(actions) == 1 and actions[0].tag == "Exec"
-        and actions[0].findtext("Command") == str(powershell)
-        and actions[0].findtext("Arguments") == task_arguments(root)
-        and actions[0].findtext("WorkingDirectory") == str(root)
-        and len(triggers) == 2
-        and {trigger.tag for trigger in triggers} == {"CalendarTrigger", "LogonTrigger"}
-        and tree.findtext("Triggers/CalendarTrigger/ScheduleByDay/DaysInterval") == "1"
-        and tree.findtext("Triggers/LogonTrigger/UserId") == user_sid
-        and tree.findtext("Triggers/LogonTrigger/Delay") == "PT5M"
-        and all(trigger.findtext("Enabled") == "true" for trigger in triggers)
-        and tree.findtext("Settings/Enabled") == "true"
-    )
+    checks = [
+        ("Task", tree.tag == "Task"),
+        ("RegistrationInfo.URI", tree.findtext("RegistrationInfo/URI") == "\\" + task_name(root)),
+        ("Principals.count", len(principals) == 1),
+        ("Principal.UserId", len(principals) == 1 and principals[0].findtext("UserId") == user_sid),
+        ("Principal.LogonType", len(principals) == 1 and principals[0].findtext("LogonType") == "InteractiveToken"),
+        ("Principal.RunLevel", len(principals) == 1 and principals[0].findtext("RunLevel") == "LeastPrivilege"),
+        ("Actions.count", len(actions) == 1),
+        ("Action.type", len(actions) == 1 and actions[0].tag == "Exec"),
+        ("Action.Command", len(actions) == 1 and actions[0].findtext("Command") == str(powershell)),
+        ("Action.Arguments", len(actions) == 1 and actions[0].findtext("Arguments") == task_arguments(root)),
+        ("Action.WorkingDirectory", len(actions) == 1 and actions[0].findtext("WorkingDirectory") == str(root)),
+        ("Triggers.count", len(triggers) == 2),
+        ("Triggers.types", {trigger.tag for trigger in triggers} == {"CalendarTrigger", "LogonTrigger"}),
+        ("CalendarTrigger.DaysInterval", tree.findtext("Triggers/CalendarTrigger/ScheduleByDay/DaysInterval") == "1"),
+        ("LogonTrigger.UserId", tree.findtext("Triggers/LogonTrigger/UserId") == user_sid),
+        ("LogonTrigger.Delay", tree.findtext("Triggers/LogonTrigger/Delay") == "PT5M"),
+        ("Triggers.Enabled", all(trigger.findtext("Enabled") == "true" for trigger in triggers)),
+        ("Settings.Enabled", tree.findtext("Settings/Enabled") == "true"),
+    ]
+    return [name for name, matches in checks if not matches]
+
+
+def _expected_task(xml: str, root: Path, user_sid: str, powershell: Path) -> bool:
+    return not _task_mismatches(xml, root, user_sid, powershell)
 
 
 @contextmanager
@@ -246,8 +253,9 @@ def configure_schedule(root: Path, enabled: bool) -> dict:
         xml = task.Xml
         value = {"name": name, "user_sid": sid, "xml_sha256": _xml_digest(xml)}
         try:
-            if not _expected_task(xml, root, sid, powershell):
-                raise RuntimeError("Task Scheduler returned an unexpected updater task")
+            mismatches = _task_mismatches(xml, root, sid, powershell)
+            if mismatches:
+                raise RuntimeError("Task Scheduler returned an unexpected updater task: " + ", ".join(mismatches))
             atomic_write(root / SNAPSHOT, (json.dumps(value, indent=2) + "\n").encode(), expected=before)
         except BaseException:
             current = _get_task(folder, name)
