@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.10.1 — 2026-10-13
+
+- Normalize TDLib's omitted nullable link-preview fields before preparing,
+  applying or reconciling own-message edits. Native JSON omits null object fields;
+  sent text without a preview must remain editable, including Saved Messages.
+- Keep malformed explicit preview settings rejected and add native-shaped
+  regression fixtures across the core, MCP and shared-service transports.
+
 ## 0.10.0 — 2026-10-13
 
 - Add optional preparation, application and status tools for editing the linked

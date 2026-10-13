@@ -227,8 +227,7 @@ class NativeEditSession:
             "date": 1_780_000_000, "edit_date": 0, "is_outgoing": True,
             "sender_id": {"@type": "messageSenderUser", "user_id": self.user_id},
             "content": {"@type": "messageText", "text": {
-                "@type": "formattedText", "text": "До исправления", "entities": []},
-                "link_preview_options": None, "link_preview": None}}
+                "@type": "formattedText", "text": "До исправления", "entities": []}}}
 
     def get_chat(self, chat_id, timeout=None):
         assert chat_id == CHAT_ID

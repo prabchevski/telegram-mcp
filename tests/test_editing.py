@@ -267,7 +267,7 @@ def test_capability_is_checked_again_at_apply_and_legacy_fallback_is_explicit(tm
         legacy_edits.prepare(legacy, edit_id=uuid.uuid4().hex, chat_id=42, message_id=123, text="Another")
 
 
-def test_link_preview_options_preserved_exactly_and_missing_settings_rejected(tmp_path):
+def test_link_preview_options_preserved_exactly_and_malformed_settings_rejected(tmp_path):
     session = FakeSession()
     options = preview_options()
     session.message["content"]["link_preview_options"] = options
@@ -276,9 +276,37 @@ def test_link_preview_options_preserved_exactly_and_missing_settings_rejected(tm
     edits.prepare(session, edit_id=edit_id, chat_id=42, message_id=123, text="https://example.com New")
     assert edits.apply(session, edit_id=edit_id)["status"] == "edited"
     assert mutations(session)[0]["input_message_content"]["link_preview_options"] == options
-    del session.message["content"]["link_preview_options"]
-    with pytest.raises(ValueError, match="unavailable"):
+    session.message["content"]["link_preview_options"] = {"@type": "linkPreviewOptions"}
+    with pytest.raises(ValueError, match="Incomplete"):
         edits.prepare(session, edit_id=uuid.uuid4().hex, chat_id=42, message_id=123, text="Replacement")
+
+
+@pytest.mark.parametrize("omitted", [("link_preview",), ("link_preview_options",),
+                                    ("link_preview", "link_preview_options")])
+def test_native_omitted_null_preview_objects_allow_owned_saved_message_edit(tmp_path, omitted):
+    session = FakeSession(chat_id=99)
+    session.message["is_outgoing"] = False
+    for key in omitted:
+        session.message["content"].pop(key)
+    original_request = session.request
+    def native_json_request(payload, timeout=None):
+        response = original_request(payload, timeout=timeout)
+        if isinstance(response, dict) and response.get("@type") == "message":
+            for key in ("link_preview", "link_preview_options"):
+                if response["content"].get(key) is None:
+                    response["content"].pop(key, None)
+                if session.message["content"].get(key) is None:
+                    session.message["content"].pop(key, None)
+        return response
+    session.request = native_json_request
+    edits = MessageEdits(tmp_path / "edits", session.user_id)
+    edit_id = uuid.uuid4().hex
+    preview = edits.prepare(session, edit_id=edit_id, chat_id=session.user_id,
+                            message_id=123, text="Replacement")
+    assert preview["status"] == "prepared"
+    assert edits.apply(session, edit_id=edit_id)["status"] == "edited"
+    assert mutations(session)[0]["input_message_content"]["link_preview_options"] is None
+    assert edits.status(session, edit_id=edit_id)["status"] == "edited"
 
 
 def media_content(kind):

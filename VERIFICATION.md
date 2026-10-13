@@ -1,5 +1,20 @@
 # Verification
 
+## Version 0.10.1 — Native nullable JSON fields
+
+An owner-authorized Saved Messages test found that real TDLib JSON omits nullable
+link-preview objects instead of returning explicit null values. The pinned JSON
+generator and schema confirm that omission is the native null representation.
+Normalize those two fields before content snapshots and result checks; keep
+validation of present non-null options strict. Regression fixtures exercise
+omitted fields in original messages, native edit responses and readback through
+both core editing and the MCP/shared-service chain.
+
+Authenticated acceptance sends one uniquely marked message to Saved Messages,
+prepares and applies its edit through the installed MCP tools, then confirms
+the replacement and sender by reading the same native message ID. An uncertain
+send or edit is reconciled under its original durable ID and never resent.
+
 ## Version 0.10.0 — Own-message editing
 
 The edit workflow is verified with synthetic TDLib sessions and real MCP/private

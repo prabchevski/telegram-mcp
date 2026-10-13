@@ -158,9 +158,11 @@ def _content(message: dict) -> tuple[str, dict]:
             "entities": []}, "link_preview": None, "link_preview_options": None}
     if kind == "messageText":
         _formatted(content.get("text"))
-        # Missing differs from explicit null: null is the native default policy.
-        if "link_preview_options" not in content or "link_preview" not in content:
-            raise ValueError("Link preview settings are unavailable; refusing to change them")
+        # TDLib's JSON serializer omits null custom object fields. Normalize
+        # those native defaults before hashing and comparing message content.
+        content = copy.deepcopy(content)
+        content.setdefault("link_preview", None)
+        content.setdefault("link_preview_options", None)
         options = content["link_preview_options"]
         if options is not None:
             if not isinstance(options, dict) or options.get("@type") != "linkPreviewOptions":
