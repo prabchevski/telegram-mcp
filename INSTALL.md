@@ -201,10 +201,12 @@ it would consume, and obtain explicit permission for the new query. Checking the
 quota uses no search attempt; never offer Stars payments. MCP itself sends these
 instructions to each client.
 
-By default, macOS checks `main` daily and only installs a commit after its CI
-succeeds. Updates preserve login, keep separate installed versions, and let active
-work finish. This version of Windows updates manually by running a new verified
-release's installer. Users can disable daily macOS updates with
-`current/tgsearch updates off`. See [INSTALL_MACOS.md](INSTALL_MACOS.md) and
+By default, macOS checks `main` daily after successful CI. Windows schedules a
+daily/logon current-user task and installs only a verified published Windows
+release at the exact successful CI SHA. Updates preserve login, separate installed
+versions, sending and client preferences; active Telegram work finishes normally.
+Pre-0.11 Windows installations need the new installer once. Explicit update
+opt-outs are retained. Use `updates status`, `update --check` and `updates off`
+through the installed platform entry point. See [INSTALL_MACOS.md](INSTALL_MACOS.md) and
 [INSTALL_WINDOWS.md](INSTALL_WINDOWS.md) for older versions and recovery of
 modified registrations.

@@ -210,10 +210,11 @@ def command_service(args: argparse.Namespace) -> int:
 
 
 def command_update(args: argparse.Namespace) -> int:
-    if sys.platform == "win32":
-        raise RuntimeError("Windows updates are manual: run install-windows.ps1 from a verified new source archive. The saved Telegram login is preserved.")
     from .launchers import installed_root
-    from .updater import update
+    if sys.platform == "win32":
+        from .windows_updates import update
+    else:
+        from .updater import update
     root = installed_root()
     if root is None:
         raise RuntimeError("Run updates from an installed copy")
@@ -223,9 +224,14 @@ def command_update(args: argparse.Namespace) -> int:
 
 def command_updates(args: argparse.Namespace) -> int:
     if sys.platform == "win32":
-        if args.action == "on":
-            raise RuntimeError("Automatic updates are not available on Windows; rerun install-windows.ps1 to update")
-        print(json.dumps({"automatic": False, "channel": "manual"}))
+        from .launchers import installed_root
+        from .windows_updates import set_enabled, updates_status
+        root = installed_root()
+        if root is None:
+            raise RuntimeError("Run updates from an installed copy")
+        if args.action != "status":
+            set_enabled(root, args.action == "on")
+        print(json.dumps(updates_status(root), indent=2))
         return 0
     from .activation import read_notice
     from .installation import read_receipt

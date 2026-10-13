@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.11.0 — 2026-10-13
+
+- Deliver verified updates to every supported client: Codex/Gemini CLI on macOS
+  and the shared Codex/ChatGPT Work plugin on Windows x64. Windows gains a
+  current-user daily/logon task, stable verified uv runtime, immutable upgrades,
+  explicit opt-out, check-only mode, durable status and client-restart notices.
+- Pin Windows updates to a published release at the exact successful canonical
+  main CI SHA. Validate HTTPS redirects, checksum/digest, safe archive inventory,
+  generated assets and source revision; refuse downgrade and unpublished fixes.
+- Preserve macOS approval/trust and parallel-call preferences while refreshing
+  known complete generated tool lists. Removed/disabled/custom connections and
+  owner plugin changes are not restored. Normal upgrades and verification follow
+  the same policy-preserving rules.
+- Share the advertised read/send/edit tool catalog across client registrations
+  and MCP discovery. Sending remains off unless enabled by the owner.
+- Include a manifest-hashed SOURCE_REVISION in published archives, without adding
+  generated files to raw Git snapshots consumed by historical updaters.
+
 ## 0.10.1 — 2026-10-13
 
 - Add preparation, application and status tools for editing your own sent text

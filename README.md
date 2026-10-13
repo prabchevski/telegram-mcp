@@ -1,4 +1,4 @@
-# Telegram MCP · 0.10.1
+# Telegram MCP · 0.11.0
 
 Connect **your own Telegram account** to **Codex or Gemini CLI on macOS**, **Codex on Windows x64**, or **ChatGPT Work with local plugins on Windows x64**. Search and read messages, download attachments, transcribe voice notes, and optionally prepare and send messages. One local service supports multiple chats and clients with a single Telegram login.
 
@@ -25,7 +25,7 @@ Gemini in a browser or on a phone and ordinary ChatGPT web chats cannot run this
 
 Manual installation: **[macOS ZIP](https://github.com/prabchevski/telegram-mcp/releases/latest/download/telegram-mcp-macos.zip)** ([SHA-256](https://github.com/prabchevski/telegram-mcp/releases/latest/download/telegram-mcp-macos.zip.sha256)) · **[Windows ZIP](https://github.com/prabchevski/telegram-mcp/releases/latest/download/telegram-mcp-windows.zip)** ([SHA-256](https://github.com/prabchevski/telegram-mcp/releases/latest/download/telegram-mcp-windows.zip.sha256)). See the [quick start](START_HERE.md). These links point to the latest published release; its **Assets** include ready-to-use installers. GitHub's standard **Source code** downloads do not replace the Windows package.
 
-On macOS, installation enables daily updates from `main` after successful checks by default. On Windows, update by running the new release's installer. Each user signs into their own account; the repository and releases contain no personal sessions or keys. Retrieved messages are shared with the selected AI client. This is an unofficial project.
+Installation enables daily verified updates on macOS and Windows by default, while preserving an explicit opt-out. Codex and Gemini CLI share the macOS installation; Codex and ChatGPT Work share the Windows plugin installation. Each user signs into their own account; the repository and releases contain no personal sessions or keys. Retrieved messages are shared with the selected AI client. This is an unofficial project.
 
 ## Usage examples
 
@@ -50,7 +50,8 @@ Automated checks cover the core on macOS, Linux, and Windows Server 2025, as wel
 
 The default installation includes reading, explicitly requested local downloads, and Telegram speech recognition.
 Text and document sending can be enabled
-explicitly as described below. Editing and deletion are not supported. Secret Chats are not supported.
+explicitly as described below. Own sent-message editing uses a reviewed snapshot;
+deleting messages and Secret Chats are not supported.
 Protected and self-destructing media are rejected. Access to history follows your
 Telegram account's permissions. Returned text and titles are marked as external,
 untrusted data. Retrieved Telegram content is shared with the selected AI client.
@@ -192,9 +193,10 @@ Allow up to two daily checks on Apple Silicon. No reinstall or Telegram login is
 needed. A macOS notification requests a Codex/Gemini restart; notification visibility
 depends on macOS settings. `tgsearch updates status` also retains the restart notice.
 If migration happens while a client is starting, restart that client once more so it
-rereads its settings. Sending stays on/off as previously configured. Removed or
-manually customized connections are never restored or overwritten; those require
-an explicit configuration review. Installations without managed daily updates need
+rereads its settings. Sending stays on/off as previously configured. Removed,
+disabled or custom connections are never restored. Known complete tool lists can
+be refreshed while retaining approval/trust and parallel-call preferences;
+unknown restrictions or launcher changes require review. Installations without managed daily updates need
 the installer once with `--upgrade --auto-update on`.
 The pre-rename 0.6.0 archive also needs that one-time installer: its updater requires
 the old GitHub repository identity and rejects CI from the renamed repository.
@@ -344,15 +346,29 @@ two old clients use different accounts, the owner chooses one. A busy old profil
 must be released by its client before migration. Old archives require one upgrade
 through the installer/Codex to gain automatic updates.
 
-New macOS interactive installs enable **daily updates from main after successful GitHub
-checks**. Windows updates use the latest release installer as described in [INSTALL_WINDOWS.md](INSTALL_WINDOWS.md). The Mac checks GitHub locally; a commit does not remotely deploy onto
-other computers. Updates keep immutable program versions and preserve the login.
+New installations enable daily updates after successful GitHub checks. macOS uses
+the checked main SHA; Windows uses the verified published Windows asset for that
+exact SHA. Windows schedules a task for the current user without administrator
+rights or a saved password. Windows installations older than 0.11 need the new
+installer once to add this mechanism; later updates run automatically.
+Updates keep immutable program versions and preserve the login, sending opt-in,
+client approval preferences and explicit update opt-out.
 New MCP processes use the new code; the shared service switches on its next start,
 after active work ends and the service becomes idle. An offline or sleeping Mac
-may receive an update later. Users can turn updates off:
+may receive an update later. Restart the selected client to load new tool discovery.
+Users can inspect or turn updates off:
 
 ```sh
 "$HOME/Applications/TelegramSearchMCP/current/tgsearch" updates off
+```
+
+On Windows, use the stable `tgsearch.ps1` entry point:
+
+```powershell
+& $tg updates status
+& $tg update --check
+& $tg updates off
+& $tg updates on
 ```
 
 Use the root printed by the installer if it differs. More controls and migration

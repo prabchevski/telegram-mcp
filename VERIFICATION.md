@@ -1,5 +1,36 @@
 # Verification
 
+## Version 0.11.0 — Updates across supported platforms and clients
+
+Local validation: 1006 tests passed, 10 platform/opt-in checks skipped on
+Apple Silicon macOS. Source inventory audit, actual isolated macOS installation
+and upgrade, and unmodified 0.6.1 updater checks passed. Native Windows release
+acceptance requires all 17 installer checks on Windows Server, Windows 10 and
+Windows 11, including the owned scheduler and explicit opt-out lifecycle.
+
+The common tool catalog is checked against actual MCP discovery with sending
+enabled and disabled. macOS regressions cover complete historical tool-list
+migration, approval/trust/parallel preferences including absent fields, ordinary
+installation and verification, update opt-out, and byte-snapshot checks under
+configuration locks. Unknown restrictions, changed launchers, removed and disabled
+connections fail safely. A restriction that exactly reproduces a historical
+generated catalog cannot be distinguished from that historical registration.
+
+Windows updater tests cover exact successful canonical CI, published tag/SHA,
+asset/checksum/digest and redirect validation, safe source archives, source
+revision metadata, immutable candidate-installer execution, plugin/receipt CAS,
+scheduled checks, opt-out and preserved owner changes. Scheduling uses the current
+user's interactive token, limited run level, no password, no immediate execution
+and an exact owned task XML snapshot. Native Windows installer CI exercises the
+installed task, stable uv and update preference lifecycle in disposable accounts;
+macOS tests simulate Windows APIs without configuring real tasks.
+
+These checks verify package delivery and discovery. They do not establish real
+Windows Telegram login or graphical client activation. New tool definitions need
+a client restart/reload. Existing pre-0.11 Windows installs need the verified
+installer once; an older macOS updater blocked by customized settings likewise
+needs one ordinary upgrade before the new preserving behavior is available.
+
 ## Version 0.10.1 — Native nullable JSON fields
 
 An owner-authorized Saved Messages test found that real TDLib JSON omits nullable

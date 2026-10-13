@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+from contextlib import ExitStack
 from datetime import datetime, timezone
 import hashlib
 import importlib.util
@@ -208,6 +209,22 @@ def active_version(install: Path) -> Path:
     return version
 
 
+def update_preference(install: Path, action: str = "status") -> dict:
+    python = active_version(install) / ".venv" / "Scripts" / "python.exe"
+    completed = subprocess.run(
+        [str(python), "-I", "-X", "utf8", "-m", "telegram_search_mcp.cli", "updates", action],
+        check=True, capture_output=True, encoding="utf-8", timeout=60,
+    )
+    return json.loads(completed.stdout)
+
+
+def cleanup_update_task(install: Path) -> None:
+    # Run before removing the temporary tree, including on failed acceptance.
+    if not (install / "current.json").is_file():
+        return
+    update_preference(install, "off")
+
+
 def plugin_configuration(marketplace: Path, install: Path, original: dict) -> Path:
     actual = json.loads(marketplace.read_text(encoding="utf-8"))
     for key, value in original.items():
@@ -238,12 +255,13 @@ def exercise_archive(archive_path: Path, manifest: dict, powershell: Path, check
         checks.append({"name": name, "status": "passed"})
 
     # Exercise native PowerShell argument/JSON encoding for ordinary user paths.
-    with tempfile.TemporaryDirectory(prefix="telegram windows install check ") as temporary:
-        root = Path(temporary).resolve()
+    with ExitStack() as cleanup:
+        root = Path(cleanup.enter_context(tempfile.TemporaryDirectory(prefix="telegram windows install check "))).resolve()
         with zipfile.ZipFile(archive_path) as archive:
             archive.extractall(root / "исходники source")
         source = root / "исходники source" / manifest["archive_root"]
         install = root / "приложение with spaces"
+        cleanup.callback(cleanup_update_task, install)
         marketplace_root = root / "пользователь home"
         marketplace = marketplace_root / ".agents" / "plugins" / "marketplace.json"
         marketplace.parent.mkdir(parents=True)
@@ -275,6 +293,15 @@ def exercise_archive(archive_path: Path, manifest: dict, powershell: Path, check
         passed("installed_cli")
         subprocess.run([str(first_python), "-I", "-c", NATIVE_RUNTIME_CHECK, manifest["version"]], check=True, timeout=30)
         passed("initial_pinned_python_package_and_tdlib")
+        update_status = update_preference(install)
+        assert update_status["automatic"] is True
+        assert update_status["schedule"]["owned"] is True and update_status["schedule"]["enabled"] is True
+        receipt = json.loads((install / "windows-install.json").read_text(encoding="utf-8"))
+        uv = Path(receipt["uv"]["path"])
+        assert uv.is_relative_to(install / "tools") and uv.is_file()
+        assert hashlib.sha256(uv.read_bytes()).hexdigest() == receipt["uv"]["sha256"]
+        assert update_status["revision"] == (source / "SOURCE_REVISION").read_text(encoding="ascii").strip()
+        passed("automatic_updates_owned_schedule_pinned_uv_and_source_revision")
         configuration = plugin_configuration(marketplace, install, original)
         passed("initial_marketplace_preserves_existing_plugin")
         subprocess.run([str(first_python), "-I", "-c", MCP_DISCOVERY_CHECK, str(configuration), "default"], check=True, timeout=60)
@@ -283,6 +310,9 @@ def exercise_archive(archive_path: Path, manifest: dict, powershell: Path, check
         configuration = plugin_configuration(marketplace, install, original)
         subprocess.run([str(first_python), "-I", "-c", MCP_DISCOVERY_CHECK, str(configuration), "sending"], check=True, timeout=60)
         passed("sending_mcp_discovery_22_tools")
+        update_status = update_preference(install, "off")
+        assert update_status["automatic"] is False and update_status["schedule"]["enabled"] is False
+        passed("automatic_updates_off_removes_owned_schedule")
         configuration_before = configuration.read_bytes()
         # First install inherits the runner's PowerShell 7 -> Python environment.
         # Reinstall also works with an unrelated inherited module search path.
@@ -295,6 +325,9 @@ def exercise_archive(archive_path: Path, manifest: dict, powershell: Path, check
         assert second != first, "Reinstallation must activate a new immutable version"
         assert first_python.is_file(), "Reinstallation must preserve the former interpreter"
         passed("immutable_reinstall_with_unrelated_powershell_module_path")
+        update_status = update_preference(install)
+        assert update_status["automatic"] is False and update_status["schedule"]["enabled"] is False
+        passed("reinstall_preserves_automatic_updates_opt_out")
         second_python = second / ".venv" / "Scripts" / "python.exe"
         configuration = plugin_configuration(marketplace, install, original)
         assert configuration.read_bytes() == configuration_before, "Reinstallation changed the stable plugin launcher"
@@ -307,6 +340,12 @@ def exercise_archive(archive_path: Path, manifest: dict, powershell: Path, check
         configuration = plugin_configuration(marketplace, install, original)
         subprocess.run([str(second_python), "-I", "-c", MCP_DISCOVERY_CHECK, str(configuration), "default"], check=True, timeout=60)
         passed("sending_disabled_mcp_discovery_15_tools")
+        update_status = update_preference(install, "on")
+        assert update_status["automatic"] is True
+        assert update_status["schedule"]["owned"] is True and update_status["schedule"]["enabled"] is True
+        update_status = update_preference(install, "off")
+        assert update_status["automatic"] is False and update_status["schedule"]["enabled"] is False
+        passed("automatic_updates_on_then_off_native_schedule_lifecycle")
         print("PASS: verified archive, isolated native Windows installation and immutable update, marketplace and sending preference preservation, pinned TDLib, CLI and installed plugin discovery. No Telegram authorization or tool invocation performed.")
 
 

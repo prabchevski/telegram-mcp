@@ -1,6 +1,6 @@
 [project]
 name = "telegram-search-mcp"
-version = "0.10.1"
+version = "0.11.0"
 description = "Local Telegram MCP for Codex on macOS and Windows, Gemini CLI on macOS, and ChatGPT Work on Windows"
 readme = "README.md"
 license = "MIT"

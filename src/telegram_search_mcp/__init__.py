@@ -1,3 +1,3 @@
 """Shared local Telegram search with optional sending for Codex and Gemini CLI."""
 
-__version__ = "0.10.1"
+__version__ = "0.11.0"

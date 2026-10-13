@@ -403,7 +403,7 @@ def test_06_activation_migrates_both_clients_once_preserving_login_and_sending(m
         assert list(path.parent.glob(path.name + ".telegram-search-backup-*"))
 
 
-@pytest.mark.parametrize("change", ["removed", "tools", "approval", "disabled", "command"])
+@pytest.mark.parametrize("change", ["removed", "tools", "disabled", "command"])
 def test_06_activation_never_restores_owner_edits(managed, monkeypatch, change):
     root, version, config = managed
     wanted = registration.expected_entry("codex", str(version / ".venv/bin/python"), root)
@@ -412,8 +412,6 @@ def test_06_activation_never_restores_owner_edits(managed, monkeypatch, change):
         entry = None
     elif change == "tools":
         entry["enabled_tools"].pop()
-    elif change == "approval":
-        entry["default_tools_approval_mode"] = "never"
     elif change == "disabled":
         entry["enabled"] = False
     else:
@@ -560,11 +558,13 @@ def test_public_search_activation_preserves_owner_changes(managed, monkeypatch, 
     before = codex.read_bytes(), gemini.read_bytes()
     monkeypatch.setattr(activation, "running_version", lambda: version)
     result = activation.migrate(root)
-    if change is None:
+    if change in (None, "approval"):
         expected_status = "unchanged" if old_entry is activation.before_editing_entry and not sending else "migrated"
         assert result["status"] == expected_status
         for client, path in {"codex": codex, "gemini": gemini}.items():
             actual = registration._load(client, path, path.read_bytes())[registration.NAMES[client]][registration.ALIASES[client]]
+            if change == "approval":
+                wanted[client]["trust" if client == "gemini" else "default_tools_approval_mode"] = True if client == "gemini" else "approve"
             assert actual == wanted[client]
     else:
         assert result["status"] == "unchanged"

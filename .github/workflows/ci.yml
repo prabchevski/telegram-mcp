@@ -100,9 +100,14 @@ jobs:
           tests/test_windows_credentials.py
           tests/test_windows_service.py
           tests/test_windows_install.py
+          tests/test_windows_updates.py
+          tests/test_windows_update_schedule.py
+          tests/test_update_feed.py
+          tests/test_tool_catalog_parity.py
           tests/test_windows_native_runtime.py
           tests/test_runtime_storage.py
           tests/test_editing.py
+          tests/test_editing_integration.py
           tests/test_public_posts.py
           tests/test_public_posts_safety.py
           tests/test_public_search_consent.py

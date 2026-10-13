@@ -121,8 +121,10 @@ The updater checks the exact main commit's successful `Test and package` workflo
 downloads source pinned to that SHA from GitHub, validates archive paths/types,
 installs locked dependencies into a separate version, and verifies package imports
 before switching `current`. It refuses version downgrades and divergent Git history.
-Failed downloads or dependency installs keep the current program. A changed or
-removed client registration is left alone; update installation is cancelled.
+Failed downloads or dependency installs keep the current program. Complete known
+generated tool lists can be updated while preserving approval/trust and parallel
+preferences, including absent fields. Removed/disabled/custom connections and
+unknown tool restrictions or launcher changes are left alone.
 
 For managed 0.6.1 installs with updates enabled, the new package also upgrades
 unchanged standard Codex/Gemini tool lists on the next updater or MCP start.

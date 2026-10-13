@@ -1,4 +1,4 @@
-"""Default advertised tool names shared by supported local client registrations."""
+"""Canonical advertised tool names for every supported local client/platform."""
 DEFAULT_TOOLS = (
     "telegram_search_messages",
     "telegram_get_message",
@@ -16,3 +16,20 @@ DEFAULT_TOOLS = (
     "telegram_search_public_posts",
     "telegram_get_public_search_quota",
 )
+
+EDIT_TOOLS = (
+    "telegram_prepare_message_edit",
+    "telegram_edit_message",
+    "telegram_get_edit_status",
+)
+OUTGOING_TOOLS = (
+    "telegram_prepare_message",
+    "telegram_send_message",
+    "telegram_get_send_status",
+    "telegram_set_chat_draft",
+    *EDIT_TOOLS,
+)
+
+
+def advertised_tools(*, sending: bool = False) -> tuple[str, ...]:
+    return DEFAULT_TOOLS + OUTGOING_TOOLS if sending else DEFAULT_TOOLS

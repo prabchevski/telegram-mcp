@@ -7,8 +7,7 @@ from pathlib import Path
 from .config_io import atomic_write, read_source
 from .launchers import installed_root, validate_root
 
-EDIT_TOOLS = ("telegram_prepare_message_edit", "telegram_edit_message", "telegram_get_edit_status")
-OUTGOING_TOOLS = ("telegram_prepare_message", "telegram_send_message", "telegram_get_send_status", "telegram_set_chat_draft", *EDIT_TOOLS)
+from .tool_catalog import EDIT_TOOLS, OUTGOING_TOOLS
 FEATURE_FILE = "sending.json"
 
 
@@ -37,7 +36,7 @@ def set_sending(root: Path, enabled: bool) -> None:
         return
     from .installation import installation_lock, read_receipt
     from .launchers import current_version
-    from .registration import ALIASES, NAMES, _load, configure, expected_entry
+    from .registration import ALIASES, NAMES, _load, configure, expected_entry, policy_preserving_entry
 
     with installation_lock(root):
         python = str(current_version(root) / ".venv/bin/python")
@@ -45,7 +44,7 @@ def set_sending(root: Path, enabled: bool) -> None:
         for client, value in read_receipt(root).get("clients", {}).items():
             path = Path(value)
             existing = _load(client, path, read_source(path)).get(NAMES[client], {}).get(ALIASES[client])
-            if existing == expected_entry(client, python, root):
+            if policy_preserving_entry(client, existing, expected_entry(client, python, root)) is not None:
                 paths[client] = path
         if enabled and not paths:
             raise RuntimeError("No unchanged registered clients; register the intended client first")
