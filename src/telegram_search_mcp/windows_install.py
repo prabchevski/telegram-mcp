@@ -249,10 +249,32 @@ def _source_identity(source: Path, revision: str | None) -> tuple[str, str | Non
     return version, revision
 
 
+def _open_bootstrap_uv(path: Path) -> int:
+    """Read a pinned public executable, including elevated archive extraction.
+
+    Windows may assign Administrators ownership to fresh Expand-Archive files.
+    This exception applies only to the executable checked against UV_SHA256;
+    installed tools and all profile/configuration files retain private ownership.
+    """
+    if sys.platform != "win32":
+        return open_owned_readonly(path)
+    import msvcrt
+    from .platform_support import _check_windows_handle, _windows_open
+    handle = _windows_open(path, writable=False)
+    try:
+        _check_windows_handle(handle, directory=False, private=False, allow_system_owner=True)
+        descriptor = msvcrt.open_osfhandle(int(handle), os.O_RDONLY | os.O_BINARY)
+        handle.Detach()
+        return descriptor
+    except BaseException:
+        handle.Close()
+        raise
+
+
 def _stable_uv(root: Path, uv: Path) -> dict:
     # The bootstrap verifies its ZIP; verify the extracted executable again so
     # later updates can safely run after that temporary bootstrap is deleted.
-    fd = open_owned_readonly(uv)
+    fd = _open_bootstrap_uv(uv)
     with os.fdopen(fd, "rb") as stream:
         content = stream.read(80 * 1024 * 1024 + 1)
     if len(content) > 80 * 1024 * 1024 or hashlib.sha256(content).hexdigest() != UV_SHA256:

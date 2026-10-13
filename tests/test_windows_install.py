@@ -433,6 +433,53 @@ def test_unverified_uv_is_not_copied(tmp_path):
     assert not (root / 'tools').exists()
 
 
+@pytest.mark.parametrize('reject_file', [False, True])
+def test_bootstrap_uv_reader_allows_elevated_binary_owner_without_relaxing_file_guards(
+    tmp_path, monkeypatch, reject_file,
+):
+    from telegram_search_mcp import platform_support
+    uv = tmp_path / 'administrator-owned-extraction.exe'
+    uv.write_bytes(b'public extracted binary')
+    descriptor = os.open(uv, os.O_RDONLY)
+    class ExtractedHandle:
+        detached = False
+        closed = False
+        def __int__(self):
+            return descriptor
+        def Detach(self):
+            self.detached = True
+        def Close(self):
+            self.closed = True
+            os.close(descriptor)
+    handle = ExtractedHandle()
+    checks = []
+    def inspect(native_handle, **guards):
+        assert native_handle is handle
+        checks.append(guards)
+        # This input is a public pinned binary, not a private profile. The real
+        # helper still checks disk/regular/reparse/hardlink and accepted owners.
+        assert guards == {'directory': False, 'private': False, 'allow_system_owner': True}
+        if reject_file:
+            raise RuntimeError('Expected a regular disk file without reparse points')
+    def open_native(path, **options):
+        assert path == uv and options == {'writable': False}
+        return handle
+    monkeypatch.setattr(installer, 'sys', SimpleNamespace(platform='win32'))
+    monkeypatch.setattr(platform_support, '_windows_open', open_native)
+    monkeypatch.setattr(platform_support, '_check_windows_handle', inspect)
+    monkeypatch.setattr(os, 'O_BINARY', getattr(os, 'O_BINARY', 0), raising=False)
+    monkeypatch.setitem(sys.modules, 'msvcrt', SimpleNamespace(open_osfhandle=lambda raw, flags: raw))
+    if reject_file:
+        with pytest.raises(RuntimeError, match='regular disk file'):
+            installer._open_bootstrap_uv(uv)
+        assert handle.closed and not handle.detached
+    else:
+        with os.fdopen(installer._open_bootstrap_uv(uv), 'rb') as stream:
+            assert stream.read() == b'public extracted binary'
+        assert handle.detached and not handle.closed
+    assert len(checks) == 1
+
+
 def make_update_state(fixture):
     import base64
     _, root, marketplace, *_ = fixture
