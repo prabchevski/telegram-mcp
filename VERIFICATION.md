@@ -1,19 +1,37 @@
 # Verification
 
-## Unreleased — attachment sending fix
+## Version 0.11.1 — Document sending and safe failure diagnostics
+
+Local source validation on Apple Silicon macOS: 1074 tests passed, 10
+platform/opt-in checks skipped. The 33 new regressions include two tests against
+TDLib 1.8.67's real native parser in disposable, uninitialized subprocesses;
+they do not open a Telegram profile or establish a connection. Source inventory,
+archive checks and isolated macOS install/upgrade checks passed.
 
 Attachment regressions use synthetic 29,054-byte Markdown content and a 602-unit
 UTF-16 caption, with and without a native reply ID. They cover snapshot integrity,
 direct and asynchronous failure diagnostics, status reconciliation, restart
-idempotency, timeout/server-error uncertainty, content redaction and legacy result
-compatibility. The pinned TDLib schema is at commit
-`d1085f9cebc5a62379991ae1652673954f229c1f`: `inputMessageDocument.document`
-requires `inputDocument`, whose `document` field holds the `InputFile`.
+idempotency, timeout/server-error uncertainty, error-text redaction, code 406
+message withholding and compatibility with existing proxy result models. The
+pinned TDLib schema at commit `d1085f9cebc5a62379991ae1652673954f229c1f`
+requires `inputMessageDocument.document` to contain `inputDocument`, whose
+`document` field holds the `InputFile`.
 
-These checks do not send Telegram messages or establish authenticated delivery.
-The historical failure's native code was discarded by the old implementation;
-it cannot be recovered from the old ledger. Installation and live acceptance
-must be reported separately from source and synthetic validation.
+Separate owner-authorized authenticated acceptance on local fix revision
+`a04807d3d531c47e6ef822ea503bcb99f0e4f5b6` sent exactly two synthetic Markdown
+documents to Saved Messages: one with a caption and no reply, then one with a
+caption replying to the first document. Both returned `sent`; bounded history
+readback confirmed the captions, original filenames, sizes and exact reply
+relationship. Both downloaded files were byte-identical to the 29,054-byte source
+and matched its SHA-256. No uncertain result was retried under a replacement ID.
+These observations establish live acceptance of the local fix only. Installation
+and running-service verification of the published 0.11.1 archive must be recorded
+separately after installing that exact release.
+
+The historical failure's native code was discarded by the old implementation
+and cannot be recovered from its ledger. Native Windows package/installer checks
+remain part of release CI; these macOS and Saved Messages results do not establish
+Windows Telegram authorization or graphical client activation.
 
 ## Version 0.11.0 — Updates across supported platforms and clients
 

@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.11.1 — 2026-10-22
+
+- Fix local document sending for pinned TDLib 1.8.67: wrap `inputFileLocal` in
+  `inputDocument`, preserving captions, immutable snapshots and exact reply IDs.
+  The previous shape left the actual file unset in the native parser.
+- Preserve numeric TDLib errors and exact allowlisted reasons for direct,
+  asynchronous and reconciled send failures. Redact arbitrary error text and
+  withhold messages for code 406. Keep the existing public `detail` field so
+  already-running proxies remain compatible.
+- Treat timeouts, aborted requests and server errors as uncertain outcomes:
+  retain the attachment and original draft ID without automatic redispatch.
+- Add 33 regressions, including two tests of the real pinned native parser.
+  Owner-authorized Saved Messages acceptance on the local fix confirmed a
+  29,054-byte Markdown document with a 602-unit UTF-16 caption, with and without
+  a reply; both downloaded copies matched the source SHA-256.
+
 ## 0.11.0 — 2026-10-13
 
 - Deliver verified updates to every supported client: Codex/Gemini CLI on macOS
@@ -17,19 +33,6 @@
   and MCP discovery. Sending remains off unless enabled by the owner.
 - Include a manifest-hashed SOURCE_REVISION in published archives, without adding
   generated files to raw Git snapshots consumed by historical updaters.
-
-### Unreleased attachment correction — 2026-10-22
-
-These source changes are not part of the published 0.11.0 assets.
-
-- Wrap local document files in TDLib 1.8.67's `inputDocument`, retaining captions,
-  immutable snapshots and exact reply IDs. Passing an `InputFile` directly as an
-  `inputMessageDocument.document` left the actual file unset in the native parser.
-- Preserve numeric TDLib sending errors and exact allowlisted reasons for direct,
-  asynchronous and reconciled failures. Redact other error text; expose diagnostics
-  through the existing `detail` field without changing legacy proxy result shapes.
-- Keep timeout, aborted-request and server-error outcomes uncertain, retaining the
-  snapshot and original draft ID without automatic redispatch.
 
 ## 0.10.1 — 2026-10-13
 

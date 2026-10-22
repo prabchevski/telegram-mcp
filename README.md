@@ -1,4 +1,4 @@
-# Telegram MCP · 0.11.0
+# Telegram MCP · 0.11.1
 
 Connect **your own Telegram account** to **Codex or Gemini CLI on macOS**, **Codex on Windows x64**, or **ChatGPT Work with local plugins on Windows x64**. Search and read messages, download attachments, transcribe voice notes, and optionally prepare and send messages. One local service supports multiple chats and clients with a single Telegram login.
 

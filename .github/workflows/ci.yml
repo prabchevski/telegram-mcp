@@ -108,6 +108,8 @@ jobs:
           tests/test_runtime_storage.py
           tests/test_editing.py
           tests/test_editing_integration.py
+          tests/test_outgoing_attachments.py
+          tests/test_outgoing_native.py
           tests/test_public_posts.py
           tests/test_public_posts_safety.py
           tests/test_public_search_consent.py
