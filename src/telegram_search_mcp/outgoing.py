@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import os
 import re
 import shutil
@@ -25,6 +26,47 @@ MAX_FILE_BYTES = 12 * 1024 * 1024
 DRAFT_TTL = 24 * 3600
 ID_PATTERN = r"^[0-9a-f]{32}$"
 FINAL_STATES = {"sent", "failed", "scheduled"}
+LOG = logging.getLogger(__name__)
+# Exact source-owned TDLib reasons only. Even an uppercase-looking string can
+# contain private input; never return or persist arbitrary exception messages.
+_SAFE_SEND_ERRORS = frozenset({
+    "InputFile is not specified", "Can't access the chat", "Message not found",
+    "Message to be replied not found", "Message caption is too long",
+    "CHAT_WRITE_FORBIDDEN", "CHAT_ADMIN_REQUIRED", "CHANNEL_PRIVATE",
+    "USER_BANNED_IN_CHANNEL", "PEER_ID_INVALID", "MESSAGE_ID_INVALID",
+    "REPLY_MESSAGE_ID_INVALID", "MESSAGE_THREAD_INVALID", "TOPIC_CLOSED",
+    "MESSAGE_TOO_LONG", "MEDIA_CAPTION_TOO_LONG", "CAPTION_TOO_LONG",
+    "FILE_PART_INVALID", "FILE_PARTS_INVALID", "FILE_PART_MISSING",
+    "FILE_PART_EMPTY", "FILE_SIZE_EMPTY", "FILE_TOO_BIG", "FILE_UPLOAD_RESTART",
+    "MEDIA_INVALID", "DOCUMENT_INVALID", "DOCUMENT_EMPTY", "DOCUMENT_EXT_INVALID",
+    "AUTH_KEY_UNREGISTERED", "AUTH_KEY_INVALID", "SESSION_REVOKED", "SESSION_EXPIRED",
+})
+
+
+def _native_error(value: Any) -> dict | None:
+    """Read current and legacy failure shapes without retaining their contents."""
+    if not isinstance(value, dict):
+        return None
+    if isinstance(value.get("error"), dict):
+        return value["error"]
+    if "error_code" in value or "error_message" in value:
+        return {"code": value.get("error_code"), "message": value.get("error_message")}
+    return None
+
+
+def _record_failure(value: dict, error: dict | None, *, outcome: str, advice: str) -> None:
+    code = error.get("code") if error else None
+    code = code if type(code) is int and -(2**31) <= code < 2**31 else None
+    # TDLib explicitly forbids processing/displaying the message for code 406.
+    reason = error.get("message") if error and code != 406 else None
+    if not isinstance(reason, str) or reason not in _SAFE_SEND_ERRORS:
+        reason = "TDLib error details redacted" if error else None
+    value.update(error_code=code, error_message=reason)
+    diagnostic = f" (TDLib {code if code is not None else 'error'}: {reason})" if error else ""
+    # Keep the public shape compatible with already-running 0.11 proxies, whose
+    # result models reject unknown keys. Structured diagnostics stay in the ledger.
+    value["detail"] = f"{outcome}{diagnostic}; {advice}"
+    LOG.warning("telegram_send_failure code=%s reason=%s", code, reason)
 
 
 def valid_id(value: str) -> None:
@@ -166,7 +208,8 @@ class Outbox:
                          "chat_id": int(chat["id"]), "chat_title": str(chat.get("title", ""))[:256],
                          "text": text, "file_name": None, "file_size": None, "file_sha256": None,
                          "reply_to_message_id": reply_to_message_id, "topic_id": topic_id, "scheduled_at": scheduled_at,
-                         "message_id": None, "detail": "Prepared locally; nothing sent", "created_at": time.time()}
+                         "message_id": None, "detail": "Prepared locally; nothing sent", "created_at": time.time(),
+                         "error_code": None, "error_message": None}
                 if file_path is not None:
                     path = Path(file_path)
                     if path.resolve() != path or path.name == "state.json" or len(path.name.encode()) > 200:
@@ -202,13 +245,16 @@ class Outbox:
                 shutil.rmtree(folder)
                 raise
 
-    def _finish(self, value: dict, message: dict, *, failed: bool = False) -> None:
+    def _finish(self, value: dict, message: dict, *, failed: bool = False, error: dict | None = None) -> None:
         if message.get("chat_id") != value["chat_id"] or not message.get("is_outgoing"):
             raise ValueError("Outgoing message response did not match the recipient")
         scheduled = bool(message.get("scheduling_state"))
         value.update(status="failed" if failed else "scheduled" if scheduled else "sent", message_id=int(message["id"]),
                      detail="Telegram confirmed failure; no automatic retry" if failed else
                      "Telegram accepted the schedule; delivery is not yet confirmed" if scheduled else "Telegram confirmed sending")
+        if failed:
+            _record_failure(value, error if error is not None else _native_error(message.get("sending_state")),
+                            outcome="Telegram confirmed failure", advice="no automatic retry")
         self._save(value)
         for key, draft_id in tuple(self.pending.items()):
             if draft_id == value["draft_id"]:
@@ -232,7 +278,7 @@ class Outbox:
             if value["status"] in FINAL_STATES:
                 self.pending.pop(key, None)
                 return
-            self._finish(value, message, failed=event["@type"] == "updateMessageSendFailed")
+            self._finish(value, message, failed=event["@type"] == "updateMessageSendFailed", error=_native_error(event))
             self.pending.pop(key, None)
             self.changed.set()
 
@@ -260,8 +306,11 @@ class Outbox:
                 _assert_private_file(path)
                 if path.stat().st_size != value["file_size"] or hashlib.sha256(path.read_bytes()).hexdigest() != value["file_sha256"]:
                     raise ValueError("Prepared attachment changed; prepare a new reviewed draft")
-                content = {"@type": "inputMessageDocument", "document": {"@type": "inputFileLocal", "path": str(path)},
-                           "thumbnail": None, "disable_content_type_detection": True, "caption": content["text"]}
+                # TDLib 1.8.67: inputMessageDocument.document is inputDocument,
+                # whose document field is the InputFile (not an InputFile here).
+                content = {"@type": "inputMessageDocument", "document": {
+                    "@type": "inputDocument", "document": {"@type": "inputFileLocal", "path": str(path)},
+                    "thumbnail": None, "disable_content_type_detection": True}, "caption": content["text"]}
             value.update(status="unknown", detail="Dispatch may have started; do not resend with a new draft ID")
             self._save(value)
         try:
@@ -270,11 +319,15 @@ class Outbox:
                                        "from_background": False, "scheduling_state": ({"@type": "messageSchedulingStateSendAtDate",
                                        "send_date": value["scheduled_at"], "repeat_period": 0} if value.get("scheduled_at") else None)}, "reply_markup": None,
                                        "input_message_content": content}, timeout=30.0)
-        except TdlibError:
+        except TdlibError as exc:
             with self.lock:
-                value.update(status="failed", detail="Telegram rejected the send; no automatic retry")
+                uncertain = exc.code in {-1, 408} or 500 <= exc.code < 600
+                value.update(status="unknown" if uncertain else "failed")
+                _record_failure(value, {"code": exc.code, "message": exc.message},
+                                outcome="Telegram send outcome unknown" if uncertain else "Telegram rejected the send",
+                                advice="check this draft ID; do not resend with a new draft ID" if uncertain else "no automatic retry")
                 self._save(value)
-                if value["file_name"]:
+                if value["file_name"] and not uncertain:
                     (self.directory / draft_id / value["file_name"]).unlink(missing_ok=True)
             return self.public(value)
         except (TimeoutError, RuntimeError):

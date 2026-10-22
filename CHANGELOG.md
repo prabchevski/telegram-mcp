@@ -18,6 +18,19 @@
 - Include a manifest-hashed SOURCE_REVISION in published archives, without adding
   generated files to raw Git snapshots consumed by historical updaters.
 
+### Unreleased attachment correction — 2026-10-22
+
+These source changes are not part of the published 0.11.0 assets.
+
+- Wrap local document files in TDLib 1.8.67's `inputDocument`, retaining captions,
+  immutable snapshots and exact reply IDs. Passing an `InputFile` directly as an
+  `inputMessageDocument.document` left the actual file unset in the native parser.
+- Preserve numeric TDLib sending errors and exact allowlisted reasons for direct,
+  asynchronous and reconciled failures. Redact other error text; expose diagnostics
+  through the existing `detail` field without changing legacy proxy result shapes.
+- Keep timeout, aborted-request and server-error outcomes uncertain, retaining the
+  snapshot and original draft ID without automatic redispatch.
+
 ## 0.10.1 — 2026-10-13
 
 - Add preparation, application and status tools for editing your own sent text

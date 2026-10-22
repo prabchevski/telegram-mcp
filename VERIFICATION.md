@@ -1,5 +1,20 @@
 # Verification
 
+## Unreleased — attachment sending fix
+
+Attachment regressions use synthetic 29,054-byte Markdown content and a 602-unit
+UTF-16 caption, with and without a native reply ID. They cover snapshot integrity,
+direct and asynchronous failure diagnostics, status reconciliation, restart
+idempotency, timeout/server-error uncertainty, content redaction and legacy result
+compatibility. The pinned TDLib schema is at commit
+`d1085f9cebc5a62379991ae1652673954f229c1f`: `inputMessageDocument.document`
+requires `inputDocument`, whose `document` field holds the `InputFile`.
+
+These checks do not send Telegram messages or establish authenticated delivery.
+The historical failure's native code was discarded by the old implementation;
+it cannot be recovered from the old ledger. Installation and live acceptance
+must be reported separately from source and synthetic validation.
+
 ## Version 0.11.0 — Updates across supported platforms and clients
 
 Local validation: 1041 tests passed, 10 platform/opt-in checks skipped on

@@ -262,6 +262,14 @@ SHA-256 digest. The filename and file bytes are frozen in a private local snapsh
 changing the source afterward cannot change the attachment. Reusing a draft ID
 returns the original preparation, and conflicting parameters are rejected.
 
+On a native sending failure, `detail` includes the numeric TDLib code and a safe,
+recognized reason. The same diagnostics persist in the private outbox ledger as
+`error_code` and `error_message`. Unrecognized error text is redacted rather than
+echoing file paths, message content or secrets. Status checks return the original
+result without retrying. A timeout, aborted request or server error leaves the
+outcome `unknown` and keeps the attachment snapshot; reconcile the same draft ID
+and never create a replacement to retry an uncertain send.
+
 Limits: plain text up to 4096 UTF-16 code units; a file caption up to 1024; one
 nonempty regular local file up to 12 MiB, sent as a document with its original name.
 Prepared local outgoing drafts expire after 24 hours. No bulk sending,

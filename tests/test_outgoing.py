@@ -134,7 +134,7 @@ def test_file_snapshot_preserves_name_and_content_and_removes_after_success(prep
     assert not snapshot.exists()
     content = sends(session)[0]["input_message_content"]
     assert content["@type"] == "inputMessageDocument"
-    assert content["document"]["path"].endswith("instructions.md")
+    assert content["document"]["document"]["path"].endswith("instructions.md")
     assert content["caption"]["text"] == "Caption"
 
 
