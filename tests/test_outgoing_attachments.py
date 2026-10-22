@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import uuid
 
 import pytest
@@ -9,6 +10,7 @@ from mcp import Client
 
 from telegram_search_mcp.models import OutgoingResult
 from telegram_search_mcp.outgoing import Outbox
+from telegram_search_mcp.platform_support import open_private_file
 from telegram_search_mcp.server import create_server
 from telegram_search_mcp.tdjson import TdlibError
 from telegram_search_mcp.wire import decode_result, encode_result
@@ -90,7 +92,10 @@ class AttachmentSession:
 @pytest.fixture
 def attachment(tmp_path):
     source = tmp_path / "synthetic.md"
-    source.write_bytes(ATTACHMENT_BYTES)
+    # Elevated Windows runners otherwise create Administrators-owned files.
+    # Use the same explicit current-user owner/DACL as other portable fixtures.
+    with os.fdopen(open_private_file(source, exclusive=True), "wb") as stream:
+        stream.write(ATTACHMENT_BYTES)
     assert source.stat().st_size == 29054
     assert len(CAPTION.encode("utf-16-le")) // 2 == 602
     return source

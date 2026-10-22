@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import copy
 import json
+import os
 from pathlib import Path
 import platform
 import re
@@ -19,6 +20,7 @@ import pytest
 
 from telegram_search_mcp.native_runtime import bundled_candidates, COMMIT, VERSION
 from telegram_search_mcp.outgoing import Outbox
+from telegram_search_mcp.platform_support import open_private_file
 
 
 _DRIVER = r'''
@@ -95,7 +97,8 @@ def test_pinned_parser_keeps_outbox_document_file_and_caption(tmp_path, reply_id
     assert libraries
     directory = tmp_path.resolve()
     attachment = directory / 'synthetic.md'
-    attachment.write_bytes(b'x' * 29054)
+    with os.fdopen(open_private_file(attachment, exclusive=True), 'wb') as stream:
+        stream.write(b'x' * 29054)
     caption = 'x' * 600 + '\U0001f44b'  # 602 UTF-16 code units
     session = _CaptureSession()
     box = Outbox(directory / 'outbox', session.user_id)
