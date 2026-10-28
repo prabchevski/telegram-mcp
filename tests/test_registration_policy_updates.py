@@ -14,6 +14,9 @@ from telegram_search_mcp.sending_settings import set_sending
 from test_managed_updates import REVISION, downloaded_update, make_version, managed, write_entry
 
 
+pytestmark = pytest.mark.usefixtures("trusted_macos_env_launcher")
+
+
 HISTORICAL_ENTRIES = (
     activation.legacy_entry, activation.previous_entry, activation.navigation_entry,
     activation.initial_public_entry, activation.before_editing_entry,

@@ -15,6 +15,9 @@ from telegram_search_mcp import registration
 from telegram_search_mcp.registration import configure, expected_entry, launcher_arguments
 
 
+pytestmark = pytest.mark.usefixtures("trusted_macos_env_launcher")
+
+
 def managed_python(tmp_path: Path, version: str = "0.4.0", name: str = "telegram-search-mcp") -> str:
     install = tmp_path / version
     executable = install / ".venv" / "bin" / "python"

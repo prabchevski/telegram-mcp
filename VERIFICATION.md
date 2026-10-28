@@ -1,5 +1,31 @@
 # Verification
 
+## CI maintenance — 2026-10-28
+
+The `ubuntu-latest` jobs in [run 40685147093](https://github.com/prabchevski/telegram-mcp/actions/runs/40685147093)
+used Ubuntu 26.04. Its `/usr/bin/env` is a symlink to the Rust coreutils
+implementation, which the macOS registration preflight deliberately rejects.
+Five registration/update test modules now explicitly model a trusted macOS
+launcher instead of depending on the test host's launcher layout. Production
+launcher validation is unchanged.
+
+Nine independent regressions exercise the real validator: a trusted regular
+executable is accepted; symlinks, directories, unsafe ownership/permissions,
+non-executable files and missing launchers are rejected. A registration check
+also confirms that rejection leaves both client configurations byte-identical
+and creates no lock or backup files.
+
+Local validation of this source-only test repair:
+
+| Environment | Python | Result |
+| --- | --- | --- |
+| Ubuntu 26.04, isolated ARM64 container, non-root user | 3.12 | 1082 passed, 11 skipped |
+| Ubuntu 26.04, isolated ARM64 container, non-root user | 3.14 | 1082 passed, 11 skipped |
+| Apple Silicon macOS | 3.13.13 | 1083 passed, 10 skipped |
+
+The source inventory contains 121 allowlisted text files. These tests use
+disposable configurations and do not authorize a Telegram account.
+
 ## Version 0.11.1 — Document sending and safe failure diagnostics
 
 Local source validation on Apple Silicon macOS: 1074 tests passed, 10

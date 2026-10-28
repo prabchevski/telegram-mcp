@@ -12,6 +12,8 @@ import pytest
 from telegram_search_mcp import installation, launchers, registration, updater
 from telegram_search_mcp import activation
 
+pytestmark = pytest.mark.usefixtures("trusted_macos_env_launcher")
+
 REVISION = "a" * 40
 
 

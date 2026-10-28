@@ -25,6 +25,9 @@ from telegram_search_mcp.gemini_config import (
 )
 
 
+pytestmark = pytest.mark.usefixtures("trusted_macos_env_launcher")
+
+
 def executable(tmp_path: Path) -> str:
     command = tmp_path / "Telegram Search" / "tgsearch-mcp"
     command.parent.mkdir()

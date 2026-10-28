@@ -8,6 +8,9 @@ from telegram_search_mcp import registration
 from telegram_search_mcp.sending_settings import OUTGOING_TOOLS, set_sending, sending_enabled
 
 
+pytestmark = pytest.mark.usefixtures("trusted_macos_env_launcher")
+
+
 def test_codex_and_gemini_enable_same_tools_preserving_approval_and_other_settings(managed, tmp_path):
     from telegram_search_mcp import updater
     root, version, codex = managed
