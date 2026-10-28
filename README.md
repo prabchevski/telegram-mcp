@@ -1,8 +1,34 @@
+<div align="center">
+
 # Telegram MCP · 0.11.1
 
-Connect **your own Telegram account** to **Codex or Gemini CLI on macOS**, **Codex on Windows x64**, or **ChatGPT Work with local plugins on Windows x64**. Search and read messages, download attachments, transcribe voice notes, and optionally prepare and send messages. One local service supports multiple chats and clients with a single Telegram login.
+**Telegram, connected to your AI workflow.**
 
-## Give this link to your AI agent
+Search conversations, work with files and voice, and prepare replies from your own Telegram account.
+
+[![Latest release](https://img.shields.io/github/v/release/prabchevski/telegram-mcp?style=flat-square&label=release&color=0284c7)](https://github.com/prabchevski/telegram-mcp/releases/latest)
+[![Test and package](https://img.shields.io/github/actions/workflow/status/prabchevski/telegram-mcp/ci.yml?branch=main&style=flat-square&label=tests%20%26%20package)](https://github.com/prabchevski/telegram-mcp/actions/workflows/ci.yml)
+[![MIT license](https://img.shields.io/github/license/prabchevski/telegram-mcp?style=flat-square&color=0f766e)](LICENSE)
+[![Glama tool quality](https://glama.ai/mcp/servers/prabchevski/telegram-mcp/badges/score.svg)](https://glama.ai/mcp/servers/prabchevski/telegram-mcp/score)
+
+[![MCP over stdio](https://img.shields.io/badge/MCP-stdio-7c3aed?style=flat-square)](ARCHITECTURE.md#shared-session)
+[![Pinned TDLib](https://img.shields.io/badge/TDLib-1.8.67-475569?style=flat-square)](https://github.com/tdlib/td/tree/d1085f9cebc5a62379991ae1652673954f229c1f)
+[![macOS](https://img.shields.io/badge/macOS-Apple%20Silicon%20%2F%20Intel-334155?style=flat-square)](INSTALL_MACOS.md)
+[![Windows x64](https://img.shields.io/badge/Windows-x64-0078d4?style=flat-square)](INSTALL_WINDOWS.md)
+
+**Codex** on macOS and Windows x64 · **Gemini CLI** on macOS · **ChatGPT Work** with local plugins on Windows x64
+
+[**Install / upgrade**](#quick-start) · [Platforms](#choose-your-platform) · [Features](#features) · [Security & privacy](#security-and-privacy) · [Verification](VERIFICATION.md)
+
+</div>
+
+| Local session | Sending is opt-in | Verifiable releases |
+| --- | --- | --- |
+| One service on your computer shares a Telegram login across clients and chats. | Sending starts disabled. Prepare messages and edits for review before applying them. | SHA-256 release checksums, locked dependencies, pinned TDLib, and public CI results. |
+
+Retrieved Telegram content is shared with your selected AI client. This is an **unofficial** project; see [security and privacy](#security-and-privacy) for the access boundaries.
+
+## Quick start
 
 Paste this into your local AI client on the computer where you want to install it:
 
@@ -26,6 +52,17 @@ Gemini in a browser or on a phone and ordinary ChatGPT web chats cannot run this
 Manual installation: **[macOS ZIP](https://github.com/prabchevski/telegram-mcp/releases/latest/download/telegram-mcp-macos.zip)** ([SHA-256](https://github.com/prabchevski/telegram-mcp/releases/latest/download/telegram-mcp-macos.zip.sha256)) · **[Windows ZIP](https://github.com/prabchevski/telegram-mcp/releases/latest/download/telegram-mcp-windows.zip)** ([SHA-256](https://github.com/prabchevski/telegram-mcp/releases/latest/download/telegram-mcp-windows.zip.sha256)). See the [quick start](START_HERE.md). These links point to the latest published release; its **Assets** include ready-to-use installers. GitHub's standard **Source code** downloads do not replace the Windows package.
 
 Installation enables daily verified updates on macOS and Windows by default, while preserving an explicit opt-out. Codex and Gemini CLI share the macOS installation; Codex and ChatGPT Work share the Windows plugin installation. Each user signs into their own account; the repository and releases contain no personal sessions or keys. Retrieved messages are shared with the selected AI client. This is an unofficial project.
+
+## Security and privacy
+
+- **Local account session.** The Telegram service and session database run on your computer. No public server or tunnel is required.
+- **OS-protected secrets.** The Telegram API hash and database encryption key use macOS Keychain or Windows Credential Manager, outside MCP configuration.
+- **Explicit sending controls.** Sending is disabled until you enable it locally. Messages and edits use prepared snapshots; uncertain outcomes are checked with the same operation ID rather than blindly retried.
+- **Media restrictions.** Protected and self-destructing media are rejected, and Secret Chats are excluded. Retrieved messages and metadata are treated as untrusted input.
+
+Your AI client receives the content returned by tools and handles it under its own data policies. Local execution does not keep that content out of the selected AI service. Other programs running under your operating-system account remain inside the same local trust boundary.
+
+Read the [architecture and access boundaries](ARCHITECTURE.md) and the [verification record and limits](VERIFICATION.md).
 
 ## Usage examples
 
