@@ -22,9 +22,9 @@ Search conversations, work with files and voice, and prepare replies from your o
 
 </div>
 
-| Local session | Sending is opt-in | Verifiable releases |
+| Local session | Sending is opt-in | Release checks |
 | --- | --- | --- |
-| One service on your computer shares a Telegram login across clients and chats. | Sending starts disabled. Prepare messages and edits for review before applying them. | SHA-256 release checksums, locked dependencies, pinned TDLib, and public CI results. |
+| One service on your computer shares a Telegram login across clients and chats. | Sending starts disabled. Prepare messages and edits for review before applying them. | SHA-256 checksums, locked packages, pinned TDLib, and public CI results. |
 
 Retrieved Telegram content is shared with your selected AI client. This is an **unofficial** project; see [security and privacy](#security-and-privacy) for the access boundaries.
 
