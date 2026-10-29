@@ -463,6 +463,24 @@ uv run --frozen python -I scripts/release.py build --output dist
 Tests use isolated profiles and settings and do not require a Telegram account.
 CI tests Linux/macOS and native Windows x64 on Windows Server 2025, and builds and
 installs an allowlisted source archive on a GitHub-hosted Mac. This is a test environment, not the maintainer's or users' Macs.
+These checks run for every change. On main, clean Windows 10/11 installation
+checks additionally run when installation, updates, native dependencies,
+platform integration, packaging, or CI changes require them. Classified ordinary
+common-core and documentation changes do not wait for a fresh desktop OS installation. Version
+bumps alone do not trigger desktop checks.
+
+The desktop decision compares the checked commit with the latest successful
+canonical main CI ancestor, so failed or cancelled changes remain covered by the
+next run. Missing history or an unclassified change requires the full checks.
+Publication requires every mandatory check to succeed and permits a desktop
+skip only after an explicit validated decision.
+
+The standalone **Windows 10 and 11 desktop installation** workflow also runs
+weekly (Monday, 05:17 UTC) and can be started manually. To force all checks in
+**Test and package**, select **Run workflow → Force clean Windows 10 and 11
+installation checks**. PRs preview the coverage decision and run the mandatory
+checks; the authoritative desktop checks run on main before publication.
+
 After these checks pass on main, CI publishes each new package version to
 [GitHub Releases](https://github.com/prabchevski/telegram-mcp/releases/latest), with
 the verified archive, checksum, file inventory and wheel. Existing published tags

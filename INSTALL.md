@@ -76,7 +76,11 @@ if ($actualHash -ne $expectedHash) { throw 'Telegram MCP archive checksum mismat
 ```
 
 Releases are published only after the **Test and package** workflow succeeds,
-including tests, archive-content checks, and installer checks. The checksum
+including tests, archive-content checks, and installer checks. macOS/Linux and
+Windows Server checks remain mandatory. Clean Windows 10/11 checks are required
+for installation/platform/dependency/packaging/CI changes and also run weekly or
+on demand; ordinary changes may explicitly skip that additional coverage.
+The checksum
 confirms that the downloaded file matches the published archive. Installation
 does not require cloning and rebuilding `main` or running tests on the user's account.
 

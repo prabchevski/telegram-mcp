@@ -85,6 +85,11 @@ LaunchAgents while implementing repository changes.
 - An update must not restore a client registration the owner removed or edited.
 - Migrate only known compatible local profiles, without copying databases or secrets.
 - Run `uv run --frozen pytest` and `uv run --frozen python -I scripts/release.py audit`.
+- Keep the mandatory macOS/Linux, Windows Server and packaging checks. Desktop
+  Windows 10/11 checks are conditional on the diff since the last successful
+  canonical main CI ancestor, with unknown decisions requiring the full checks.
+  They also run weekly/manual. Do not treat desktop failure/cancellation as an
+  allowed skip or bypass the explicit release-prerequisite gate.
 - For installer changes, build the source ZIP and run `scripts/smoke-install-macos.py`
   on macOS. That smoke check uses temporary settings and never signs in.
 - Keep README, CHANGELOG and VERIFICATION current with the package version.

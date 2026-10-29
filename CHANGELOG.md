@@ -1,5 +1,11 @@
 # Changelog
 
+CI maintenance after 0.11.2 (2026-10-29): keep macOS/Linux, Windows Server and
+package checks mandatory; run clean Windows 10/11 checks for installation,
+platform, dependency, packaging and CI changes, plus weekly/manual coverage.
+Ordinary changes and version-only bumps use the fast path only after an explicit
+validated decision. Runtime package version and published assets are unchanged.
+
 ## 0.11.2 — 2026-10-29
 
 - Clarify that a request to read, search, summarize, or analyze Telegram chats

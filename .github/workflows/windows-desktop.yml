@@ -1,6 +1,9 @@
 name: Windows 10 and 11 desktop installation
 
 on:
+  schedule:
+    # Weekly clean-OS coverage, independent of ordinary release publication (UTC).
+    - cron: '17 5 * * 1'
   workflow_dispatch:
   workflow_call:
 
