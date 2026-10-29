@@ -1,5 +1,30 @@
 # Verification
 
+## CI maintenance — Selective desktop coverage, 2026-10-29
+
+macOS/Linux tests, Windows Server installation and package checks remain mandatory.
+The desktop policy compares the checked commit with a successful canonical main
+CI ancestor. Installer/updater/platform/native dependency/packaging/CI changes
+require clean Windows 10/11 checks; ordinary changes and version-only bumps can
+skip them. Unknown history, parsing failures and unclassified paths require the
+full checks. Cancelled or failed changes cannot disappear behind a later ordinary
+commit because the comparison does not use only the previous commit.
+
+The release gate requires every mandatory job to succeed. Desktop failure or
+cancellation cannot become an allowed skip, and a missing/invalid decision blocks
+publication. Desktop checks also run weekly and on manual request. A manual fast
+run can verify the skipped-desktop gate without publishing a release.
+
+Local validation on Apple Silicon macOS/Python 3.13.13: 1215 tests passed and
+10 platform/opt-in checks were skipped, including 132 new policy/gate cases.
+Actionlint 1.7.12 accepted both modified workflows. The source inventory audit
+passed for 125 allowlisted text files. Replaying the historical 0.11.2 diff
+(`3944819` to `9691a34`) selected the fast path for its instruction and version
+changes. The rollout itself requires full desktop checks because it changes CI;
+a subsequent manual run without forcing desktop checks exercises the fast gate.
+Canonical run evidence remains in GitHub Actions. This change does not alter the
+runtime version or a personal Telegram installation.
+
 ## Version 0.11.2 — Voice transcription within requested chat-reading tasks
 
 The tool description, MCP initialization instructions, repository agent guidance,

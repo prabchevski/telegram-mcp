@@ -6,6 +6,11 @@ on:
     tags: ['v*']
   pull_request:
   workflow_dispatch:
+    inputs:
+      full_windows_desktop:
+        description: Force clean Windows 10 and 11 installation checks
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -15,6 +20,34 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  desktop-policy:
+    name: Decide Windows desktop coverage
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      required: ${{ steps.policy.outputs.required }}
+      baseline: ${{ steps.policy.outputs.baseline }}
+      reason: ${{ steps.policy.outputs.reason }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Compare with the last successful canonical main CI
+        id: policy
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FORCE_WINDOWS_DESKTOP: ${{ github.event_name == 'workflow_dispatch' && inputs.full_windows_desktop || false }}
+        run: |
+          if [[ "$FORCE_WINDOWS_DESKTOP" == "true" ]]; then
+            python3 -I scripts/ci_windows_policy.py --head "$GITHUB_SHA" --force
+          else
+            python3 -I scripts/ci_windows_policy.py --head "$GITHUB_SHA"
+          fi
+
   tests:
     strategy:
       fail-fast: false
@@ -147,12 +180,34 @@ jobs:
           retention-days: 30
 
   windows-desktop:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: desktop-policy
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') &&
+      needs.desktop-policy.outputs.required == 'true'
     uses: ./.github/workflows/windows-desktop.yml
 
+  release-ready:
+    name: Validate release prerequisites
+    needs: [desktop-policy, tests, release-artifacts, windows-install, windows-desktop]
+    if: >-
+      always() && !cancelled() &&
+      (github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Require successful checks and an explicit desktop policy decision
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: python3 -I scripts/ci_release_gate.py
+
   publish-release:
-    needs: [release-artifacts, windows-install, windows-desktop]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'prabchevski/telegram-mcp'
+    needs: release-ready
+    if: >-
+      always() && !cancelled() && needs.release-ready.result == 'success' &&
+      github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'prabchevski/telegram-mcp'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
