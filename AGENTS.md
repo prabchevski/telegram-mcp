@@ -55,6 +55,15 @@ Never offer or attempt payment with Stars, a Stars purchase, or a paid retry.
 Native public search always uses `star_count=0`; any reported price is information
 only. An unavailable quota is not a successful search with zero matches.
 
+## Reading voice messages
+
+A user's request to read, search, summarize, or analyze Telegram chats or messages
+also authorizes the voice/video-note transcriptions needed within that request's
+scope. Do not ask for a separate transcription request or confirmation for those
+messages. Do not start unrelated or unrequested background transcription. Native
+recognition may consume Telegram free quota; Premium and account limits still
+apply. This does not change the separate consent requirement for public-post search.
+
 ## Developing the repository
 
 For an owner-requested edit, use `telegram_prepare_message_edit` with exact native

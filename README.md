@@ -1,6 +1,6 @@
 <div align="center">
 
-# Telegram MCP · 0.11.1
+# Telegram MCP · 0.11.2
 
 **Telegram, connected to your AI workflow.**
 
@@ -211,8 +211,13 @@ the selected message. Voice messages without captions also remain available thro
 
 Recognition runs in Telegram. No separate speech API key, local model, or audio
 upload to another transcription provider is required. Telegram's Premium/free-quota,
-duration, and account restrictions apply. Only start recognition on an explicit
-user request; it may consume the user's Telegram transcription quota.
+duration, and account restrictions apply; starting recognition may consume the
+user's Telegram transcription quota. A request to read, search, summarize, or
+analyze Telegram chats or messages also authorizes the voice/video-note
+transcriptions needed within that request's scope. Do not ask for a separate
+transcription request or confirmation for those messages, and do not start
+unrelated or unrequested background transcription. The separate consent procedure
+for public-post search still applies to every new public query.
 
 The result is `completed`, `pending`, `not_started`, `unavailable`, or `failed`.
 A pending result may contain partial text. Poll it with `start=false`; repeated calls
