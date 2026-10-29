@@ -198,7 +198,7 @@ request starts it again. Restart/reload clients to apply a new registration.
 In Codex CLI, inspect `codex mcp get telegram_search`. In Gemini CLI, use
 `gemini mcp list` and `/mcp`; the working directory must be trusted by Gemini.
 Standard MCP discovery exposes 15 tools before authorization, including navigation,
-local downloads, voice listing and explicitly requested speech recognition. Opt-in
+local downloads, voice listing and speech recognition within requested chat-reading tasks. Opt-in
 sending adds seven tools, including own-message editing; see README.md, Optional text and file sending.
 
 | Situation | Action |

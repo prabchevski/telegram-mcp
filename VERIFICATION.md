@@ -1,5 +1,19 @@
 # Verification
 
+## Version 0.11.2 — Voice transcription within requested chat-reading tasks
+
+The tool description, MCP initialization instructions, repository agent guidance,
+and README now consistently treat relevant native transcription as part of the
+user's request to read or analyze Telegram messages. This is an instruction-only
+change: tool schemas, non-read-only annotations, quota handling, public-search
+consent, and sending/editing authorization are unchanged.
+
+Local validation on Apple Silicon macOS with Python 3.13.13: 1083 tests passed,
+10 platform/opt-in checks skipped. The source inventory audit passed for 121
+allowlisted text files. These checks include discovery metadata, native speech
+request handling, public-search consent, and outbound authorization. No private
+message reads or new Telegram transcription requests were used to validate this fix.
+
 ## CI maintenance — 2026-10-28
 
 The `ubuntu-latest` jobs in [run 40685147093](https://github.com/prabchevski/telegram-mcp/actions/runs/40685147093)

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.11.2 — 2026-10-29
+
+- Clarify that a request to read, search, summarize, or analyze Telegram chats
+  already authorizes the relevant voice/video-note transcriptions within that
+  task. Agents should not ask for a separate transcription request or confirmation.
+- Keep unrelated/background transcription outside the requested scope, preserve
+  the non-read-only annotation and Telegram quota limits, and retain the separate
+  explicit-consent procedure for each new public-post search query.
+
 ## 0.11.1 — 2026-10-22
 
 - Fix local document sending for pinned TDLib 1.8.67: wrap `inputFileLocal` in
