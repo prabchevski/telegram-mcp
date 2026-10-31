@@ -1,5 +1,9 @@
 # Verification
 
+Thread-history pagination also has sparse-ID coverage across short native pages,
+including a single cached row followed by enough rows to fill a 20-item MCP page.
+These checks use synthetic sessions and do not access account data.
+
 ## CI maintenance — Selective desktop coverage, 2026-10-29
 
 macOS/Linux tests, Windows Server installation and package checks remain mandatory.

@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 import pytest
 
 from telegram_search_mcp.navigation import (
-    HistoryRequest, Navigation, SearchRequest, cursor_position,
+    HistoryRequest, Navigation, SearchRequest, ThreadRequest, cursor_position,
 )
 from telegram_search_mcp.tdjson import TdlibError
 
@@ -57,7 +57,7 @@ class StrictSession:
                 if row["date"] <= payload["date"]:
                     return row
             raise TdlibError({"code": 404, "message": "Not found"})
-        assert kind in {"getChatHistory", "searchChatMessages"}
+        assert kind in {"getChatHistory", "searchChatMessages", "getMessageThreadHistory"}
         anchor = payload["from_message_id"]
         if anchor and anchor % STEP:
             raise TdlibError({"code": 400, "message": "Invalid value of parameter from_message_id specified"})
@@ -135,6 +135,37 @@ def test_first_history_without_date_includes_latest_supported_message():
     rows = [message(3), message(2), message(1)]
     session = StrictSession(rows, chunk=1)
     assert ids(collect(session, HistoryRequest)) == [row["id"] for row in rows]
+
+
+def test_thread_history_preserves_sparse_anchors_across_short_pages():
+    rows = [message(i) for i in range(17, 0, -1)]
+    session = StrictSession(rows, chunk=2)
+    pages = collect(session, ThreadRequest, message_id=rows[0]["id"])
+    assert ids(pages) == [row["id"] for row in rows]
+    assert len(ids(pages)) == len(set(ids(pages)))
+    assert all(call["@type"] == "getMessageThreadHistory" for call in session.calls)
+    assert all(call["message_id"] == rows[0]["id"] for call in session.calls)
+
+
+@pytest.mark.parametrize("request_type", [HistoryRequest, ThreadRequest])
+def test_single_cached_row_is_followed_by_a_full_twenty_item_page(request_type):
+    rows = [message(i) for i in range(30, 0, -1)]
+    session = StrictSession(rows)
+    original = session.request
+
+    def cached_first(payload, timeout=None):
+        response = original(payload, timeout)
+        if len(session.calls) == 1:
+            response["messages"] = response["messages"][:1]
+        return response
+
+    session.request = cached_first
+    params = {"message_id": rows[0]["id"]} if request_type is ThreadRequest else {}
+    first = Navigation().messages(session, request_type(chat_id=CHAT, limit=20, **params))
+    assert ids([first]) == [row["id"] for row in rows[:20]]
+    assert len(session.calls) == 2
+    assert session.calls[1]["from_message_id"] == rows[0]["id"]
+    assert first["next_cursor"] is not None
 
 
 def test_search_empty_page_with_continuation_is_not_end_of_results():
