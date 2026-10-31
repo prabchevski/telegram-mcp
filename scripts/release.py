@@ -16,12 +16,15 @@ import os
 from pathlib import Path, PurePosixPath
 import re
 import stat
+import subprocess
 import sys
 import tomllib
 import zipfile
+import shutil
 
 PACKAGE_ROOT = "telegram-mcp-macos"
 MANIFEST_NAME = "RELEASE_MANIFEST.json"
+SOURCE_REVISION_NAME = "SOURCE_REVISION"
 WINDOWS_ASSETS_SOURCE = "scripts/windows_assets.py"
 DERIVED_FILES = frozenset({
     "install-windows.ps1",
@@ -37,10 +40,11 @@ REQUIRED_FILES = frozenset(
      "scripts/install.py", WINDOWS_ASSETS_SOURCE, "src/telegram_search_mcp/__init__.py",
      "scripts/verify-live-release.py", "tests/test_read_navigation_regressions.py",
      "tests/test_context_regressions.py", "tests/test_read_error_regressions.py",
-     "tests/test_read_service_regressions.py"}
+     "tests/test_read_service_regressions.py", "tests/test_editing.py",
+     "tests/test_editing_integration.py"}
 )
 ROOT_FILES = REQUIRED_FILES | {
-    ".gitignore", "NOTICE", "update-macos.command", "uninstall-macos.command"
+    ".gitignore", "NOTICE", "update-macos.command", "uninstall-macos.command", SOURCE_REVISION_NAME
 }
 FORBIDDEN_PARTS = frozenset(
     {"profiles", "runtime", "database", "files", "secrets", "credentials", ".ssh",
@@ -124,16 +128,51 @@ def windows_assets(payload: dict[str, bytes]) -> dict[str, bytes]:
     return generated
 
 
-def archive_payload(source_payload: dict[str, bytes]) -> dict[str, bytes]:
+def revision_bytes(value: str) -> bytes:
+    if not isinstance(value, str) or re.fullmatch(r"[0-9a-f]{40}", value) is None:
+        raise ReleaseError("Invalid source revision metadata")
+    return (value + "\n").encode("ascii")
+
+
+def source_revision(source: Path) -> str | None:
+    marker = source / SOURCE_REVISION_NAME
+    if marker.exists():
+        if marker.is_symlink() or not marker.is_file():
+            raise ReleaseError("Unsafe source revision metadata")
+        value = marker.read_text(encoding="ascii").strip()
+        revision_bytes(value)
+        return value
+    if (source / ".git").exists() and shutil.which("git"):
+        changed = subprocess.run(["git", "-C", str(source), "status", "--porcelain"],
+                                 capture_output=True, text=True, timeout=15, check=True)
+        if not changed.stdout:
+            value = subprocess.check_output(["git", "-C", str(source), "rev-parse", "HEAD"],
+                                            text=True, timeout=15).strip()
+            revision_bytes(value)
+            return value
+    return None
+
+
+def archive_payload(source_payload: dict[str, bytes], *, revision: str | None = None) -> dict[str, bytes]:
     """A release ZIP includes derived Windows entry points, unlike Git source."""
     if DERIVED_FILES & source_payload.keys():
         raise ReleaseError("Expected source inventory without generated Windows assets")
-    return dict(sorted({**source_payload, **windows_assets(source_payload)}.items()))
+    if SOURCE_REVISION_NAME in source_payload:
+        raise ReleaseError("Expected source without generated revision metadata")
+    metadata = {SOURCE_REVISION_NAME: revision_bytes(revision)} if revision is not None else {}
+    return dict(sorted({**source_payload, **windows_assets(source_payload), **metadata}.items()))
 
 
 def source_payload(archive_files: dict[str, bytes]) -> dict[str, bytes]:
     """Validate derived bytes before recovering the Git-compatible source set."""
-    source = {name: content for name, content in archive_files.items() if name not in DERIVED_FILES}
+    source = {name: content for name, content in archive_files.items() if name not in DERIVED_FILES | {SOURCE_REVISION_NAME}}
+    if SOURCE_REVISION_NAME in archive_files:
+        value = archive_files[SOURCE_REVISION_NAME]
+        try:
+            if value != revision_bytes(value.decode("ascii").strip()):
+                raise ReleaseError("Invalid source revision metadata")
+        except UnicodeError as exc:
+            raise ReleaseError("Invalid source revision metadata") from exc
     actual = {name: archive_files[name] for name in DERIVED_FILES if name in archive_files}
     if actual != windows_assets(source):
         raise ReleaseError("Generated Windows assets differ from their reviewed source")
@@ -177,8 +216,17 @@ def inventory(source: Path) -> dict[str, bytes]:
     init = payload["src/telegram_search_mcp/__init__.py"].decode()
     if not re.search(rf'__version__\s*=\s*[\"\']{re.escape(version)}[\"\']', init):
         raise ReleaseError("Package __version__ disagrees with pyproject.toml")
+    marker = payload.pop(SOURCE_REVISION_NAME, None)
+    revision = None
+    if marker is not None:
+        try:
+            revision = marker.decode("ascii").strip()
+            if marker != revision_bytes(revision):
+                raise ReleaseError("Invalid source revision metadata")
+        except UnicodeError as exc:
+            raise ReleaseError("Invalid source revision metadata") from exc
     generated = {name: payload.pop(name) for name in DERIVED_FILES if name in payload}
-    expected_payload = archive_payload(payload)
+    expected_payload = archive_payload(payload, revision=revision)
     if generated and generated != windows_assets(payload):
         raise ReleaseError("Generated Windows assets differ from their reviewed source")
     if existing_manifest is not None:
@@ -256,7 +304,7 @@ def verify_archive(archive_path: Path) -> dict:
 
 
 def build(source: Path, output: Path) -> Path:
-    payload = archive_payload(inventory(source))
+    payload = archive_payload(inventory(source), revision=source_revision(source))
     manifest = manifest_bytes(payload)
     version = manifest_for(payload)["version"]
     output.mkdir(parents=True, exist_ok=True)

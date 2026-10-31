@@ -327,8 +327,8 @@ def execute(args: argparse.Namespace, output: Path, provenance: dict, overall_de
             if report.get("archive", {}).get("sha256") != provenance["archive_sha256"]:
                 raise RuntimeError("The tested archive differs from the source archive built by this job")
             checks = report.get("checks", [])
-            if len(checks) != 13 or any(check.get("status") != "passed" for check in checks):
-                raise RuntimeError("The guest did not complete all 13 installer acceptance checks")
+            if len(checks) != 17 or any(check.get("status") != "passed" for check in checks):
+                raise RuntimeError("The guest did not complete all 17 installer acceptance checks")
             user = json.loads((shared / "test-user.json").read_text(encoding="utf-8-sig"))
             if user.get("is_administrator") is not False:
                 raise RuntimeError("The guest test did not verify a standard user")

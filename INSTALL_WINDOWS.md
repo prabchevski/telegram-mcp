@@ -1,6 +1,6 @@
 # Telegram MCP for Codex and ChatGPT Work on Windows
 
-You need Windows x64, 64-bit PowerShell, internet access, and Codex or ChatGPT Work with local plugin support. Codex desktop and Work use the same personal-marketplace plugin and installer. Administrator rights and WSL are not required. This version does not support native ARM64 or automatic Windows updates.
+You need Windows x64, 64-bit PowerShell, internet access, and Codex or ChatGPT Work with local plugin support. Codex desktop and Work use the same personal-marketplace plugin and installer. Administrator rights and WSL are not required. Native ARM64 is not supported. Daily verified updates run as the current user by default; an explicit opt-out is preserved.
 
 Check the client's own operating-system requirements as well. OpenAI [recommends Windows 11 for its Windows sandbox](https://learn.chatgpt.com/docs/windows/windows-sandbox#windows-version-matrix); recent, fully updated Windows 10 is supported on a best-effort basis. An installer check does not verify every Windows build or the client's interface.
 
@@ -75,7 +75,7 @@ To enable sending when needed:
 
 ```powershell
 & $tg sending on
-# Restart Codex or ChatGPT and start a new chat: 19 tools are now available.
+# Restart Codex or ChatGPT and start a new chat: 22 tools are now available.
 & $tg sending off
 ```
 
@@ -83,13 +83,35 @@ Sending requires your explicit recipient and content instructions; preparation, 
 
 ## Updates
 
-Download a new verified release and rerun `install-windows.ps1`. Older installed versions and your Telegram login are retained. New processes use the new version; an active shared-service operation finishes before switching. Restart the app after updating.
+For an installation older than 0.11, download a new verified release and rerun
+`install-windows.ps1` once. This adds a private stable uv runtime and a daily/logon
+Task Scheduler task for the current user. No administrator rights or saved password
+are required. Use `-AutoUpdate off` during installation to opt out.
 
-The installer preserves other plugins and marketplace settings. If you removed or modified the Telegram registration, an update does not restore it; the result `preserved_user_changes` reports this. Daily automatic updates are not yet available on Windows.
+```powershell
+& $tg updates status
+& $tg update --check
+& $tg update
+& $tg updates off
+& $tg updates on
+```
+
+The updater selects a published Windows release for the exact canonical main
+commit whose full CI passed. It verifies HTTPS redirects, the archive checksum,
+GitHub digest, source revision and complete safe inventory before running the
+candidate installer. Downgrade, divergent/unpublished revisions and owner-modified
+plugin registration are rejected. `--check` only inspects availability.
+
+Older installed versions, Telegram login and the sending preference are retained.
+New processes use the new version; active shared-service work finishes normally.
+Restart Codex or ChatGPT Work after an update to load new tool definitions. Status
+retains the restart notice; no app or native Telegram operation is forcibly stopped.
+
+The installer preserves other plugins and marketplace settings. If you removed or modified the Telegram registration, an update does not restore it; the result `preserved_user_changes` reports this. Changes to the owned scheduled task are also preserved; an opt-out prevents scheduled package updates even when an edited task cannot be removed safely.
 
 ## Removal
 
-Disable or remove Telegram MCP in Plugins. Run `service stop`. Remove only the `telegram-mcp-work` entry from your personal `marketplace.json` and the `%USERPROFILE%\plugins\telegram-mcp-work` directory, then remove the program directory. The saved profile and Credential Manager entries remain available for reinstallation.
+Run `updates off`, disable or remove Telegram MCP in Plugins, and run `service stop`. Remove only the `telegram-mcp-work` entry from your personal `marketplace.json` and the `%USERPROFILE%\plugins\telegram-mcp-work` directory, then remove the program directory. The saved profile and Credential Manager entries remain available for reinstallation.
 
 To revoke access completely, terminate the corresponding session in the official Telegram app → Settings → Devices. After stopping the service, you can remove `%LOCALAPPDATA%\TelegramSearchMCPShared` and its `local.unofficial-telegram-search-mcp-shared` entries in Windows Credential Manager. Do not remove other applications' entries.
 

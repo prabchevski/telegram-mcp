@@ -1,5 +1,82 @@
 # Changelog
 
+CI maintenance after 0.11.2 (2026-10-29): keep macOS/Linux, Windows Server and
+package checks mandatory; run clean Windows 10/11 checks for installation,
+platform, dependency, packaging and CI changes, plus weekly/manual coverage.
+Ordinary changes and version-only bumps use the fast path only after an explicit
+validated decision. Runtime package version and published assets are unchanged.
+
+## 0.11.2 — 2026-10-29
+
+- Clarify that a request to read, search, summarize, or analyze Telegram chats
+  already authorizes the relevant voice/video-note transcriptions within that
+  task. Agents should not ask for a separate transcription request or confirmation.
+- Keep unrelated/background transcription outside the requested scope, preserve
+  the non-read-only annotation and Telegram quota limits, and retain the separate
+  explicit-consent procedure for each new public-post search query.
+
+## 0.11.1 — 2026-10-22
+
+- Fix local document sending for pinned TDLib 1.8.67: wrap `inputFileLocal` in
+  `inputDocument`, preserving captions, immutable snapshots and exact reply IDs.
+  The previous shape left the actual file unset in the native parser.
+- Preserve numeric TDLib errors and exact allowlisted reasons for direct,
+  asynchronous and reconciled send failures. Redact arbitrary error text and
+  withhold messages for code 406. Keep the existing public `detail` field so
+  already-running proxies remain compatible.
+- Treat timeouts, aborted requests and server errors as uncertain outcomes:
+  retain the attachment and original draft ID without automatic redispatch.
+- Add 33 regressions, including two tests of the real pinned native parser.
+  Owner-authorized Saved Messages acceptance on the local fix confirmed a
+  29,054-byte Markdown document with a 602-unit UTF-16 caption, with and without
+  a reply; both downloaded copies matched the source SHA-256.
+
+## 0.11.0 — 2026-10-13
+
+- Deliver verified updates to every supported client: Codex/Gemini CLI on macOS
+  and the shared Codex/ChatGPT Work plugin on Windows x64. Windows gains a
+  current-user daily/logon task, stable verified uv runtime, immutable upgrades,
+  explicit opt-out, check-only mode, durable status and client-restart notices.
+- Pin Windows updates to a published release at the exact successful canonical
+  main CI SHA. Validate HTTPS redirects, checksum/digest, safe archive inventory,
+  generated assets and source revision; refuse downgrade and unpublished fixes.
+- Preserve macOS approval/trust and parallel-call preferences while refreshing
+  known complete generated tool lists. Removed/disabled/custom connections and
+  owner plugin changes are not restored. Normal upgrades and verification follow
+  the same policy-preserving rules.
+- Share the advertised read/send/edit tool catalog across client registrations
+  and MCP discovery. Sending remains off unless enabled by the owner.
+- Include a manifest-hashed SOURCE_REVISION in published archives, without adding
+  generated files to raw Git snapshots consumed by historical updaters.
+
+## 0.10.1 — 2026-10-13
+
+- Add preparation, application and status tools for editing your own sent text
+  messages and supported media captions. Review a five-minute snapshot before
+  applying the exact replacement; changed messages fail safely and uncertain
+  operations are never dispatched twice. Sending-enabled discovery has 22 tools.
+- Normalize TDLib's omitted nullable link-preview fields before preparing,
+  applying or reconciling own-message edits. Native JSON omits null object fields;
+  sent text without a preview must remain editable, including Saved Messages.
+- Keep malformed explicit preview settings rejected and add native-shaped
+  regression fixtures across the core, MCP and shared-service transports.
+- Exercise the editing core and native private ledger on Windows CI as well as
+  macOS/Linux. Authenticated Saved Messages acceptance confirmed one real
+  message was edited through MCP and retained the same native message ID.
+
+## 0.10.0 — 2026-10-13
+
+- Add optional preparation, application and status tools for editing the linked
+  user's own sent text messages and supported media captions. Sending-enabled
+  discovery now contains 22 tools; the default remains 15.
+- Pin exact native IDs, account, original content and replacement in a private
+  five-minute snapshot. Recheck authorship, edit permission and observed content
+  before application; preserve media, caption position and link-preview options.
+- Persist dispatch before the native call and never repeat an uncertain edit after
+  a timeout or service restart. Status checks reconcile by reading the same message.
+- Preserve sending preferences and migrate unchanged 0.9 registrations to the new
+  tools. Existing Telegram login and pinned TDLib 1.8.67 remain in place.
+
 ## 0.9.3 — 2026-10-08
 
 - Include the previously local read-reliability fix in the public release: preserve exact TDLib message IDs, native continuations, date boundaries, and context across short or empty pages.

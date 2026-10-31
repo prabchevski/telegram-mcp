@@ -251,13 +251,26 @@ def main() -> None:
     parser.add_argument("--gemini-config", type=Path)
     parser.add_argument("--replace-legacy", action="store_true")
     parser.add_argument("--migrate-profile", choices=("auto", "codex", "gemini", "none"), default="none")
-    parser.add_argument("--auto-update", choices=("on", "off", "keep"), default="keep")
+    parser.add_argument("--auto-update", choices=("on", "off", "keep"), default=None,
+                        help="Default: on for first normal setup; keep for upgrades or --prepare-only")
     parser.add_argument("--prepare-only", action="store_true")
     args = parser.parse_args()
+    root = args.install_dir or default_root()
+    auto_update = args.auto_update
+    if auto_update is None:
+        if args.prepare_only:
+            auto_update = "keep"
+        elif (root / RECEIPT).exists():
+            # Validate the saved installation before choosing preservation.
+            # The API's keep mode reads it again under the installation lock.
+            read_receipt(root)
+            auto_update = "keep"
+        else:
+            auto_update = "on"
     clients = list(ALIASES) if args.clients == "both" else ([] if args.clients == "none" else [args.clients])
     paths = {client: path for client in ALIASES if (path := getattr(args, client + "_config")) is not None}
-    version = install(args.source, args.install_dir or default_root(), uv=args.uv, python=args.python, clients=clients,
-                      paths=paths, replace_legacy=args.replace_legacy, migrate_profile=args.migrate_profile, auto_update=args.auto_update)
+    version = install(args.source, root, uv=args.uv, python=args.python, clients=clients,
+                      paths=paths, replace_legacy=args.replace_legacy, migrate_profile=args.migrate_profile, auto_update=auto_update)
     command = str(version / "tgsearch")
     if args.prepare_only:
         print("Authorization was skipped. Use tgsearch doctor to check a saved login, or run tgsearch auth in your private Terminal.")

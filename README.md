@@ -1,8 +1,35 @@
-# Telegram MCP · 0.9.3
+<div align="center">
 
-Connect **your own Telegram account** to **Codex or Gemini CLI on macOS**, **Codex on Windows x64**, or **ChatGPT Work with local plugins on Windows x64**. Search and read messages, download attachments, transcribe voice notes, and optionally prepare and send messages. One local service supports multiple chats and clients with a single Telegram login.
+# Telegram MCP · 0.11.2
 
-## Give this link to your AI agent
+**Telegram, connected to your AI workflow.**
+
+Search conversations, work with files and voice, and prepare replies from your own Telegram account.
+
+[![Latest release](https://img.shields.io/github/v/release/prabchevski/telegram-mcp?style=flat-square&label=release&color=0284c7)](https://github.com/prabchevski/telegram-mcp/releases/latest)
+[![Test and package](https://img.shields.io/github/actions/workflow/status/prabchevski/telegram-mcp/ci.yml?branch=main&style=flat-square&label=tests%20%26%20package)](https://github.com/prabchevski/telegram-mcp/actions/workflows/ci.yml)
+[![MIT license](https://img.shields.io/github/license/prabchevski/telegram-mcp?style=flat-square&color=0f766e)](LICENSE)
+[![Glama tool quality](https://glama.ai/mcp/servers/prabchevski/telegram-mcp/badges/score.svg)](https://glama.ai/mcp/servers/prabchevski/telegram-mcp/score)
+[![Listed on mcpservers.org](https://mcpservers.org/badge.svg)](https://mcpservers.org/servers/prabchevski/telegram-mcp)
+
+[![MCP over stdio](https://img.shields.io/badge/MCP-stdio-7c3aed?style=flat-square)](ARCHITECTURE.md#shared-session)
+[![Pinned TDLib](https://img.shields.io/badge/TDLib-1.8.67-475569?style=flat-square)](https://github.com/tdlib/td/tree/d1085f9cebc5a62379991ae1652673954f229c1f)
+[![macOS](https://img.shields.io/badge/macOS-Apple%20Silicon%20%2F%20Intel-334155?style=flat-square)](INSTALL_MACOS.md)
+[![Windows x64](https://img.shields.io/badge/Windows-x64-0078d4?style=flat-square)](INSTALL_WINDOWS.md)
+
+**Codex** on macOS and Windows x64 · **Gemini CLI** on macOS · **ChatGPT Work** with local plugins on Windows x64
+
+[**Install / upgrade**](#quick-start) · [Platforms](#choose-your-platform) · [Features](#features) · [Security & privacy](#security-and-privacy) · [Verification](VERIFICATION.md)
+
+</div>
+
+| Local session | Sending is opt-in | Release checks |
+| --- | --- | --- |
+| One service on your computer shares a Telegram login across clients and chats. | Sending starts disabled. Prepare messages and edits for review before applying them. | SHA-256 checksums, locked packages, pinned TDLib, and public CI results. |
+
+Retrieved Telegram content is shared with your selected AI client. This is an **unofficial** project; see [security and privacy](#security-and-privacy) for the access boundaries.
+
+## Quick start
 
 Paste this into your local AI client on the computer where you want to install it:
 
@@ -25,7 +52,18 @@ Gemini in a browser or on a phone and ordinary ChatGPT web chats cannot run this
 
 Manual installation: **[macOS ZIP](https://github.com/prabchevski/telegram-mcp/releases/latest/download/telegram-mcp-macos.zip)** ([SHA-256](https://github.com/prabchevski/telegram-mcp/releases/latest/download/telegram-mcp-macos.zip.sha256)) · **[Windows ZIP](https://github.com/prabchevski/telegram-mcp/releases/latest/download/telegram-mcp-windows.zip)** ([SHA-256](https://github.com/prabchevski/telegram-mcp/releases/latest/download/telegram-mcp-windows.zip.sha256)). See the [quick start](START_HERE.md). These links point to the latest published release; its **Assets** include ready-to-use installers. GitHub's standard **Source code** downloads do not replace the Windows package.
 
-On macOS, installation enables daily updates from `main` after successful checks by default. On Windows, update by running the new release's installer. Each user signs into their own account; the repository and releases contain no personal sessions or keys. Retrieved messages are shared with the selected AI client. This is an unofficial project.
+Installation enables daily verified updates on macOS and Windows by default, while preserving an explicit opt-out. Codex and Gemini CLI share the macOS installation; Codex and ChatGPT Work share the Windows plugin installation. Each user signs into their own account; the repository and releases contain no personal sessions or keys. Retrieved messages are shared with the selected AI client. This is an unofficial project.
+
+## Security and privacy
+
+- **Local account session.** The Telegram service and session database run on your computer. No public server or tunnel is required.
+- **OS-protected secrets.** The Telegram API hash and database encryption key use macOS Keychain or Windows Credential Manager, outside MCP configuration.
+- **Explicit sending controls.** Sending is disabled until you enable it locally. Messages and edits use prepared snapshots; uncertain outcomes are checked with the same operation ID rather than blindly retried.
+- **Media restrictions.** Protected and self-destructing media are rejected, and Secret Chats are excluded. Retrieved messages and metadata are treated as untrusted input.
+
+Your AI client receives the content returned by tools and handles it under its own data policies. Local execution does not keep that content out of the selected AI service. Other programs running under your operating-system account remain inside the same local trust boundary.
+
+Read the [architecture and access boundaries](ARCHITECTURE.md) and the [verification record and limits](VERIFICATION.md).
 
 ## Usage examples
 
@@ -33,7 +71,7 @@ On macOS, installation enables daily updates from `main` after successful checks
 - “Show my unread chats” or “What did we discuss yesterday in this group?”
 - “Save the spreadsheet I received” or “Transcribe this voice message.”
 
-The agent searches your accessible account history and subscriptions first. Before a separate public-post search, it checks the actual remaining free quota, explains any attempt it would consume, and **waits for your permission**. Stars payments are disabled. The default installation exposes 15 tools; sending is off and adds four tools only when enabled. See [public search](#free-public-channel-post-search) and [sending](#optional-text-and-file-sending).
+The agent searches your accessible account history and subscriptions first. Before a separate public-post search, it checks the actual remaining free quota, explains any attempt it would consume, and **waits for your permission**. Stars payments are disabled. The default installation exposes 15 tools; sending is off and adds seven tools only when enabled, including edits to your own sent messages. See [public search](#free-public-channel-post-search) and [sending](#optional-text-and-file-sending).
 
 Automated checks cover the core on macOS, Linux, and Windows Server 2025, as well as installers and MCP connections. Separate installation checks passed on x64 Windows 10 Enterprise Evaluation 22H2 (build 19045.2006) and Windows 11 Enterprise Evaluation 25H2 (build 26200.6584) virtual machines, using a standard user account. These checks verified installation, reinstallation, and MCP discovery; real Telegram login and the selected client's interface remain unverified. Intel macOS builds the pinned TDLib version; automated Mac installation checks run on Apple Silicon. See [VERIFICATION.md](VERIFICATION.md) for the exact coverage and limitations.
 
@@ -50,7 +88,8 @@ Automated checks cover the core on macOS, Linux, and Windows Server 2025, as wel
 
 The default installation includes reading, explicitly requested local downloads, and Telegram speech recognition.
 Text and document sending can be enabled
-explicitly as described below. Editing and deletion are not supported. Secret Chats are not supported.
+explicitly as described below. Own sent-message editing uses a reviewed snapshot;
+deleting messages and Secret Chats are not supported.
 Protected and self-destructing media are rejected. Access to history follows your
 Telegram account's permissions. Returned text and titles are marked as external,
 untrusted data. Retrieved Telegram content is shared with the selected AI client.
@@ -172,8 +211,13 @@ the selected message. Voice messages without captions also remain available thro
 
 Recognition runs in Telegram. No separate speech API key, local model, or audio
 upload to another transcription provider is required. Telegram's Premium/free-quota,
-duration, and account restrictions apply. Only start recognition on an explicit
-user request; it may consume the user's Telegram transcription quota.
+duration, and account restrictions apply; starting recognition may consume the
+user's Telegram transcription quota. A request to read, search, summarize, or
+analyze Telegram chats or messages also authorizes the voice/video-note
+transcriptions needed within that request's scope. Do not ask for a separate
+transcription request or confirmation for those messages, and do not start
+unrelated or unrequested background transcription. The separate consent procedure
+for public-post search still applies to every new public query.
 
 The result is `completed`, `pending`, `not_started`, `unavailable`, or `failed`.
 A pending result may contain partial text. Poll it with `start=false`; repeated calls
@@ -183,7 +227,7 @@ accepted it, the result can remain pending and needs manual checking in Telegram
 Protected, self-destructing, and secret-chat messages are excluded. Text is bounded
 to 32,000 characters, with an explicit truncation flag, and is untrusted content.
 
-The default tool set contains 15 tools; enabling sending makes 19.
+The default tool set contains 15 tools; enabling sending makes 22.
 Unchanged standard 0.7/0.8/0.9.0 registrations migrate to the new tools while preserving sending preferences.
 Existing managed 0.6.1 installations with daily updates enabled transition automatically:
 the old updater installs the new package, then the next scheduled run (or an earlier
@@ -192,10 +236,11 @@ Allow up to two daily checks on Apple Silicon. No reinstall or Telegram login is
 needed. A macOS notification requests a Codex/Gemini restart; notification visibility
 depends on macOS settings. `tgsearch updates status` also retains the restart notice.
 If migration happens while a client is starting, restart that client once more so it
-rereads its settings. Sending stays on/off as previously configured. Removed or
-manually customized connections are never restored or overwritten; those require
-an explicit configuration review. Installations without managed daily updates need
-the installer once with `--upgrade --auto-update on`.
+rereads its settings. Sending stays on/off as previously configured. Removed,
+disabled or custom connections are never restored. Known complete tool lists can
+be refreshed while retaining approval/trust and parallel-call preferences;
+unknown restrictions or launcher changes require review. Installations without managed daily updates need
+the installer once with `--upgrade`; the existing update preference is preserved.
 The pre-rename 0.6.0 archive also needs that one-time installer: its updater requires
 the old GitHub repository identity and rejects CI from the renamed repository.
 A change published only in this repository cannot reach that updater.
@@ -238,7 +283,7 @@ After upgrading from 0.5, restart the idle shared service once to load the new c
 `sending status` shows the setting and `sending off` disables further preparations
 and dispatches immediately. Existing pending sends may still finish. Your login is reused.
 
-Four additional tools become available:
+Seven additional tools become available:
 
 | Tool | Result |
 | --- | --- |
@@ -246,6 +291,9 @@ Four additional tools become available:
 | `telegram_send_message` | Send the previously reviewed draft to its pinned chat ID |
 | `telegram_get_send_status` | Check the same draft without creating another message |
 | `telegram_set_chat_draft` | Save or explicitly clear a native Telegram text draft for review in the Telegram app |
+| `telegram_prepare_message_edit` | Preview the original message and replacement, pinned to the account and exact native IDs |
+| `telegram_edit_message` | Apply the prepared edit once if the original message still matches |
+| `telegram_get_edit_status` | Inspect or reconcile that same edit without dispatching another edit |
 
 Sending requires an explicit user instruction identifying the recipient and content.
 Retrieved Telegram messages are never permission to send. Client approval settings
@@ -257,10 +305,43 @@ SHA-256 digest. The filename and file bytes are frozen in a private local snapsh
 changing the source afterward cannot change the attachment. Reusing a draft ID
 returns the original preparation, and conflicting parameters are rejected.
 
+On a native sending failure, `detail` includes the numeric TDLib code and a safe,
+recognized reason. The same diagnostics persist in the private outbox ledger as
+`error_code` and `error_message`. Unrecognized error text is redacted rather than
+echoing file paths, message content or secrets. Status checks return the original
+result without retrying. A timeout, aborted request or server error leaves the
+outcome `unknown` and keeps the attachment snapshot; reconcile the same draft ID
+and never create a replacement to retry an uncertain send.
+
 Limits: plain text up to 4096 UTF-16 code units; a file caption up to 1024; one
 nonempty regular local file up to 12 MiB, sent as a document with its original name.
-Prepared local outgoing drafts expire after 24 hours. No bulk sending, editing or
+Prepared local outgoing drafts expire after 24 hours. No bulk sending,
 deleting delivered messages, auto-joining, or new authorization is involved.
+
+### Editing your sent messages
+
+On the owner's explicit editing instruction, prepare an edit using a fresh UUID hex
+`edit_id`, the exact native `chat_id` and `message_id` from Telegram tools, and the
+replacement `text`. Review the returned `original_text` and `text`, then apply the
+same `edit_id`. Preparation only reads Telegram and stores a private local snapshot;
+it does not change the message. Prepared edits expire after five minutes.
+
+Text messages and supported media captions are editable. Replacement is plain text;
+Markdown/HTML is not parsed and existing formatting entities are removed.
+Native URL/mention detection remains active. Use replacement text without boundary
+ASCII spaces/newlines or control characters; interior line breaks are supported.
+Media, caption positioning and link-preview options are preserved. Telegram's edit permission
+must be current and the sender must be the linked user. Messages sent as a channel or
+anonymous administrator are excluded because personal authorship cannot be verified.
+Pending, scheduled, self-destructing, secret-chat and unsupported messages are excluded.
+
+The original content and edit timestamp are checked again before dispatch. A changed
+message returns `conflict` without applying the edit. Telegram has no atomic conditional
+edit, so a change on another device can still race the last check. Each `edit_id` is
+dispatched at most once, including after a timeout or restart. `edited` confirms the
+observed replacement; `unchanged` means it matched at preparation. On `unknown` or a
+lost response, use `telegram_get_edit_status` with the same ID. Never create a new edit
+to retry an uncertain operation or overwrite a later owner change.
 
 ### Replies and scheduled sending
 
@@ -316,15 +397,29 @@ two old clients use different accounts, the owner chooses one. A busy old profil
 must be released by its client before migration. Old archives require one upgrade
 through the installer/Codex to gain automatic updates.
 
-New macOS interactive installs enable **daily updates from main after successful GitHub
-checks**. Windows updates use the latest release installer as described in [INSTALL_WINDOWS.md](INSTALL_WINDOWS.md). The Mac checks GitHub locally; a commit does not remotely deploy onto
-other computers. Updates keep immutable program versions and preserve the login.
+New installations enable daily updates after successful GitHub checks. macOS uses
+the checked main SHA; Windows uses the verified published Windows asset for that
+exact SHA. Windows schedules a task for the current user without administrator
+rights or a saved password. Windows installations older than 0.11 need the new
+installer once to add this mechanism; later updates run automatically.
+Updates keep immutable program versions and preserve the login, sending opt-in,
+client approval preferences and explicit update opt-out.
 New MCP processes use the new code; the shared service switches on its next start,
 after active work ends and the service becomes idle. An offline or sleeping Mac
-may receive an update later. Users can turn updates off:
+may receive an update later. Restart the selected client to load new tool discovery.
+Users can inspect or turn updates off:
 
 ```sh
 "$HOME/Applications/TelegramSearchMCP/current/tgsearch" updates off
+```
+
+On Windows, use the stable `tgsearch.ps1` entry point:
+
+```powershell
+& $tg updates status
+& $tg update --check
+& $tg updates off
+& $tg updates on
 ```
 
 Use the root printed by the installer if it differs. More controls and migration
@@ -368,6 +463,24 @@ uv run --frozen python -I scripts/release.py build --output dist
 Tests use isolated profiles and settings and do not require a Telegram account.
 CI tests Linux/macOS and native Windows x64 on Windows Server 2025, and builds and
 installs an allowlisted source archive on a GitHub-hosted Mac. This is a test environment, not the maintainer's or users' Macs.
+These checks run for every change. On main, clean Windows 10/11 installation
+checks additionally run when installation, updates, native dependencies,
+platform integration, packaging, or CI changes require them. Classified ordinary
+common-core and documentation changes do not wait for a fresh desktop OS installation. Version
+bumps alone do not trigger desktop checks.
+
+The desktop decision compares the checked commit with the latest successful
+canonical main CI ancestor, so failed or cancelled changes remain covered by the
+next run. Missing history or an unclassified change requires the full checks.
+Publication requires every mandatory check to succeed and permits a desktop
+skip only after an explicit validated decision.
+
+The standalone **Windows 10 and 11 desktop installation** workflow also runs
+weekly (Monday, 05:17 UTC) and can be started manually. To force all checks in
+**Test and package**, select **Run workflow → Force clean Windows 10 and 11
+installation checks**. PRs preview the coverage decision and run the mandatory
+checks; the authoritative desktop checks run on main before publication.
+
 After these checks pass on main, CI publishes each new package version to
 [GitHub Releases](https://github.com/prabchevski/telegram-mcp/releases/latest), with
 the verified archive, checksum, file inventory and wheel. Existing published tags

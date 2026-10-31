@@ -4,6 +4,172 @@ Thread-history pagination also has sparse-ID coverage across short native pages,
 including a single cached row followed by enough rows to fill a 20-item MCP page.
 These checks use synthetic sessions and do not access account data.
 
+## CI maintenance — Selective desktop coverage, 2026-10-29
+
+macOS/Linux tests, Windows Server installation and package checks remain mandatory.
+The desktop policy compares the checked commit with a successful canonical main
+CI ancestor. Installer/updater/platform/native dependency/packaging/CI changes
+require clean Windows 10/11 checks; ordinary changes and version-only bumps can
+skip them. Unknown history, parsing failures and unclassified paths require the
+full checks. Cancelled or failed changes cannot disappear behind a later ordinary
+commit because the comparison does not use only the previous commit.
+
+The release gate requires every mandatory job to succeed. Desktop failure or
+cancellation cannot become an allowed skip, and a missing/invalid decision blocks
+publication. Desktop checks also run weekly and on manual request. A manual fast
+run can verify the skipped-desktop gate without publishing a release.
+
+Local validation on Apple Silicon macOS/Python 3.13.13: 1215 tests passed and
+10 platform/opt-in checks were skipped, including 132 new policy/gate cases.
+Actionlint 1.7.12 accepted both modified workflows. The source inventory audit
+passed for 125 allowlisted text files. Replaying the historical 0.11.2 diff
+(`3944819` to `9691a34`) selected the fast path for its instruction and version
+changes. The rollout itself requires full desktop checks because it changes CI;
+a subsequent manual run without forcing desktop checks exercises the fast gate.
+Canonical run evidence remains in GitHub Actions. This change does not alter the
+runtime version or a personal Telegram installation.
+
+## Version 0.11.2 — Voice transcription within requested chat-reading tasks
+
+The tool description, MCP initialization instructions, repository agent guidance,
+and README now consistently treat relevant native transcription as part of the
+user's request to read or analyze Telegram messages. This is an instruction-only
+change: tool schemas, non-read-only annotations, quota handling, public-search
+consent, and sending/editing authorization are unchanged.
+
+Local validation on Apple Silicon macOS with Python 3.13.13: 1083 tests passed,
+10 platform/opt-in checks skipped. The source inventory audit passed for 121
+allowlisted text files. These checks include discovery metadata, native speech
+request handling, public-search consent, and outbound authorization. No private
+message reads or new Telegram transcription requests were used to validate this fix.
+
+## CI maintenance — 2026-10-28
+
+The `ubuntu-latest` jobs in [run 40685147093](https://github.com/prabchevski/telegram-mcp/actions/runs/40685147093)
+used Ubuntu 26.04. Its `/usr/bin/env` is a symlink to the Rust coreutils
+implementation, which the macOS registration preflight deliberately rejects.
+Five registration/update test modules now explicitly model a trusted macOS
+launcher instead of depending on the test host's launcher layout. Production
+launcher validation is unchanged.
+
+Nine independent regressions exercise the real validator: a trusted regular
+executable is accepted; symlinks, directories, unsafe ownership/permissions,
+non-executable files and missing launchers are rejected. A registration check
+also confirms that rejection leaves both client configurations byte-identical
+and creates no lock or backup files.
+
+Local validation of this source-only test repair:
+
+| Environment | Python | Result |
+| --- | --- | --- |
+| Ubuntu 26.04, isolated ARM64 container, non-root user | 3.12 | 1082 passed, 11 skipped |
+| Ubuntu 26.04, isolated ARM64 container, non-root user | 3.14 | 1082 passed, 11 skipped |
+| Apple Silicon macOS | 3.13.13 | 1083 passed, 10 skipped |
+
+The source inventory contains 121 allowlisted text files. These tests use
+disposable configurations and do not authorize a Telegram account.
+
+## Version 0.11.1 — Document sending and safe failure diagnostics
+
+Local source validation on Apple Silicon macOS: 1074 tests passed, 10
+platform/opt-in checks skipped. The 33 new regressions include two tests against
+TDLib 1.8.67's real native parser in disposable, uninitialized subprocesses;
+they do not open a Telegram profile or establish a connection. Source inventory,
+archive checks and isolated macOS install/upgrade checks passed.
+
+Attachment regressions use synthetic 29,054-byte Markdown content and a 602-unit
+UTF-16 caption, with and without a native reply ID. They cover snapshot integrity,
+direct and asynchronous failure diagnostics, status reconciliation, restart
+idempotency, timeout/server-error uncertainty, error-text redaction, code 406
+message withholding and compatibility with existing proxy result models. The
+pinned TDLib schema at commit `d1085f9cebc5a62379991ae1652673954f229c1f`
+requires `inputMessageDocument.document` to contain `inputDocument`, whose
+`document` field holds the `InputFile`.
+
+Separate owner-authorized authenticated acceptance on local fix revision
+`a04807d3d531c47e6ef822ea503bcb99f0e4f5b6` sent exactly two synthetic Markdown
+documents to Saved Messages: one with a caption and no reply, then one with a
+caption replying to the first document. Both returned `sent`; bounded history
+readback confirmed the captions, original filenames, sizes and exact reply
+relationship. Both downloaded files were byte-identical to the 29,054-byte source
+and matched its SHA-256. No uncertain result was retried under a replacement ID.
+These observations establish live acceptance of the local fix only. Installation
+and running-service verification of the published 0.11.1 archive must be recorded
+separately after installing that exact release.
+
+The historical failure's native code was discarded by the old implementation
+and cannot be recovered from its ledger. Native Windows package/installer checks
+remain part of release CI; these macOS and Saved Messages results do not establish
+Windows Telegram authorization or graphical client activation.
+
+## Version 0.11.0 — Updates across supported platforms and clients
+
+Local validation: 1041 tests passed, 10 platform/opt-in checks skipped on
+Apple Silicon macOS. Source inventory audit, actual isolated macOS installation
+and upgrade, and unmodified 0.6.1 updater checks passed. Native Windows release
+acceptance requires all 17 installer checks on Windows Server, Windows 10 and
+Windows 11, including the owned scheduler and explicit opt-out lifecycle.
+
+The common tool catalog is checked against actual MCP discovery with sending
+enabled and disabled. macOS regressions cover complete historical tool-list
+migration, approval/trust/parallel preferences including absent fields, ordinary
+installation and verification, update opt-out, and byte-snapshot checks under
+configuration locks. Unknown restrictions, changed launchers, removed and disabled
+connections fail safely. A restriction that exactly reproduces a historical
+generated catalog cannot be distinguished from that historical registration.
+
+Windows updater tests cover exact successful canonical CI, published tag/SHA,
+asset/checksum/digest and redirect validation, safe source archives, source
+revision metadata, immutable candidate-installer execution, plugin/receipt CAS,
+scheduled checks, opt-out and preserved owner changes. Scheduling uses the current
+user's interactive token, limited run level, no password, no immediate execution
+and an exact owned task XML snapshot. Native Windows installer CI exercises the
+installed task, stable uv and update preference lifecycle in disposable accounts;
+macOS tests simulate Windows APIs without configuring real tasks.
+
+These checks verify package delivery and discovery. They do not establish real
+Windows Telegram login or graphical client activation. New tool definitions need
+a client restart/reload. Existing pre-0.11 Windows installs need the verified
+installer once; an older macOS updater blocked by customized settings likewise
+needs one ordinary upgrade before the new preserving behavior is available.
+
+## Version 0.10.1 — Native nullable JSON fields
+
+An owner-authorized Saved Messages test found that real TDLib JSON omits nullable
+link-preview objects instead of returning explicit null values. The pinned JSON
+generator and schema confirm that omission is the native null representation.
+Normalize those two fields before content snapshots and result checks; keep
+validation of present non-null options strict. Regression fixtures exercise
+omitted fields in original messages, native edit responses and readback through
+both core editing and the MCP/shared-service chain.
+
+Authenticated acceptance sends one uniquely marked message to Saved Messages,
+prepares and applies its edit through the installed MCP tools, then confirms
+the replacement and sender by reading the same native message ID. An uncertain
+send or edit is reconciled under its original durable ID and never resent.
+
+## Version 0.10.0 — Own-message editing
+
+The edit workflow is verified with synthetic TDLib sessions and real MCP/private
+service transports. It covers preparation without a Telegram mutation, current
+personal authorship and edit permission, Saved Messages' native outgoing exception,
+exact signed/native IDs, text and media-caption payloads, option preservation,
+changed-message conflicts, expiry, disabled writes, restart/timeout recovery, and
+at-most-once dispatch across clients. Private result/parameter schemas reject
+altered application parameters and retain Telegram's trust boundary.
+
+The schema and ownership rules were checked against the pinned official TDLib
+source at commit `d1085f9cebc5a62379991ae1652673954f229c1f`. Telegram does not
+provide an atomic conditional edit; the last observed-version check cannot prevent
+a concurrent owner edit during the native request.
+
+Local installation acceptance checks package/source alignment, 22-tool discovery,
+authorization through `doctor --connect`, service version, and preserved sending,
+update and unrelated client settings. It does not modify a real Telegram message.
+Synthetic editing tests and discovery do not establish authenticated live-edit
+acceptance. This local candidate has not been published as a GitHub release;
+Windows desktop acceptance for 0.10.0 has not been run.
+
 ## Version 0.9.3 — Read reliability and release alignment
 
 This release incorporates the September read-reliability fix that was installed

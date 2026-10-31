@@ -76,7 +76,11 @@ if ($actualHash -ne $expectedHash) { throw 'Telegram MCP archive checksum mismat
 ```
 
 Releases are published only after the **Test and package** workflow succeeds,
-including tests, archive-content checks, and installer checks. The checksum
+including tests, archive-content checks, and installer checks. macOS/Linux and
+Windows Server checks remain mandatory. Clean Windows 10/11 checks are required
+for installation/platform/dependency/packaging/CI changes and also run weekly or
+on demand; ordinary changes may explicitly skip that additional coverage.
+The checksum
 confirms that the downloaded file matches the published archive. Installation
 does not require cloning and rebuilding `main` or running tests on the user's account.
 
@@ -113,17 +117,18 @@ From the extracted directory, run one command:
 
 ```sh
 # Codex
-bash install-macos.command --clients codex --prepare-only --upgrade --auto-update on
+bash install-macos.command --clients codex --prepare-only --upgrade
 ```
 
 ```sh
 # Gemini CLI
-bash install-macos.command --clients gemini --prepare-only --upgrade --auto-update on
+bash install-macos.command --clients gemini --prepare-only --upgrade
 ```
 
-Use `--clients both` only when both clients are requested. If the user requested
-a fixed version or disabled automatic updates, replace `--auto-update on` with
-`--auto-update off`.
+Use `--clients both` only when both clients are requested. Upgrades preserve the
+existing automatic-update choice. For a first AI-assisted installation, add
+`--auto-update on` to enable daily updates; use `--auto-update off` if the user
+requested a fixed version or disabled automatic updates.
 
 `--prepare-only` leaves the first login for the owner's local window.
 `--upgrade` also updates recognized existing Telegram registrations in the other
@@ -186,7 +191,7 @@ in a new chat. Do not report missing authorization as success.
   app needs a restart, complete everything else and leave one clear instruction:
   restart, enable Telegram MCP, and open a new chat.
 - Perform MCP initialization and `tools/list` when available: **15 tools** by
-  default, **19** if sending was already enabled. This does not require reading
+  default, **22** if sending was already enabled. This does not require reading
   messages. Writing a registration file alone does not verify an MCP connection.
 - Check `doctor --connect` after login. Do not run old TDLib against a database
   already upgraded by a newer version. Active service operations must finish
@@ -201,10 +206,12 @@ it would consume, and obtain explicit permission for the new query. Checking the
 quota uses no search attempt; never offer Stars payments. MCP itself sends these
 instructions to each client.
 
-By default, macOS checks `main` daily and only installs a commit after its CI
-succeeds. Updates preserve login, keep separate installed versions, and let active
-work finish. This version of Windows updates manually by running a new verified
-release's installer. Users can disable daily macOS updates with
-`current/tgsearch updates off`. See [INSTALL_MACOS.md](INSTALL_MACOS.md) and
+By default, macOS checks `main` daily after successful CI. Windows schedules a
+daily/logon current-user task and installs only a verified published Windows
+release at the exact successful CI SHA. Updates preserve login, separate installed
+versions, sending and client preferences; active Telegram work finishes normally.
+Pre-0.11 Windows installations need the new installer once. Explicit update
+opt-outs are retained. Use `updates status`, `update --check` and `updates off`
+through the installed platform entry point. See [INSTALL_MACOS.md](INSTALL_MACOS.md) and
 [INSTALL_WINDOWS.md](INSTALL_WINDOWS.md) for older versions and recovery of
 modified registrations.

@@ -66,8 +66,10 @@ See [VERIFICATION.md](VERIFICATION.md) for exact builds and evidence.
    use `/plugins` as described in the [Windows guide](INSTALL_WINDOWS.md).
 
 The installer adds the plugin to your personal marketplace, not the public store.
-Workspace policies may restrict plugin access. To update on Windows, rerun the
-installer from a newer release; your login is preserved.
+Workspace policies may restrict plugin access. Windows releases from 0.11 onward
+enable daily verified updates by default and retain an explicit opt-out. Older
+installations need the newer installer once; the login is preserved. Use the
+installed `tgsearch.ps1 updates status`, `update --check` and `updates off` controls.
 See [installation, authorization, verification, and removal commands](INSTALL_WINDOWS.md).
 
 ## After connecting
@@ -84,7 +86,7 @@ check itself uses no attempt. **Stars payments are disabled.** Telegram transcri
 voice messages on your request, subject to its own quotas.
 
 Sending messages and changing drafts are disabled. Running `tgsearch sending on`
-through the installed entry point adds four more tools; restart your client afterward.
+through the installed entry point adds seven more tools, including own-message editing; restart your client afterward.
 See the [sending rules](README.md#optional-text-and-file-sending).
 
 One login serves multiple chats and clients. Share the

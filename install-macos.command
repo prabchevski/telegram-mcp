@@ -29,7 +29,7 @@ bash install-macos.command [--clients codex|gemini|both|none] [--prepare-only]
   --replace-legacy        Replace only recognized 0.2/0.3 registrations.
   --upgrade               Upgrade recognized old registrations and reuse a compatible login.
   --migrate-profile NAME  auto|codex|gemini|none; choose when both old profiles exist.
-  --auto-update MODE      on|off|keep; daily checked-main updates (on for interactive installs).
+  --auto-update MODE      on|off|keep; daily updates (first interactive setup: on; upgrades: keep).
   --skip-system-deps      Skip Homebrew; requires --prepare-only and existing uv.
 
 Internet access and Homebrew (https://brew.sh/) are required. Dependencies download separately.
@@ -119,10 +119,10 @@ if [[ "$PREPARE_ONLY" == true ]]; then
   AUTO_UPDATE="${AUTO_UPDATE:-keep}"
 else
   MIGRATE_PROFILE="${MIGRATE_PROFILE:-auto}"
-  AUTO_UPDATE="${AUTO_UPDATE:-on}"
   REPLACE_LEGACY=true
 fi
-installer_args=(--source "$SOURCE_DIR" --uv "$UV_BIN" --python "$BOOTSTRAP_PYTHON" --clients "$CLIENTS" --migrate-profile "$MIGRATE_PROFILE" --auto-update "$AUTO_UPDATE")
+installer_args=(--source "$SOURCE_DIR" --uv "$UV_BIN" --python "$BOOTSTRAP_PYTHON" --clients "$CLIENTS" --migrate-profile "$MIGRATE_PROFILE")
+[[ -z "$AUTO_UPDATE" ]] || installer_args+=(--auto-update "$AUTO_UPDATE")
 [[ -z "$REQUESTED_INSTALL_DIR" ]] || installer_args+=(--install-dir "$REQUESTED_INSTALL_DIR")
 [[ -z "$CODEX_CONFIG" ]] || installer_args+=(--codex-config "$CODEX_CONFIG")
 [[ -z "$GEMINI_CONFIG" ]] || installer_args+=(--gemini-config "$GEMINI_CONFIG")

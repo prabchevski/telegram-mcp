@@ -17,7 +17,7 @@ The `tdlib.lock` file continues to protect the TDLib database.
 The service accepts a fixed set of requests: the original four read operations,
 voice listing, explicitly requested speech recognition, local diagnostics/shutdown,
 bounded navigation/download operations, public-search quota checks and consented
-free public posts search, and four optional outgoing/draft operations. Sending is disabled
+free public posts search, and optional message, edit, and draft operations. Sending is disabled
 unless enabled locally. It does not accept arbitrary TDLib methods, Python function
 names, or commands to execute through the connection. Only outgoing preparation
 can accept a bounded local attachment path; downloads export into a fixed private profile directory.
@@ -116,8 +116,10 @@ registrations and sending preferences are preserved. A restart notice is saved
 locally and requested through macOS notifications. Disabling
 updates removes the schedule; disconnecting the last registered client also disables it.
 
-Windows updates are manual: rerun the new release's installer. The personal
-plugin uses an absolute stable launcher path, so desktop plugin caching does not
+Windows uses a current-user daily/logon task for verified updates, preserving an
+explicit opt-out. It selects the published Windows asset for the exact successful
+canonical CI SHA and validates the pinned runtime, checksum, and archive inventory.
+The personal plugin uses an absolute stable launcher path, so desktop plugin caching does not
 bind it to the extracted ZIP. Receipt hashes preserve edited or removed plugin
 registrations. Windows entry points are generated from reviewed Python literals
 when building the ZIP; Git source snapshots remain acceptable to the historical

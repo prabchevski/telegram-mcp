@@ -134,7 +134,7 @@ def test_file_snapshot_preserves_name_and_content_and_removes_after_success(prep
     assert not snapshot.exists()
     content = sends(session)[0]["input_message_content"]
     assert content["@type"] == "inputMessageDocument"
-    assert content["document"]["path"].endswith("instructions.md")
+    assert content["document"]["document"]["path"].endswith("instructions.md")
     assert content["caption"]["text"] == "Caption"
 
 
@@ -248,7 +248,7 @@ async def test_opt_in_mcp_tools_and_dispatch(prepared):
             return box.status(session, **kwargs)
     async with Client(create_server(Backend(), enable_sending=True)) as client:
         tools = {t.name: t for t in (await client.list_tools()).tools}
-        assert len(tools) == 19
+        assert len(tools) == 22
         assert tools["telegram_send_message"].annotations.read_only_hint is False
         assert tools["telegram_send_message"].annotations.idempotent_hint is True
         assert tools["telegram_get_send_status"].annotations.read_only_hint is True

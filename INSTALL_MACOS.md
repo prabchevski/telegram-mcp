@@ -43,7 +43,8 @@ bash install-macos.command --clients both
 ```
 
 The interactive installer upgrades recognized older registrations, reuses a
-compatible saved login, and enables daily checked-main updates by default.
+compatible saved login, and enables daily checked-main updates on first setup.
+An ordinary upgrade preserves the existing update preference, including an explicit opt-out.
 It installs uv through Homebrew, obtains managed Python 3.13, and prepares pinned TDLib.
 Homebrew must already be installed. The account owner handles any required system
 approval and first Telegram login in Terminal. Existing credentials stay local.
@@ -61,16 +62,19 @@ installer does not itself verify that the client app is installed or has reloade
 
 ## Installation without interactive authorization
 
-For AI-assisted setup and migration (use `--clients gemini` for Gemini CLI):
+For AI-assisted upgrades and migration (use `--clients gemini` for Gemini CLI):
 
 ```sh
-bash install-macos.command --clients codex --prepare-only --upgrade --auto-update on
+bash install-macos.command --clients codex --prepare-only --upgrade
 ```
 
 `--prepare-only` skips signing in. Without explicit flags, it leaves update settings
 unchanged and does not select an old profile. `--upgrade` enables recognized legacy
 registration replacement and automatic compatible profile selection. An already
 configured second client is refreshed too; an absent second client is not enabled.
+For first AI-assisted setup, add `--auto-update on` to enable daily updates.
+During upgrades, omit that flag to retain the owner's existing setting; specify
+`on` or `off` only when the owner requests a change.
 
 Check a saved login with `current/tgsearch doctor`, then `doctor --connect`. For a
 new/expired login, open the root's `authorize.command` in your own Terminal. Never
@@ -121,8 +125,10 @@ The updater checks the exact main commit's successful `Test and package` workflo
 downloads source pinned to that SHA from GitHub, validates archive paths/types,
 installs locked dependencies into a separate version, and verifies package imports
 before switching `current`. It refuses version downgrades and divergent Git history.
-Failed downloads or dependency installs keep the current program. A changed or
-removed client registration is left alone; update installation is cancelled.
+Failed downloads or dependency installs keep the current program. Complete known
+generated tool lists can be updated while preserving approval/trust and parallel
+preferences, including absent fields. Removed/disabled/custom connections and
+unknown tool restrictions or launcher changes are left alone.
 
 For managed 0.6.1 installs with updates enabled, the new package also upgrades
 unchanged standard Codex/Gemini tool lists on the next updater or MCP start.
@@ -192,8 +198,8 @@ request starts it again. Restart/reload clients to apply a new registration.
 In Codex CLI, inspect `codex mcp get telegram_search`. In Gemini CLI, use
 `gemini mcp list` and `/mcp`; the working directory must be trusted by Gemini.
 Standard MCP discovery exposes 15 tools before authorization, including navigation,
-local downloads, voice listing and explicitly requested speech recognition. Opt-in
-sending adds four tools; see README.md, Optional text and file sending.
+local downloads, voice listing and speech recognition within requested chat-reading tasks. Opt-in
+sending adds seven tools, including own-message editing; see README.md, Optional text and file sending.
 
 | Situation | Action |
 | --- | --- |
@@ -229,7 +235,7 @@ Official references: [Codex MCP](https://learn.chatgpt.com/docs/extend/mcp?surfa
 ## Voice recognition and workflow tools
 
 Telegram-native transcription, navigation and local downloads are registered by default:
-15 tools, or 19 when sending is enabled. Stop the idle old service and restart the MCP client
+15 tools, or 22 when sending and own-message editing are enabled. Stop the idle old service and restart the MCP client
 after this upgrade. Apple Silicon uses a locked TDLib wheel; Intel builds pinned
 source once and reuses it. Keep the adopted profile and Keychain in place. Do not
 roll back the native library after it has upgraded the Telegram database.

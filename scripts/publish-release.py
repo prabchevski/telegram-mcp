@@ -35,7 +35,7 @@ def current_notes(source: Path, version: str) -> str:
         if expected not in (source / name).read_text():
             raise RuntimeError(f'{name} does not describe the current version')
     changes = sections[0].split('\n', 1)[1].strip()
-    return f'''Local Telegram MCP for **Codex on macOS and Windows x64**, **Gemini CLI on macOS**, and **ChatGPT Work on Windows x64**. Search chats and subscriptions, read history, download media, transcribe voice messages, and optionally prepare and send messages. Fifteen tools by default, nineteen with sending enabled.
+    return f'''Local Telegram MCP for **Codex on macOS and Windows x64**, **Gemini CLI on macOS**, and **ChatGPT Work on Windows x64**. Search chats and subscriptions, read history, download media, transcribe voice messages, and optionally prepare, send and edit your own messages. 15 tools by default, 22 with sending and own-message editing enabled.
 
 Public channel search is optional: first search account history, then check the account's actual free quota, explain the cost and wait for explicit user confirmation. Paid Stars searches are disabled in code.
 
@@ -56,7 +56,7 @@ Give your local agent this instruction:
 
 Verify the matching checksum before extracting. On Windows, run **install-windows.ps1** and enable the local Telegram MCP plugin in **Plugins → Personal** in Codex or ChatGPT Work. On macOS, open **install-macos.command** or follow the agent guide to register the requested client directly. Restart the client after installation. Compatible existing Telegram logins are preserved; every new user signs in to their own account locally.
 
-Windows updates are manual; rerun the new release's installer. Installation, updates and MCP discovery passed 13 checks each on Windows 10 Enterprise 22H2 and Windows 11 Enterprise 25H2 x64 evaluation VMs under a standard user. Release CI repeats both desktop checks before publication. Real client UI activation and Telegram account login still require acceptance on the user's computer; see the verification guide for VM configuration and coverage limits. Native Windows ARM64 is not supported.
+Verified daily updates are enabled by default on both supported platforms. Windows uses a current-user daily/logon task, a private pinned uv runtime and the published Windows asset for the exact successful canonical CI SHA. An explicit opt-out, Telegram login, sending preference and owner plugin changes are preserved. Pre-0.11 Windows installations need this installer once. Use the installed entry point for `updates status`, `update --check`, `updates off` and `updates on`; restart the client to load new tool definitions. Release CI always checks Windows Server; clean Windows 10/11 installer checks run for installation, platform, dependency, packaging or CI changes, and also weekly or on demand. Real client UI activation and Telegram account login still require acceptance on the user's computer; see the verification guide for coverage limits. Native Windows ARM64 is not supported.
 
 [Installation guide](https://github.com/{REPOSITORY}/blob/v{version}/INSTALL.md) · [Verification and limits](https://github.com/{REPOSITORY}/blob/v{version}/VERIFICATION.md)
 
@@ -73,7 +73,7 @@ def prepare(source: Path, directory: Path) -> tuple[str, list[Path], Path]:
     notes = current_notes(source, version)
     archive = directory / f'telegram-mcp-macos-v{version}.zip'
     manifest = release.verify_archive(archive)
-    if manifest != release.manifest_for(release.archive_payload(release.inventory(source))):
+    if manifest != release.manifest_for(release.archive_payload(release.inventory(source), revision=release.source_revision(source))):
         raise RuntimeError('Archive does not match this checked commit')
     wheel = directory / f'telegram_search_mcp-{version}-py3-none-any.whl'
     release.verify_wheel(wheel, source)

@@ -12,7 +12,8 @@ WINDOWS_ASSETS = {
 param(
     [switch]$PrepareOnly,
     [string]$InstallDir,
-    [string]$MarketplacePath
+    [string]$MarketplacePath,
+    [ValidateSet('keep', 'on', 'off')][string]$AutoUpdate = 'keep'
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -52,7 +53,7 @@ try {
     # Bootstrap from the same hash-locked dependencies as the final install.
     # Project/user uv configuration must not redirect the interpreter or venv.
     Get-ChildItem Env: | Where-Object { $_.Name -like 'UV_*' -or $_.Name -in @('VIRTUAL_ENV','PYTHONPATH','PYTHONHOME') } | ForEach-Object { Remove-Item ('Env:' + $_.Name) }
-    $arguments = @('run', '--project', $PSScriptRoot, '--frozen', '--no-dev', '--no-editable', '--no-config', '--managed-python', '--python', '3.13', 'python', '-I', '-X', 'utf8', (Join-Path $PSScriptRoot 'scripts/install-windows.py'), '--source', $PSScriptRoot, '--uv', $uv)
+    $arguments = @('run', '--project', $PSScriptRoot, '--frozen', '--no-dev', '--no-editable', '--no-config', '--managed-python', '--python', '3.13', 'python', '-I', '-X', 'utf8', (Join-Path $PSScriptRoot 'scripts/install-windows.py'), '--source', $PSScriptRoot, '--uv', $uv, '--auto-update', $AutoUpdate)
     if ($PrepareOnly) { $arguments += '--prepare-only' }
     if ($InstallDir) { $arguments += @('--install-dir', $InstallDir) }
     if ($MarketplacePath) { $arguments += @('--marketplace-path', $MarketplacePath) }

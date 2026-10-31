@@ -76,6 +76,16 @@ def test_current_notes_include_upgrade_exceptions():
     assert 'physical Intel' in notes
 
 
+def test_current_notes_advertise_the_actual_editing_tool_set():
+    from telegram_search_mcp.tool_catalog import DEFAULT_TOOLS
+    from telegram_search_mcp.sending_settings import OUTGOING_TOOLS
+    version = tomllib.loads((ROOT / 'pyproject.toml').read_text())['project']['version']
+    notes = publication.current_notes(ROOT, version)
+    assert f'{len(DEFAULT_TOOLS)} tools by default' in notes
+    assert f'{len(DEFAULT_TOOLS) + len(OUTGOING_TOOLS)} with sending' in notes
+    assert 'edit your own messages' in notes
+
+
 def test_draft_lookup_uses_cli_before_github_creates_tag(monkeypatch):
     def run(args, **kwargs):
         assert args[:3] == ['gh', 'release', 'view']

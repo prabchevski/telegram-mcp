@@ -279,15 +279,17 @@ def update(root: Path, *, scheduled: bool = False, check_only: bool = False) -> 
     if check_only:
         return {"status": "available", "revision": candidate}
     version = current_version(root)
-    # An unregistered or edited launcher is a user decision, not something a
-    # background update should silently undo.
+    # Owner policy can differ from defaults; complete generated tool lists and
+    # their exact launchers still qualify. Disconnected, disabled or filtered
+    # registrations remain a user decision and are never restored.
+    from .activation import managed_refresh_entry
     registration_snapshot = {}
     for client, value in receipt["clients"].items():
         source = read_source(Path(value))
         config = _load(client, Path(value), source)
         entry = config.get(NAMES[client], {}).get(ALIASES[client])
         wanted = expected_entry(client, str(version / ".venv/bin/python"), root)
-        if entry != wanted:
+        if managed_refresh_entry(client, entry, wanted) is None:
             return {"status": "registration_changed", "client": client}
         registration_snapshot[client] = source
     if not receipt["clients"]:

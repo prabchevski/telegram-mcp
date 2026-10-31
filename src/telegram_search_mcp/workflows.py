@@ -1,21 +1,34 @@
 """Explicit additional operations shared by the MCP proxy and local service."""
 # Keep this module stdlib-only: the installer imports service/wire before dependencies exist.
 WORKFLOW_OPERATIONS = frozenset({"list_chats", "get_chat_history", "search_chat_messages",
-    "get_message_thread", "get_scheduled_messages", "download_file", "get_chat_draft", "set_chat_draft"})
+    "get_message_thread", "get_scheduled_messages", "download_file", "get_chat_draft", "set_chat_draft",
+    "prepare_message_edit", "edit_message", "get_edit_status"})
 
 
 def contracts():
     from .navigation import REQUESTS, RESULTS
     from .downloads import DownloadRequest, DownloadResult
     from .chat_drafts import DraftRequest, SetDraftRequest, DraftResult
-    return ({**REQUESTS, "download_file": DownloadRequest, "get_chat_draft": DraftRequest, "set_chat_draft": SetDraftRequest},
-            {**RESULTS, "download_file": DownloadResult, "get_chat_draft": DraftResult, "set_chat_draft": DraftResult})
+    from .editing import PrepareEditRequest, EditRequest, EditResult
+    return ({**REQUESTS, "download_file": DownloadRequest, "get_chat_draft": DraftRequest, "set_chat_draft": SetDraftRequest,
+             "prepare_message_edit": PrepareEditRequest, "edit_message": EditRequest, "get_edit_status": EditRequest},
+            {**RESULTS, "download_file": DownloadResult, "get_chat_draft": DraftResult, "set_chat_draft": DraftResult,
+             "prepare_message_edit": EditResult, "edit_message": EditResult, "get_edit_status": EditResult})
 
 
-WRITE_OPERATIONS = frozenset({"set_chat_draft"})
+WRITE_OPERATIONS = frozenset({"set_chat_draft", "prepare_message_edit", "edit_message"})
 
 
 class WorkflowMethods:
+    async def prepare_message_edit(self, **params) -> dict:
+        return await self._workflow("prepare_message_edit", params)
+
+    async def edit_message(self, **params) -> dict:
+        return await self._workflow("edit_message", params)
+
+    async def get_edit_status(self, **params) -> dict:
+        return await self._workflow("get_edit_status", params)
+
     async def get_chat_draft(self, **params) -> dict:
         return await self._workflow("get_chat_draft", params)
 
@@ -47,6 +60,15 @@ def execute(backend, session, operation, params):
     from .chat_drafts import current, result, set_draft
     requests, _ = contracts()
     request = requests[operation].model_validate(params)
+    if operation in {"prepare_message_edit", "edit_message", "get_edit_status"}:
+        from .editing import MessageEdits
+        from .paths import profile_root
+        if not hasattr(backend, "_message_edits"):
+            backend._message_edits = MessageEdits(profile_root(backend.profile) / "message-edits", session.user_id)
+        if backend._message_edits.user_id != session.user_id:
+            raise ValueError("Editing account changed; restart the service")
+        method = {"prepare_message_edit": "prepare", "edit_message": "apply", "get_edit_status": "status"}[operation]
+        return getattr(backend._message_edits, method)(session, **request.model_dump())
     if operation == "get_chat_draft":
         return result(request, current(session, request))
     if operation == "set_chat_draft":
