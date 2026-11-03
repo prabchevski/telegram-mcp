@@ -2,7 +2,8 @@
 # Keep this module stdlib-only: the installer imports service/wire before dependencies exist.
 WORKFLOW_OPERATIONS = frozenset({"list_chats", "get_chat_history", "search_chat_messages",
     "get_message_thread", "get_scheduled_messages", "download_file", "get_chat_draft", "set_chat_draft",
-    "prepare_message_edit", "edit_message", "get_edit_status"})
+    "prepare_message_edit", "edit_message", "get_edit_status",
+    "get_me", "get_pin_info", "pin_message", "unpin_message", "get_pin_status"})
 
 
 def contracts():
@@ -10,16 +11,38 @@ def contracts():
     from .downloads import DownloadRequest, DownloadResult
     from .chat_drafts import DraftRequest, SetDraftRequest, DraftResult
     from .editing import PrepareEditRequest, EditRequest, EditResult
+    from .account_info import MeRequest, PinInfoRequest, MeResult, PinInfoResult
+    from .pinning import PinRequest, UnpinRequest, PinStatusRequest, PinResult
     return ({**REQUESTS, "download_file": DownloadRequest, "get_chat_draft": DraftRequest, "set_chat_draft": SetDraftRequest,
-             "prepare_message_edit": PrepareEditRequest, "edit_message": EditRequest, "get_edit_status": EditRequest},
+             "prepare_message_edit": PrepareEditRequest, "edit_message": EditRequest, "get_edit_status": EditRequest,
+             "get_me": MeRequest, "get_pin_info": PinInfoRequest, "pin_message": PinRequest,
+             "unpin_message": UnpinRequest, "get_pin_status": PinStatusRequest},
             {**RESULTS, "download_file": DownloadResult, "get_chat_draft": DraftResult, "set_chat_draft": DraftResult,
-             "prepare_message_edit": EditResult, "edit_message": EditResult, "get_edit_status": EditResult})
+             "prepare_message_edit": EditResult, "edit_message": EditResult, "get_edit_status": EditResult,
+             "get_me": MeResult, "get_pin_info": PinInfoResult, "pin_message": PinResult,
+             "unpin_message": PinResult, "get_pin_status": PinResult})
 
 
 WRITE_OPERATIONS = frozenset({"set_chat_draft", "prepare_message_edit", "edit_message"})
+PIN_OPERATIONS = frozenset({"pin_message", "unpin_message"})
 
 
 class WorkflowMethods:
+    async def get_me(self, **params) -> dict:
+        return await self._workflow("get_me", params)
+
+    async def get_pin_info(self, **params) -> dict:
+        return await self._workflow("get_pin_info", params)
+
+    async def pin_message(self, **params) -> dict:
+        return await self._workflow("pin_message", params)
+
+    async def unpin_message(self, **params) -> dict:
+        return await self._workflow("unpin_message", params)
+
+    async def get_pin_status(self, **params) -> dict:
+        return await self._workflow("get_pin_status", params)
+
     async def prepare_message_edit(self, **params) -> dict:
         return await self._workflow("prepare_message_edit", params)
 
@@ -60,6 +83,19 @@ def execute(backend, session, operation, params):
     from .chat_drafts import current, result, set_draft
     requests, _ = contracts()
     request = requests[operation].model_validate(params)
+    if operation == "get_me":
+        from .account_info import get_me
+        return get_me(session)
+    if operation == "get_pin_info":
+        from .account_info import get_pin_info
+        return get_pin_info(session, request)
+    if operation in PIN_OPERATIONS | {"get_pin_status"}:
+        from .pinning import MessagePins
+        from .paths import profile_root
+        if not hasattr(backend, "_message_pins"):
+            backend._message_pins = MessagePins(profile_root(backend.profile) / "message-pins", session.user_id)
+        method = {"pin_message": "pin", "unpin_message": "unpin", "get_pin_status": "status"}[operation]
+        return getattr(backend._message_pins, method)(session, **request.model_dump())
     if operation in {"prepare_message_edit", "edit_message", "get_edit_status"}:
         from .editing import MessageEdits
         from .paths import profile_root

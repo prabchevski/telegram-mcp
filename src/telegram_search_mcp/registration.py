@@ -37,7 +37,7 @@ def launcher_arguments(python: str, module: str = SERVER_MODULE) -> list[str]:
 
 
 def expected_entry(client: str, python: str, install_root: Path | None = None, *,
-                   enable_sending: bool | None = None) -> dict[str, Any]:
+                   enable_sending: bool | None = None, enable_pinning: bool | None = None) -> dict[str, Any]:
     args = launcher_arguments(python)
     if install_root is not None:
         from .launchers import LAUNCHER_NAME, validate_launcher
@@ -55,6 +55,12 @@ def expected_entry(client: str, python: str, install_root: Path | None = None, *
             entry["enabled_tools" if client == "codex" else "includeTools"].extend(OUTGOING_TOOLS)
             if client == "gemini":
                 entry["description"] = "Local Telegram history, free public posts search, files, voice, drafts and optional scheduled sending (unofficial)"
+    if install_root is not None or enable_pinning is not None:
+        from .pinning_settings import pinning_enabled
+        from .tool_catalog import PIN_TOOLS
+        pinning = enable_pinning if enable_pinning is not None else pinning_enabled(install_root)
+        if pinning:
+            entry["enabled_tools" if client == "codex" else "includeTools"].extend(PIN_TOOLS)
     return entry
 
 
@@ -157,14 +163,15 @@ def _registration_refresh_entry(client: str, existing: Any, wanted: dict, *,
         return None
     from .activation import managed_refresh_entry
     for sending in (False, True):
-        comparison = expected_entry(client, python, install_root, enable_sending=sending)
-        comparison["command"] = existing["command"]
-        if "args" in existing:
-            comparison["args"] = existing["args"]
-        else:
-            comparison.pop("args", None)
-        if managed_refresh_entry(client, existing, comparison) is not None:
-            return _retain_policy(client, existing, wanted)
+        for pinning in (False, True):
+            comparison = expected_entry(client, python, install_root, enable_sending=sending, enable_pinning=pinning)
+            comparison["command"] = existing["command"]
+            if "args" in existing:
+                comparison["args"] = existing["args"]
+            else:
+                comparison.pop("args", None)
+            if managed_refresh_entry(client, existing, comparison) is not None:
+                return _retain_policy(client, existing, wanted)
     # Original 0.2/0.3 registrations could contain only their known executable.
     # Explicit legacy replacement still accepts that exact minimal shape, but
     # never removes an owner filter, disabled flag or additional configuration.

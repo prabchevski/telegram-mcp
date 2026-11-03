@@ -10,19 +10,21 @@ import pytest
 
 from telegram_search_mcp import cli
 from telegram_search_mcp.server import create_server
-from telegram_search_mcp.tool_catalog import DEFAULT_TOOLS, EDIT_TOOLS, OUTGOING_TOOLS, advertised_tools
+from telegram_search_mcp.tool_catalog import DEFAULT_TOOLS, EDIT_TOOLS, OUTGOING_TOOLS, PIN_TOOLS, advertised_tools
 from telegram_search_mcp import sending_settings
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize('sending', [False, True])
-async def test_catalog_matches_actual_mcp_discovery_for_every_supported_client(sending):
+@pytest.mark.parametrize('pinning', [False, True])
+async def test_catalog_matches_actual_mcp_discovery_for_every_supported_client(sending, pinning):
     # Codex/Gemini registration and the Windows plugin all launch this same server.
     # Listing does not open a native session or read the user's profile.
-    async with Client(create_server(object(), enable_sending=sending)) as client:
+    async with Client(create_server(object(), enable_sending=sending, enable_pinning=pinning)) as client:
         names = {tool.name for tool in (await client.list_tools()).tools}
-    assert names == set(advertised_tools(sending=sending))
-    assert len(names) == len(advertised_tools(sending=sending))
+    assert names == set(advertised_tools(sending=sending, pinning=pinning))
+    assert len(names) == len(advertised_tools(sending=sending, pinning=pinning))
+    assert names.isdisjoint(PIN_TOOLS) if not pinning else set(PIN_TOOLS) <= names
     assert names.isdisjoint(EDIT_TOOLS) if not sending else set(EDIT_TOOLS) <= names
     assert sending_settings.OUTGOING_TOOLS is OUTGOING_TOOLS
     assert sending_settings.EDIT_TOOLS is EDIT_TOOLS

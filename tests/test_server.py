@@ -101,7 +101,7 @@ async def test_server_exposes_reads_and_explicit_speech_request() -> None:
         "telegram_get_message_thread",
         "telegram_get_chat_draft",
         "telegram_get_scheduled_messages",
-
+        "telegram_get_me", "telegram_get_pin_info", "telegram_get_pin_status",
     }
     for tool in result.tools:
         assert tool.annotations is not None

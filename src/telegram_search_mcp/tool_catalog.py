@@ -15,6 +15,14 @@ DEFAULT_TOOLS = (
     "telegram_get_scheduled_messages",
     "telegram_search_public_posts",
     "telegram_get_public_search_quota",
+    "telegram_get_me",
+    "telegram_get_pin_info",
+    "telegram_get_pin_status",
+)
+
+PIN_TOOLS = (
+    "telegram_pin_message",
+    "telegram_unpin_message",
 )
 
 EDIT_TOOLS = (
@@ -31,5 +39,5 @@ OUTGOING_TOOLS = (
 )
 
 
-def advertised_tools(*, sending: bool = False) -> tuple[str, ...]:
-    return DEFAULT_TOOLS + OUTGOING_TOOLS if sending else DEFAULT_TOOLS
+def advertised_tools(*, sending: bool = False, pinning: bool = False) -> tuple[str, ...]:
+    return DEFAULT_TOOLS + (OUTGOING_TOOLS if sending else ()) + (PIN_TOOLS if pinning else ())

@@ -242,6 +242,22 @@ def test_explicit_opt_out_survives_update_and_can_be_changed(isolated_installer,
     assert installer.read_receipt(root)['revision'] == 'c' * 40
 
 
+def test_windows_pin_permission_defaults_off_and_survives_reinstall(isolated_installer):
+    from telegram_search_mcp.pinning_settings import pinning_enabled
+    perform_install(isolated_installer)
+    _, root, *_ = isolated_installer
+    assert pinning_enabled(root) is False
+    assert not (root / 'pinning.json').exists()
+    installer.set_windows_pinning(root, True)
+    before = read_source(root / 'pinning.json')
+    perform_install(isolated_installer, revision='c' * 40)
+    assert pinning_enabled(root) is True
+    assert read_source(root / 'pinning.json') == before
+    installer.set_windows_pinning(root, False)
+    assert pinning_enabled(root) is False
+    assert not (root / 'sending.json').exists()
+
+
 def test_legacy_false_receipt_gets_default_updates_without_losing_unknown_preferences(isolated_installer):
     perform_install(isolated_installer)
     _, root, *_ = isolated_installer
@@ -548,6 +564,8 @@ def test_plugin_template_is_fail_closed_until_configured():
     config = json.loads(assets['plugins/telegram-mcp-work/.mcp.json'])
     assert manifest['name'] == installer.PLUGIN_NAME
     assert manifest['mcpServers'] == './.mcp.json'
+    assert manifest['interface']['capabilities'] == ['Read', 'Write']
+    assert 'separate local pinning opt-in' in manifest['interface']['longDescription']
     assert 'exit 1' in config['mcpServers']['telegram']['args'][-1]
 
 

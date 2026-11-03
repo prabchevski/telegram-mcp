@@ -64,6 +64,8 @@ def is_diagnostic(message: str, operation: str) -> bool:
 def _classification(exc: Exception) -> tuple[str, bool, int | None]:
     name = type(exc).__name__
     if isinstance(exc, TdlibError):
+        if exc.code <= 0 or exc.message.strip().lower() in {"request aborted", "request_aborted"}:
+            return "unavailable", True, None
         if exc.code == 429:
             # Only recognized numeric wait formats are extracted. The raw
             # message may contain private input and must never be logged.
@@ -122,7 +124,10 @@ def error_result(exc: Exception, operation: str = "service") -> dict[str, str]:
     ambiguous_edit = operation in {"prepare_message_edit", "edit_message", "get_edit_status"} and category in {
         "internal", "timeout", "unavailable", "busy",
     }
-    if ambiguous_send or ambiguous_draft or ambiguous_edit:
+    ambiguous_pin = operation in {"pin_message", "unpin_message", "get_pin_status"} and category in {
+        "internal", "timeout", "unavailable", "busy",
+    }
+    if ambiguous_send or ambiguous_draft or ambiguous_edit or ambiguous_pin:
         retryable = False
     ident = uuid.uuid4().hex
     metadata = f"operation={operation} category={category} retryable={str(retryable).lower()}"
@@ -136,6 +141,8 @@ def error_result(exc: Exception, operation: str = "service") -> dict[str, str]:
         message += " Read get_chat_draft and reconcile using the same operation_id before retrying."
     if ambiguous_edit:
         message += " Check the same edit_id with get_edit_status; never create a replacement to retry."
+    if ambiguous_pin:
+        message += " Check the SAME operation_id with get_pin_status; never create a replacement to retry."
 
     # Trace exception identity and code locations, but never str/repr(exc),
     # traceback source lines, request frames, exception args or local variables.

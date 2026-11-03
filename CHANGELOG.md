@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.12.0 — 2026-11-03
+
+- Add exact-message pin/unpin behind a separate local `tgsearch pinning on` opt-in.
+  Preserve all other pins, default to silent shared pinning, and never change rights.
+- Persist account-bound operation IDs before dispatch; retries and restarts only
+  reconcile by reading the same target. Unknown outcomes never dispatch again.
+- Add read-only linked-account identity, exact/newest pin info and operation status.
+  Default discovery is 18 tools, 25 with sending, 20 with pinning and 27 with both.
+- Preserve existing sending, pinning, client policy and update preferences across
+  upgrades; keep custom/removed registrations untouched. Declare optional writes
+  in Windows plugin metadata and retain the pinned TDLib runtime.
+
 CI maintenance after 0.11.2 (2026-10-29): keep macOS/Linux, Windows Server and
 package checks mandatory; run clean Windows 10/11 checks for installation,
 platform, dependency, packaging and CI changes, plus weekly/manual coverage.

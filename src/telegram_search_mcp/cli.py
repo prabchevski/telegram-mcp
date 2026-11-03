@@ -261,6 +261,18 @@ def command_sending(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_pinning(args: argparse.Namespace) -> int:
+    from .launchers import installed_root
+    from .pinning_settings import set_pinning, pinning_enabled
+    root = installed_root()
+    if root is None:
+        raise RuntimeError("Manage pinning from an installed copy")
+    if args.action != "status":
+        set_pinning(root, args.action == "on")
+    print(json.dumps({"enabled": pinning_enabled(root), "activation": "reconnect the Telegram MCP client to refresh its tool list"}))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="tgsearch",
@@ -298,6 +310,9 @@ def build_parser() -> argparse.ArgumentParser:
     sending = commands.add_parser("sending", help="enable or disable text and file sending locally")
     sending.add_argument("action", choices=["status", "on", "off"])
     sending.set_defaults(handler=command_sending)
+    pinning = commands.add_parser("pinning", help="enable or disable exact-message pin/unpin locally")
+    pinning.add_argument("action", choices=["status", "on", "off"])
+    pinning.set_defaults(handler=command_pinning)
     updates.set_defaults(handler=command_updates)
     return parser
 

@@ -139,6 +139,10 @@ jobs:
           tests/test_tool_catalog_parity.py
           tests/test_windows_native_runtime.py
           tests/test_runtime_storage.py
+          tests/test_account_info.py
+          tests/test_pinning.py
+          tests/test_pinning_native.py
+          tests/test_pin_workflow_integration.py
           tests/test_editing.py
           tests/test_editing_integration.py
           tests/test_outgoing_attachments.py

@@ -460,10 +460,13 @@ class TDLibBackend(WorkflowMethods):
         return await asyncio.to_thread(self._workflow_sync, operation, params)
 
     def _workflow_sync(self, operation: str, params: dict) -> dict:
-        from .workflows import execute, WRITE_OPERATIONS, BoundedSession
+        from .workflows import execute, WRITE_OPERATIONS, PIN_OPERATIONS, BoundedSession
         from .sending_settings import sending_enabled
+        from .pinning_settings import pinning_enabled
         if operation in WRITE_OPERATIONS and not sending_enabled():
             raise ValueError("Sending is disabled. Enable it locally with `tgsearch sending on` first")
+        if operation in PIN_OPERATIONS and not pinning_enabled():
+            raise ValueError("Pinning is disabled. Enable it locally with `tgsearch pinning on` first")
         with self._operation_lock:
             policy = Policy.load(self.profile)
             session = self._ready(policy)

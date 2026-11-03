@@ -20,7 +20,7 @@ Give your local agent the repository link and say: “Install Telegram MCP for C
 4. Restart Codex or ChatGPT. In **Codex** or **Work**, open **Plugins**, choose **Personal** (or your existing personal marketplace's name), and install **Telegram MCP**. Start a new chat with the plugin enabled. Current Codex CLI versions expose the same marketplace through `/plugins`.
 5. Try: “Find messages in my Telegram about Friday's meeting.”
 
-A new installation exposes 15 tools. Sending messages and changing drafts are disabled. Retrieved messages and media are shared with the selected AI client when tools are used. Secret Chats are not supported.
+A new installation exposes 18 tools. Sending, editing, draft changes and pinning are disabled until their separate local opt-ins are enabled. Retrieved messages and media are shared with the selected AI client when tools are used. Secret Chats are not supported.
 
 This package registers a local plugin; it is not published in OpenAI's public marketplace. Workspace policies may also restrict plugin access. Automated checks cover Windows Server 2025. Separate installation, reinstallation, generated-configuration, and MCP discovery checks passed on x64 Windows 10 Enterprise Evaluation 22H2 (build 19045.2006) and Windows 11 Enterprise Evaluation 25H2 (build 26200.6584) virtual machines. Both desktop runs used a standard user account, PowerShell 5.1, and Python 3.13.13. The Codex/ChatGPT interface and real Telegram login remain unverified and must be checked on the target computer; see [VERIFICATION.md](VERIFICATION.md). Do not add a duplicate server manually in `config.toml` alongside the plugin.
 
@@ -75,11 +75,25 @@ To enable sending when needed:
 
 ```powershell
 & $tg sending on
-# Restart Codex or ChatGPT and start a new chat: 22 tools are now available.
+# Restart Codex or ChatGPT and start a new chat: 25 tools are now available.
 & $tg sending off
 ```
 
 Sending requires your explicit recipient and content instructions; preparation, confirmed sending, and status checks use the same `draft_id`. Do not create another send when the status is `pending` or `unknown`.
+
+For exact-message pinning independently of sending:
+
+```powershell
+& $tg pinning on
+# Reconnect the Telegram MCP client: 20 tools, or 27 if sending is also enabled.
+& $tg pinning status
+& $tg pinning off
+```
+
+Only an explicit instruction for the exact chat/message pair authorizes pin/unpin.
+Reuse the same `operation_id` after timeouts and read `telegram_get_pin_status`.
+Other pins are retained; there is no unpin-all. The linked account and its existing
+Telegram rights perform the action; the setting grants no administrator rights.
 
 ## Updates
 
@@ -170,7 +184,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Plugin activation failed; use Plugins in the a
 
 If that command is unavailable, use **Plugins → Personal → Telegram MCP** in the app or `/plugins` in a Codex CLI version with plugin support. Do not install an additional CLI solely for this command. The `telegram-mcp-work` identifier is retained for compatibility; Codex uses the same plugin. During upgrades, do not reactivate a plugin the owner disabled or removed, or restore an entry after `preserved_user_changes`, without a separate request.
 
-After restarting, verify that 15 tools appear and run `doctor --connect`. Verifying installation does not require reading conversations or consuming public-search quota. If the user separately requests a trial search, start with account history. Report what is installed and verified separately from what still requires Telegram login, an app restart, or plugin activation.
+After restarting, verify that 18 tools appear and run `doctor --connect`. Verifying installation does not require reading conversations or consuming public-search quota. If the user separately requests a trial search, start with account history. Report what is installed and verified separately from what still requires Telegram login, an app restart, or plugin activation.
 
 ## Official sources
 

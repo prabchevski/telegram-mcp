@@ -401,7 +401,7 @@ def test_06_activation_migrates_both_clients_once_preserving_login_and_sending(m
     for client, path in {"codex": codex, "gemini": gemini}.items():
         actual = registration._load(client, path, path.read_bytes())[registration.NAMES[client]][registration.ALIASES[client]]
         assert actual == wanted[client]
-        assert len(actual["enabled_tools" if client == "codex" else "includeTools"]) == (22 if sending else 15)
+        assert len(actual["enabled_tools" if client == "codex" else "includeTools"]) == (25 if sending else 18)
         assert list(path.parent.glob(path.name + ".telegram-search-backup-*"))
 
 
@@ -561,8 +561,7 @@ def test_public_search_activation_preserves_owner_changes(managed, monkeypatch, 
     monkeypatch.setattr(activation, "running_version", lambda: version)
     result = activation.migrate(root)
     if change in (None, "approval"):
-        expected_status = "unchanged" if old_entry is activation.before_editing_entry and not sending else "migrated"
-        assert result["status"] == expected_status
+        assert result["status"] == "migrated"
         for client, path in {"codex": codex, "gemini": gemini}.items():
             actual = registration._load(client, path, path.read_bytes())[registration.NAMES[client]][registration.ALIASES[client]]
             if change == "approval":

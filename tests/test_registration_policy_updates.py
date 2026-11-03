@@ -19,7 +19,7 @@ pytestmark = pytest.mark.usefixtures("trusted_macos_env_launcher")
 
 HISTORICAL_ENTRIES = (
     activation.legacy_entry, activation.previous_entry, activation.navigation_entry,
-    activation.initial_public_entry, activation.before_editing_entry,
+    activation.initial_public_entry, activation.before_editing_entry, activation.before_pinning_entry,
 )
 
 
@@ -66,12 +66,11 @@ def test_known_historical_catalogs_migrate_both_clients_preserving_policy_and_ab
     before_receipt = (root / installation.RECEIPT).read_bytes()
     monkeypatch.setattr(activation, "running_version", lambda: version)
     result = activation.migrate(root)
-    unchanged = old_entry is activation.before_editing_entry and not sending
-    assert result["status"] == ("unchanged" if unchanged else "migrated")
+    assert result["status"] == "migrated"
     assert result["skipped"] == []
     for client, path in paths.items():
         assert load_entry(client, path) == expected[client]
-        assert len(expected[client]["enabled_tools" if client == "codex" else "includeTools"]) == (22 if sending else 15)
+        assert len(expected[client]["enabled_tools" if client == "codex" else "includeTools"]) == (25 if sending else 18)
     assert activation.migrate(root) == {"status": "unchanged", "clients": [], "skipped": []}
     assert (root / installation.RECEIPT).read_bytes() == before_receipt
 

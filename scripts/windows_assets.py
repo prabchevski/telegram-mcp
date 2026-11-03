@@ -74,11 +74,12 @@ try {
   "interface": {
     "displayName": "Telegram MCP",
     "shortDescription": "Search Telegram in Codex and ChatGPT Work.",
-    "longDescription": "Local Windows Telegram integration for Codex and ChatGPT Work. Search account history and subscriptions first, read messages and download media. Before each broader public query, check live free quota, explain remaining attempts and wait for explicit user permission. Never offer Stars payment. Sending is disabled until enabled locally. Requires the Windows installer and your own Telegram login.",
+    "longDescription": "Local Windows Telegram integration for Codex and ChatGPT Work. Search account history and subscriptions first, read messages and download media. Before each broader public query, check live free quota, explain remaining attempts and wait for explicit user permission. Never offer Stars payment. Sending and own-message editing require the local sending opt-in. Exact-message pin/unpin requires a separate local pinning opt-in. Requires the Windows installer and your own Telegram login.",
     "developerName": "prabchevski",
     "category": "Productivity",
     "capabilities": [
-      "Read"
+      "Read",
+      "Write"
     ],
     "defaultPrompt": "Find messages in my Telegram chats."
   }

@@ -441,6 +441,15 @@ def set_windows_sending(root: Path, enabled: bool) -> None:
         atomic_write(path, _json({"enabled": bool(enabled)}), expected=read_source(path))
 
 
+def set_windows_pinning(root: Path, enabled: bool) -> None:
+    validate_root(root)
+    if type(enabled) is not bool:
+        raise ValueError("Pinning preference must be a boolean")
+    with install_lock(root):
+        path = root / "pinning.json"
+        atomic_write(path, _json({"enabled": enabled}), expected=read_source(path))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", type=Path, required=True)

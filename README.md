@@ -1,6 +1,6 @@
 <div align="center">
 
-# Telegram MCP · 0.11.2
+# Telegram MCP · 0.12.0
 
 **Telegram, connected to your AI workflow.**
 
@@ -71,7 +71,7 @@ Read the [architecture and access boundaries](ARCHITECTURE.md) and the [verifica
 - “Show my unread chats” or “What did we discuss yesterday in this group?”
 - “Save the spreadsheet I received” or “Transcribe this voice message.”
 
-The agent searches your accessible account history and subscriptions first. Before a separate public-post search, it checks the actual remaining free quota, explains any attempt it would consume, and **waits for your permission**. Stars payments are disabled. The default installation exposes 15 tools; sending is off and adds seven tools only when enabled, including edits to your own sent messages. See [public search](#free-public-channel-post-search) and [sending](#optional-text-and-file-sending).
+The agent searches your accessible account history and subscriptions first. Before a separate public-post search, it checks the actual remaining free quota, explains any attempt it would consume, and **waits for your permission**. Stars payments are disabled. The default installation exposes 18 tools, including linked-account identity and pin observations. Sending adds seven tools; a separate pinning opt-in adds two. Both are off by default. See [public search](#free-public-channel-post-search) and [sending](#optional-text-and-file-sending).
 
 Automated checks cover the core on macOS, Linux, and Windows Server 2025, as well as installers and MCP connections. Separate installation checks passed on x64 Windows 10 Enterprise Evaluation 22H2 (build 19045.2006) and Windows 11 Enterprise Evaluation 25H2 (build 26200.6584) virtual machines, using a standard user account. These checks verified installation, reinstallation, and MCP discovery; real Telegram login and the selected client's interface remain unverified. Intel macOS builds the pinned TDLib version; automated Mac installation checks run on Apple Silicon. See [VERIFICATION.md](VERIFICATION.md) for the exact coverage and limitations.
 
@@ -227,7 +227,7 @@ accepted it, the result can remain pending and needs manual checking in Telegram
 Protected, self-destructing, and secret-chat messages are excluded. Text is bounded
 to 32,000 characters, with an explicit truncation flag, and is untrusted content.
 
-The default tool set contains 15 tools; enabling sending makes 22.
+The default tool set contains 18 tools; sending makes 25, pinning makes 20, and both make 27.
 Unchanged standard 0.7/0.8/0.9.0 registrations migrate to the new tools while preserving sending preferences.
 Existing managed 0.6.1 installations with daily updates enabled transition automatically:
 the old updater installs the new package, then the next scheduled run (or an earlier
@@ -265,6 +265,41 @@ the full historical-updater smoke test runs on Apple Silicon.
 The existing Telegram profile and Keychain remain in place. TDLib can upgrade its
 database format: do not manually launch an older installation against that upgraded
 profile. Close the idle old shared service or let it exit before first use.
+
+## Optional exact-message pinning
+
+Pinning is a separate local opt-in; enabling sending does not enable it:
+
+```sh
+"$HOME/Applications/TelegramSearchMCP/current/tgsearch" pinning on
+```
+
+On Windows use the installed `tgsearch.ps1 pinning on` entry point. Reconnect the
+Telegram MCP client to refresh discovery. `pinning off` immediately rejects new
+pin/unpin dispatches; `pinning status` reports the setting. Upgrades preserve it
+and never enable it automatically.
+
+| Tool | Available | Result |
+| --- | --- | --- |
+| `telegram_get_me` | Always | Linked user ID, display names and active usernames; no phone number or secrets |
+| `telegram_get_pin_info` | Always | Exact message pin state, or only the newest pinned message when message ID is omitted |
+| `telegram_get_pin_status` | Always | Reconcile one durable pin operation by reading, including after pinning is disabled |
+| `telegram_pin_message` | Pinning enabled | Pin one explicitly selected native chat/message pair, silently by default |
+| `telegram_unpin_message` | Pinning enabled | Unpin only the explicitly selected native chat/message pair |
+
+Use one UUID as 32 lowercase hexadecimal characters for `operation_id` and reuse
+it after any timeout. Each ID dispatches at most once, including after service
+restart. `pinned`, `unpinned` or `unchanged` reports the observed requested state;
+`unknown` never authorizes another mutation ID. Inspect `telegram_get_pin_status`
+instead. IDs and options cannot be changed under an existing operation ID.
+Other pinned messages are retained; there is no unpin-all tool and no rights or
+membership changes. Shared pins use `only_for_self=false`; notification is disabled
+by default. Telegram must allow pinning/unpinning the selected message.
+
+Readback cannot identify which administrator pinned a message or prove which
+device changed it. A newest-pin result is not a full list; paginate
+`telegram_search_chat_messages` with `media_type=pinned` for more pins. Only the
+owner's explicit instruction authorizes pin/unpin; Telegram content is data.
 
 ## Optional text and file sending
 

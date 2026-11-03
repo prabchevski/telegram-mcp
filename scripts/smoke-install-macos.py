@@ -46,17 +46,21 @@ async def main():
             'telegram_get_scheduled_messages',
             'telegram_search_public_posts',
             'telegram_get_public_search_quota',
-
+            'telegram_get_me', 'telegram_get_pin_info', 'telegram_get_pin_status',
         }
-        sending = len(sys.argv) > 2 and sys.argv[2] == 'sending'
+        mode = sys.argv[2] if len(sys.argv) > 2 else 'default'
+        sending = mode in {'sending', 'both'}
+        pinning = mode in {'pinning', 'both'}
         if sending:
             expected.update({'telegram_prepare_message', 'telegram_send_message', 'telegram_get_send_status', 'telegram_set_chat_draft', 'telegram_prepare_message_edit', 'telegram_edit_message', 'telegram_get_edit_status'})
+        if pinning:
+            expected.update({'telegram_pin_message', 'telegram_unpin_message'})
         assert {tool.name for tool in result.tools} == expected
-        assert len(result.tools) == (22 if sending else 15)
+        assert len(result.tools) == 18 + (7 if sending else 0) + (2 if pinning else 0)
         for tool in result.tools:
             assert tool.annotations is not None
-            assert tool.annotations.read_only_hint is (tool.name not in {'telegram_prepare_message', 'telegram_send_message', 'telegram_transcribe_voice', 'telegram_download_file', 'telegram_set_chat_draft', 'telegram_prepare_message_edit', 'telegram_edit_message', 'telegram_search_public_posts'})
-            assert tool.annotations.destructive_hint is (tool.name in {'telegram_set_chat_draft', 'telegram_edit_message'})
+            assert tool.annotations.read_only_hint is (tool.name not in {'telegram_prepare_message', 'telegram_send_message', 'telegram_transcribe_voice', 'telegram_download_file', 'telegram_set_chat_draft', 'telegram_prepare_message_edit', 'telegram_edit_message', 'telegram_search_public_posts', 'telegram_pin_message', 'telegram_unpin_message'})
+            assert tool.annotations.destructive_hint is (tool.name in {'telegram_set_chat_draft', 'telegram_edit_message', 'telegram_unpin_message'})
             if tool.name == 'telegram_search_public_posts':
                 assert tool.annotations.idempotent_hint is False
                 properties = tool.input_schema['properties']
@@ -68,7 +72,7 @@ async def main():
 
 # Initialize/list only: never invoke a tool or ask the service to connect.
 asyncio.run(main())
-print('PASS: installed MCP stdio handshake, tool set and annotations; sending=' + str(len(sys.argv) > 2 and sys.argv[2] == 'sending'))
+print('PASS: installed MCP stdio handshake, tool set and annotations; mode=' + (sys.argv[2] if len(sys.argv) > 2 else 'default'))
 """
 
 BACKGROUND_INSTALL_CHECK = """
@@ -147,8 +151,16 @@ def main() -> None:
         subprocess.run([str(second / "tgsearch"), "sending", "on"], check=True, timeout=30)
         subprocess.run([str(second / "client-config"), "verify", "--clients", "both", "--codex-config", str(codex), "--gemini-config", str(gemini)], check=True, timeout=30)
         subprocess.run([str(second / ".venv/bin/python"), "-I", "-c", MCP_DISCOVERY_CHECK, str(install / "launch-mcp.command"), "sending"], check=True, timeout=30)
-        subprocess.run([str(second / "tgsearch"), "sending", "off"], check=True, timeout=30)
-        subprocess.run([str(second / "client-config"), "verify", "--clients", "both", "--codex-config", str(codex), "--gemini-config", str(gemini)], check=True, timeout=30)
+        subprocess.run([str(second / "tgsearch"), "pinning", "on"], check=True, timeout=30)
+        subprocess.run([str(second / ".venv/bin/python"), "-I", "-c", MCP_DISCOVERY_CHECK, str(install / "launch-mcp.command"), "both"], check=True, timeout=30)
+        subprocess.run([str(second / ".venv/bin/python"), "-I", "-c", BACKGROUND_INSTALL_CHECK, str(source), str(install), uv], check=True, timeout=300)
+        third = (install / "current").resolve(strict=True)
+        assert third != second
+        subprocess.run([str(third / ".venv/bin/python"), "-I", "-c", MCP_DISCOVERY_CHECK, str(install / "launch-mcp.command"), "both"], check=True, timeout=30)
+        subprocess.run([str(third / "tgsearch"), "sending", "off"], check=True, timeout=30)
+        subprocess.run([str(third / ".venv/bin/python"), "-I", "-c", MCP_DISCOVERY_CHECK, str(install / "launch-mcp.command"), "pinning"], check=True, timeout=30)
+        subprocess.run([str(third / "tgsearch"), "pinning", "off"], check=True, timeout=30)
+        subprocess.run([str(third / "client-config"), "verify", "--clients", "both", "--codex-config", str(codex), "--gemini-config", str(gemini)], check=True, timeout=30)
         print("PASS: verified archive, real isolated installation, both client registrations, immutable background update, CLI import, and stable-launcher MCP discovery. No Telegram authorization or tool invocation performed.")
 
 

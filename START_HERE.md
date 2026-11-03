@@ -75,7 +75,7 @@ See [installation, authorization, verification, and removal commands](INSTALL_WI
 ## After connecting
 
 Try “Find messages in my Telegram containing …” with a phrase you know.
-The default installation exposes **15 tools** for searching and reading, chat
+The default installation exposes **18 tools** for searching and reading, chat
 navigation, attachments, voice notes, and separate public-post search. Retrieved
 messages are shared with the selected AI client. Secret Chats are not supported.
 

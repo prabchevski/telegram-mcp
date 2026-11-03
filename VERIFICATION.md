@@ -1,5 +1,24 @@
 # Verification
 
+## Version 0.12.0 — Exact-message pinning and account identity
+
+Synthetic checks cover durable account/parameter binding, exact native IDs,
+permission rejection, no-op handling, crash/timeout readback, at-most-once dispatch,
+retaining unrelated pins and explicit unpin scope. Read-only identity omits phone
+numbers and credentials. Pin info distinguishes exact-message from newest-only
+coverage. Separate capability checks cover both service enforcement and discovery
+for all sending/pinning combinations, migration, and Windows reinstall behavior.
+Local validation on Apple Silicon macOS/Python 3.13.13: **1388 passed, 10 skipped**.
+The source audit passed for 134 allowlisted text files. The source archive and
+wheel matched, real isolated macOS installation passed all four capability
+combinations and reinstall preservation, and the unmodified 0.6.1 updater
+successfully migrated both sending preferences. Windows-specific checks run in
+canonical CI, including the four portable read/pin test modules on Windows Server.
+No real Telegram pin/unpin or test-message publication is part of these tests.
+
+Authenticated acceptance and the exact installed revision are recorded separately
+on the owner's computer after installation of the verified published asset.
+
 Thread-history pagination also has sparse-ID coverage across short native pages,
 including a single cached row followed by enough rows to fill a 20-item MCP page.
 These checks use synthetic sessions and do not access account data.

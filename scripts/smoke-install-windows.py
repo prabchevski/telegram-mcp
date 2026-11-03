@@ -149,26 +149,31 @@ async def main():
             'telegram_get_scheduled_messages',
             'telegram_search_public_posts',
             'telegram_get_public_search_quota',
+            'telegram_get_me', 'telegram_get_pin_info', 'telegram_get_pin_status',
         }
-        sending = sys.argv[2] == 'sending'
+        sending = sys.argv[2] in {'sending', 'both'}
+        pinning = sys.argv[2] in {'pinning', 'both'}
         if sending:
             expected.update({
                 'telegram_prepare_message', 'telegram_send_message',
                 'telegram_get_send_status', 'telegram_set_chat_draft', 'telegram_prepare_message_edit', 'telegram_edit_message', 'telegram_get_edit_status',
             })
+        if pinning:
+            expected.update({'telegram_pin_message', 'telegram_unpin_message'})
         assert {tool.name for tool in result.tools} == expected
-        assert len(result.tools) == (22 if sending else 15)
+        assert len(result.tools) == 18 + (7 if sending else 0) + (2 if pinning else 0)
         writes = {
             'telegram_prepare_message', 'telegram_send_message',
             'telegram_transcribe_voice', 'telegram_download_file',
             'telegram_set_chat_draft',
             'telegram_prepare_message_edit', 'telegram_edit_message',
             'telegram_search_public_posts',
+            'telegram_pin_message', 'telegram_unpin_message',
         }
         for tool in result.tools:
             assert tool.annotations is not None
             assert tool.annotations.read_only_hint is (tool.name not in writes)
-            assert tool.annotations.destructive_hint is (tool.name in {'telegram_set_chat_draft', 'telegram_edit_message'})
+            assert tool.annotations.destructive_hint is (tool.name in {'telegram_set_chat_draft', 'telegram_edit_message', 'telegram_unpin_message'})
             if tool.name == 'telegram_search_public_posts':
                 assert tool.annotations.idempotent_hint is False
                 properties = tool.input_schema['properties']
@@ -305,11 +310,14 @@ def exercise_archive(archive_path: Path, manifest: dict, powershell: Path, check
         configuration = plugin_configuration(marketplace, install, original)
         passed("initial_marketplace_preserves_existing_plugin")
         subprocess.run([str(first_python), "-I", "-c", MCP_DISCOVERY_CHECK, str(configuration), "default"], check=True, timeout=60)
-        passed("initial_mcp_discovery_15_tools")
+        passed("initial_mcp_discovery_18_tools")
         subprocess.run([str(first_python), "-I", "-m", "telegram_search_mcp.cli", "sending", "on"], check=True, timeout=30)
         configuration = plugin_configuration(marketplace, install, original)
         subprocess.run([str(first_python), "-I", "-c", MCP_DISCOVERY_CHECK, str(configuration), "sending"], check=True, timeout=60)
-        passed("sending_mcp_discovery_22_tools")
+        passed("sending_mcp_discovery_25_tools")
+        subprocess.run([str(first_python), "-I", "-m", "telegram_search_mcp.cli", "pinning", "on"], check=True, timeout=30)
+        subprocess.run([str(first_python), "-I", "-c", MCP_DISCOVERY_CHECK, str(configuration), "both"], check=True, timeout=60)
+        passed("separate_pinning_mcp_discovery_27_tools")
         update_status = update_preference(install, "off")
         assert update_status["automatic"] is False and update_status["schedule"]["enabled"] is False
         passed("automatic_updates_off_removes_owned_schedule")
@@ -334,12 +342,15 @@ def exercise_archive(archive_path: Path, manifest: dict, powershell: Path, check
         passed("reinstall_preserves_marketplace_and_stable_launcher")
         subprocess.run([str(second_python), "-I", "-c", NATIVE_RUNTIME_CHECK, manifest["version"]], check=True, timeout=30)
         passed("reinstalled_pinned_python_package_and_tdlib")
-        subprocess.run([str(second_python), "-I", "-c", MCP_DISCOVERY_CHECK, str(configuration), "sending"], check=True, timeout=60)
-        passed("reinstall_preserves_sending_22_tools")
+        subprocess.run([str(second_python), "-I", "-c", MCP_DISCOVERY_CHECK, str(configuration), "both"], check=True, timeout=60)
+        passed("reinstall_preserves_sending_and_pinning_27_tools")
         subprocess.run([str(second_python), "-I", "-m", "telegram_search_mcp.cli", "sending", "off"], check=True, timeout=30)
         configuration = plugin_configuration(marketplace, install, original)
+        subprocess.run([str(second_python), "-I", "-c", MCP_DISCOVERY_CHECK, str(configuration), "pinning"], check=True, timeout=60)
+        passed("sending_disabled_pinning_preserved_20_tools")
+        subprocess.run([str(second_python), "-I", "-m", "telegram_search_mcp.cli", "pinning", "off"], check=True, timeout=30)
         subprocess.run([str(second_python), "-I", "-c", MCP_DISCOVERY_CHECK, str(configuration), "default"], check=True, timeout=60)
-        passed("sending_disabled_mcp_discovery_15_tools")
+        passed("pinning_disabled_mcp_discovery_18_tools")
         update_status = update_preference(install, "on")
         assert update_status["automatic"] is True
         assert update_status["schedule"]["owned"] is True and update_status["schedule"]["enabled"] is True
