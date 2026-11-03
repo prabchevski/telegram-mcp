@@ -55,6 +55,34 @@ WINDOWS_IMAGES = {
 UV_URL = "https://github.com/astral-sh/uv/releases/download/0.11.15/uv-x86_64-pc-windows-msvc.zip"
 UV_SHA256 = "04b98d414a9000e25e5e0e7c9f53749e66b790cdaffc582829e6f58c544ee11c"
 
+# Match named coverage, including independent sending/pinning discovery, rather
+# than accepting an obsolete count or allowing duplicates to hide a lost check.
+EXPECTED_INSTALL_CHECKS = frozenset({
+    "actual_os_identity", "verified_release_archive",
+    "initial_archive_install_in_unicode_path", "installed_cli",
+    "initial_pinned_python_package_and_tdlib",
+    "automatic_updates_owned_schedule_pinned_uv_and_source_revision",
+    "initial_marketplace_preserves_existing_plugin", "initial_mcp_discovery_18_tools",
+    "sending_mcp_discovery_25_tools", "separate_pinning_mcp_discovery_27_tools",
+    "automatic_updates_off_removes_owned_schedule",
+    "immutable_reinstall_with_unrelated_powershell_module_path",
+    "reinstall_preserves_automatic_updates_opt_out",
+    "reinstall_preserves_marketplace_and_stable_launcher",
+    "reinstalled_pinned_python_package_and_tdlib",
+    "reinstall_preserves_sending_and_pinning_27_tools",
+    "sending_disabled_pinning_preserved_20_tools",
+    "pinning_disabled_mcp_discovery_18_tools",
+    "automatic_updates_on_then_off_native_schedule_lifecycle",
+})
+
+
+def validate_install_checks(checks) -> None:
+    if (not isinstance(checks, list) or len(checks) != len(EXPECTED_INSTALL_CHECKS)
+            or any(not isinstance(check, dict) or not isinstance(check.get("name"), str)
+                   or check.get("status") != "passed" for check in checks)
+            or {check["name"] for check in checks} != EXPECTED_INSTALL_CHECKS):
+        raise RuntimeError("The guest did not complete the required named installer acceptance checks")
+
 # Generated in the ephemeral OEM folder, not a distributed installer entrypoint.
 # The installer is executed by a standard user, without membership of Administrators.
 GUEST_BOOTSTRAP = r"""
@@ -326,9 +354,7 @@ def execute(args: argparse.Namespace, output: Path, provenance: dict, overall_de
                 raise RuntimeError("The guest evidence does not identify the expected desktop Windows version")
             if report.get("archive", {}).get("sha256") != provenance["archive_sha256"]:
                 raise RuntimeError("The tested archive differs from the source archive built by this job")
-            checks = report.get("checks", [])
-            if len(checks) != 17 or any(check.get("status") != "passed" for check in checks):
-                raise RuntimeError("The guest did not complete all 17 installer acceptance checks")
+            validate_install_checks(report.get("checks"))
             user = json.loads((shared / "test-user.json").read_text(encoding="utf-8-sig"))
             if user.get("is_administrator") is not False:
                 raise RuntimeError("The guest test did not verify a standard user")

@@ -8,13 +8,20 @@ retaining unrelated pins and explicit unpin scope. Read-only identity omits phon
 numbers and credentials. Pin info distinguishes exact-message from newest-only
 coverage. Separate capability checks cover both service enforcement and discovery
 for all sending/pinning combinations, migration, and Windows reinstall behavior.
-Local validation on Apple Silicon macOS/Python 3.13.13: **1388 passed, 10 skipped**.
-The source audit passed for 134 allowlisted text files. The source archive and
+Local validation on Apple Silicon macOS/Python 3.13.13: **1396 passed, 10 skipped**.
+The source audit passed for 135 allowlisted text files. The source archive and
 wheel matched, real isolated macOS installation passed all four capability
 combinations and reinstall preservation, and the unmodified 0.6.1 updater
 successfully migrated both sending preferences. Windows-specific checks run in
 canonical CI, including the four portable read/pin test modules on Windows Server.
 No real Telegram pin/unpin or test-message publication is part of these tests.
+
+Windows 10 and 11 standard-user guests in canonical run 41684201037 both completed
+all 19 installation checks successfully. The enclosing desktop validator initially
+expected the historical count of 17, so that run correctly blocked publication.
+The validator now requires all 19 exact check names and rejects missing, duplicate,
+unknown, malformed or failed evidence; eight regression cases cover that gate.
+The corrected source is required to pass the full canonical workflow before release.
 
 Authenticated acceptance and the exact installed revision are recorded separately
 on the owner's computer after installation of the verified published asset.

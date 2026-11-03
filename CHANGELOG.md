@@ -8,6 +8,8 @@
   reconcile by reading the same target. Unknown outcomes never dispatch again.
 - Add read-only linked-account identity, exact/newest pin info and operation status.
   Default discovery is 18 tools, 25 with sending, 20 with pinning and 27 with both.
+- Validate the complete named Windows desktop acceptance checks, including all
+  independent pinning/sending modes and reinstall preservation.
 - Preserve existing sending, pinning, client policy and update preferences across
   upgrades; keep custom/removed registrations untouched. Declare optional writes
   in Windows plugin metadata and retain the pinned TDLib runtime.
