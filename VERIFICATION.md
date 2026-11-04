@@ -1,5 +1,29 @@
 # Verification
 
+## CI maintenance — Explicit Apple Silicon image, 2026-11-04
+
+The macOS test matrix and package job use the supported `macos-15` ARM64 image
+instead of the moving `macos-latest` image (currently macOS 26). Both execution
+sites require an actual Darwin/arm64 host and log its OS version. Python 3.12/3.14
+tests, Python 3.13 packaging, the pinned native parser, real archive installation
+and the unmodified 0.6.1 updater checks remain mandatory. The release gate and
+Windows coverage policy are unchanged. This pins the tested macOS version to 15;
+it does not claim current macOS 26 coverage.
+
+Canonical run 41866091394 attempts 1 and 2 could not allocate either macOS runner.
+Attempt 3 passed macOS/Python 3.14, but Python 3.12 was again cancelled with no
+steps started. Its annotations report hosted-runner allocation failure and ARM64
+capacity constraints. The release gate correctly blocked incomplete coverage.
+The alternative image still requires actual canonical CI success; it is not a
+claim that macOS 26 itself or the application code caused the allocation failure.
+
+Local validation on Apple Silicon macOS/Python 3.13.13: **1396 passed, 10 skipped**;
+the source audit passed for 135 allowlisted text files. Actionlint 1.7.12 accepted
+both workflows, and `git diff --check` passed. Independent review confirmed the
+conditional architecture check leaves Linux jobs intact and no required gate,
+native or installation step was removed. These local checks do not substitute
+for successful execution on the selected GitHub-hosted image.
+
 ## Tool metadata documentation patch — 2026-11-04
 
 In-memory MCP discovery uses an object backend and does not authorize Telegram,

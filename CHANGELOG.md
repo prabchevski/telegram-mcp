@@ -1,6 +1,12 @@
 # Changelog
 
-Metadata documentation patch under review (2026-11-04): describe all input
+CI maintenance (2026-11-04): pin macOS test and package jobs to the supported
+`macos-15` Apple Silicon image after repeated allocation failures on the
+`macos-latest` runner pool. Verify the actual Darwin/arm64 environment before
+execution. Preserve the Python matrix, native checks, installer/migration smoke
+tests, Windows coverage and mandatory release gate. Package version is unchanged.
+
+Metadata documentation patch (2026-11-04): describe all input
 parameters of the 18 default tools, native TDLib IDs, search continuation and
 result fields, voice placeholders, and preview versus persistent file export.
 Add examples and preserve all existing tool contracts and capability annotations.

@@ -529,7 +529,9 @@ uv run --frozen python -I scripts/release.py build --output dist
 
 Tests use isolated profiles and settings and do not require a Telegram account.
 CI tests Linux/macOS and native Windows x64 on Windows Server 2025, and builds and
-installs an allowlisted source archive on a GitHub-hosted Mac. This is a test environment, not the maintainer's or users' Macs.
+installs an allowlisted source archive on a GitHub-hosted Mac. The macOS jobs use
+the explicit `macos-15` Apple Silicon image and verify `Darwin/arm64` before running
+tests or installation checks. This is a test environment, not the maintainer's or users' Macs.
 These checks run for every change. On main, clean Windows 10/11 installation
 checks additionally run when installation, updates, native dependencies,
 platform integration, packaging, or CI changes require them. Classified ordinary

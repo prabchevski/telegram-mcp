@@ -52,11 +52,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        # Keep Apple Silicon coverage on a supported, explicit macOS image.
+        os: [ubuntu-latest, macos-15]
         python: ['3.12', '3.14']
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     steps:
+      - name: Verify Apple Silicon macOS runner
+        if: runner.os == 'macOS'
+        run: |
+          uname -sm
+          sw_vers
+          test "$(uname -s)" = Darwin
+          test "$(uname -m)" = arm64
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
@@ -74,9 +82,15 @@ jobs:
 
   release-artifacts:
     needs: tests
-    runs-on: macos-latest
+    runs-on: macos-15
     timeout-minutes: 20
     steps:
+      - name: Verify Apple Silicon macOS runner
+        run: |
+          uname -sm
+          sw_vers
+          test "$(uname -s)" = Darwin
+          test "$(uname -m)" = arm64
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
