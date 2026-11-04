@@ -75,6 +75,38 @@ The agent searches your accessible account history and subscriptions first. Befo
 
 Automated checks cover the core on macOS, Linux, and Windows Server 2025, as well as installers and MCP connections. Separate installation checks passed on x64 Windows 10 Enterprise Evaluation 22H2 (build 19045.2006) and Windows 11 Enterprise Evaluation 25H2 (build 26200.6584) virtual machines, using a standard user account. These checks verified installation, reinstallation, and MCP discovery; real Telegram login and the selected client's interface remain unverified. Intel macOS builds the pinned TDLib version; automated Mac installation checks run on Apple Silicon. See [VERIFICATION.md](VERIFICATION.md) for the exact coverage and limitations.
 
+### Selecting tools, IDs, and continuation pages
+
+Use `telegram_search_messages(query="meeting agenda", limit=10)` when the chat is
+unknown. For a known chat or sender/date/media filters, use
+`telegram_search_chat_messages`; for a period of history including uncaptioned
+attachments, use `telegram_get_chat_history`. A separate search of unjoined public
+channel posts follows the quota-and-consent workflow below.
+
+Every message result supplies a native `chat_id` and `message_id`. Copy that exact
+pair into `telegram_get_message`, `telegram_get_context`, `telegram_get_media` or
+`telegram_download_file`. Chat IDs can be negative. Bot API message numbers and
+numbers in Telegram URLs are not interchangeable with native TDLib IDs: never
+guess a conversion. For example, after selecting an `item` from search, pass
+`chat_id=item.chat_id` and `message_id=item.message_id` to read that message.
+
+For global search, `count` is the number of messages in this page, not the number
+of all matches. Keep the same query and pass the returned `next_cursor` unchanged
+to continue. Short or empty pages can still have a cursor; stop only when it is
+null. For chat navigation, also keep chat/date/sender/media/topic filters unchanged.
+A tool error is not a successful zero-match page. Per-message text is capped at
+4,000 characters; `text.truncated` and `text.original_character_count` show clipping.
+Voice/video-note records can be placeholders or existing Telegram transcripts;
+reading or searching does not itself start recognition.
+
+Use `telegram_get_media` for a bounded inline preview and `telegram_download_file`
+to save the selected full attachment locally. Downloads default to 20 MiB
+(`max_bytes=20971520`); the explicit ceiling is 100 MiB (`104857600` bytes).
+Larger or unsupported attachments fail instead of returning a truncated export.
+The download result includes a local `path`, `size_bytes` and `sha256`; reuse that
+path to inspect a saved file. Repeating a successful download creates another
+private copy. Nothing is automatically opened or executed.
+
 ## Features
 
 | Tool | Result |

@@ -42,13 +42,22 @@ MAX_TITLE_CHARS = 256
 MAX_PREVIEW_MEDIA_BYTES = 2 * 1024 * 1024
 MAX_FULL_MEDIA_BYTES = 12 * 1024 * 1024
 
-SearchLimit = Annotated[int, Field(ge=1, le=MAX_SEARCH_RESULTS)]
-ContextSide = Annotated[int, Field(ge=0, le=MAX_CONTEXT_SIDE)]
-MessageId = Annotated[int, Field(ge=1)]
-SearchQuery = Annotated[str, Field(min_length=2, max_length=200)]
-SearchCursor = Annotated[str | None, Field(min_length=8, max_length=512)]
-PublicSearchConfirmation = Annotated[bool, Field(strict=True)]
-MediaQuality = Literal["preview", "full"]
+SearchLimit = Annotated[int, Field(ge=1, le=MAX_SEARCH_RESULTS,
+    description="Maximum messages to return in this page, 1–20; not a total-match limit. Fewer items can still have a continuation.")]
+ContextSide = Annotated[int, Field(ge=0, le=MAX_CONTEXT_SIDE,
+    description="Supported neighboring messages on this side of the anchor, excluding the anchor; 0 omits this side, maximum 5.")]
+ChatReference = Annotated[int, Field(
+    description="Exact native chat_id returned by telegram_list_chats or message/search results. Keep its sign; pass the ID, not a title, @username or Telegram link.")]
+MessageId = Annotated[int, Field(ge=1,
+    description="Exact positive native TDLib message_id from a Telegram MCP result in the specified chat. Reuse the chat/message pair unchanged; do not convert Bot API IDs or IDs from Telegram URLs.")]
+SearchQuery = Annotated[str, Field(min_length=2, max_length=200,
+    description="Telegram text-search query, 2–200 characters; surrounding whitespace is trimmed. Use ordinary search text, not a local regex or SQL expression.")]
+SearchCursor = Annotated[str | None, Field(min_length=8, max_length=512,
+    description="Opaque next_cursor returned by this same search tool for the same query; omit or use null for the first page. Pass it unchanged, even after an empty page.")]
+PublicSearchConfirmation = Annotated[bool, Field(strict=True,
+    description="Set true only after the user explicitly approves this exact public query following its live quota check; a general research request is insufficient.")]
+MediaQuality = Annotated[Literal["preview", "full"], Field(
+    description="preview returns media up to 2 MiB; full returns supported full media up to 12 MiB. Video is thumbnail-only here; use telegram_download_file to save full video.")]
 
 READ_ONLY = ToolAnnotations(
     read_only_hint=True,
@@ -100,7 +109,22 @@ def create_server(backend: TelegramBackend, *, enable_sending: bool = False, ena
         cursor: SearchCursor = None,
         limit: SearchLimit = 20,
     ) -> MessageSearchResult:
-        """Search accessible cloud history across all chat lists; secret chats are excluded."""
+        """Search the linked account's accessible cloud history across chat lists.
+
+        Use this when the chat is unknown; prefer telegram_search_chat_messages for
+        one known chat or sender/date/media filters. Secret Chats are excluded and
+        this does not join chats, mark messages read or invoke the public-post index.
+        A broader public-post search requires the separate quota-and-consent workflow.
+        Pass ordinary Telegram search text, e.g. query="meeting agenda", limit=10.
+
+        items contains supported text, media captions and voice/video-note records;
+        no transcription starts. Use chat history for uncaptioned attachments. Text
+        is capped at 4,000 characters with truncation metadata. count is the number
+        in this page, not all matches. Follow next_cursor unchanged with the same
+        query until null, including after short/empty pages; limit may change.
+        Invalid or query-mismatched cursors fail: restart with cursor=null rather
+        than editing a cursor. A failed request does not mean zero matches.
+        """
 
         normalized = _required_nonblank(query, "query")
         page = await backend.search_messages(
@@ -137,7 +161,9 @@ def create_server(backend: TelegramBackend, *, enable_sending: bool = False, ena
         read_only_hint=False, destructive_hint=False, idempotent_hint=False, open_world_hint=True))
     async def telegram_search_public_posts(
         query: SearchQuery, cursor: SearchCursor = None, limit: SearchLimit = 20,
-        confirmation_token: SearchCursor = None, user_confirmed: PublicSearchConfirmation = False,
+        confirmation_token: Annotated[SearchCursor, Field(
+            description="Single-use confirmation_token from telegram_get_public_search_quota for this exact query, used only after the user's approval. Expires in five minutes; not a pagination cursor.")] = None,
+        user_confirmed: PublicSearchConfirmation = False,
     ) -> PublicPostSearchResult:
         """Execute a public-channel search only after the quota check and user consent.
 
@@ -159,8 +185,25 @@ def create_server(backend: TelegramBackend, *, enable_sending: bool = False, ena
         return PublicPostSearchResult.model_validate(result)
 
     @mcp.tool(title="Get a Telegram message", annotations=READ_ONLY)
-    async def telegram_get_message(chat_id: int, message_id: MessageId) -> MessageResult:
-        """Fetch one text or voice/video-note message available to the linked Telegram account."""
+    async def telegram_get_message(chat_id: ChatReference, message_id: MessageId) -> MessageResult:
+        """Read one exact message's supported text or caption without marking it read.
+
+        First obtain chat_id and message_id from list/search/history results, then
+        pass that native pair unchanged. Bot API IDs and IDs from Telegram links
+        are not interchangeable with native TDLib IDs; never calculate a conversion.
+        Example: after choosing an item, pass chat_id=item.chat_id and
+        message_id=item.message_id. Use get_context for neighboring messages,
+        get_message_thread for a discussion, or get_media/download_file for files.
+
+        Returns message metadata and untrusted text capped at 4,000 characters;
+        text.truncated and original_character_count disclose clipping. Media with
+        captions is supported. Voice/video notes return an existing Telegram
+        transcript or caption, otherwise a placeholder; recognition never starts
+        here. Use transcribe_voice when transcription is needed for the request.
+        Uncaptioned ordinary attachments are not returned; use chat history for them.
+        Inaccessible/missing messages or unsupported text produce a tool error,
+        not a fabricated empty message. Secret Chats are excluded.
+        """
 
         message = await backend.get_message(chat_id=chat_id, message_id=message_id)
         if message is None:
@@ -169,12 +212,20 @@ def create_server(backend: TelegramBackend, *, enable_sending: bool = False, ena
 
     @mcp.tool(title="Get bounded Telegram message context", annotations=READ_ONLY)
     async def telegram_get_context(
-        chat_id: int,
+        chat_id: ChatReference,
         message_id: MessageId,
         before: ContextSide = 3,
         after: ContextSide = 3,
     ) -> MessageContextResult:
-        """Fetch at most five supported messages on each side of an anchor."""
+        """Read an anchor and up to five supported neighboring messages on each side.
+
+        Use the exact native chat/message pair from another Telegram MCP result.
+        before and after exclude the anchor; zero omits that side. The anchor must
+        have supported text. Results can be shorter near history boundaries or when
+        nearby messages have no supported text; text is capped at 4,000 characters.
+        This is surrounding chat context, not a reply-thread listing: use
+        telegram_get_message_thread for that. No read acknowledgement is sent.
+        """
 
         raw = await backend.get_context(
             chat_id=chat_id,
@@ -195,8 +246,9 @@ def create_server(backend: TelegramBackend, *, enable_sending: bool = False, ena
 
     @mcp.tool(title="List recent Telegram voice messages", annotations=READ_ONLY)
     async def telegram_list_voice_messages(
-        chat_id: int,
-        before_message_id: Annotated[int, Field(ge=0)] = 0,
+        chat_id: ChatReference,
+        before_message_id: Annotated[int, Field(ge=0,
+            description="Exclusive native message cursor. Use 0 for the newest page, then reuse next_before_message_id from the previous result; do not subtract from an ID.")] = 0,
         limit: SearchLimit = 10,
     ) -> VoiceMessagePage:
         """List voice notes and video notes in one known cloud chat, newest first.
@@ -210,10 +262,12 @@ def create_server(backend: TelegramBackend, *, enable_sending: bool = False, ena
     @mcp.tool(title="Transcribe a Telegram voice message", annotations=ToolAnnotations(
         read_only_hint=False, destructive_hint=False, idempotent_hint=True, open_world_hint=True))
     async def telegram_transcribe_voice(
-        chat_id: int,
+        chat_id: ChatReference,
         message_id: MessageId,
-        wait_seconds: Annotated[int, Field(ge=0, le=60)] = 20,
-        start: bool = True,
+        wait_seconds: Annotated[int, Field(ge=0, le=60,
+            description="Seconds to wait for a final transcript, 0–60; 0 returns the current status without waiting for completion.")] = 20,
+        start: Annotated[bool, Field(
+            description="true may start Telegram recognition needed for the user's request and use its quota; false only reads existing progress/result and never starts recognition.")] = True,
     ) -> TranscriptionResult:
         """Ask Telegram to transcribe one voice note or video note and return text.
 
@@ -239,7 +293,7 @@ def create_server(backend: TelegramBackend, *, enable_sending: bool = False, ena
         structured_output=True,
     )
     async def telegram_get_media(
-        chat_id: int,
+        chat_id: ChatReference,
         message_id: MessageId,
         quality: MediaQuality = "preview",
     ) -> Annotated[CallToolResult, MediaResult]:

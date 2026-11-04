@@ -1,5 +1,21 @@
 # Verification
 
+## Tool metadata documentation patch — 2026-11-04
+
+In-memory MCP discovery uses an object backend and does not authorize Telegram,
+open profiles or call account tools. All 61 input parameters across the 18 default
+tools have nonempty semantic descriptions. The three Glama examples now describe
+every input field and the fields of their message/search/download outputs.
+
+The complete MCP catalogs were compared against commit `50aa94b` for all four
+sending/pinning combinations. After removing only descriptions/examples, the
+catalogs are identical: names, input/output validation schemas, required fields,
+defaults, limits, annotations and counts 18/25/20/27 are preserved. Local validation
+on Apple Silicon macOS/Python 3.13.13: **1396 passed, 10 skipped**; source inventory
+audit passed for 135 allowlisted text files. Independent review checked descriptions
+against backend behavior, including inherited sender/date fields and transfer bounds.
+This is source validation, not an authenticated Telegram acceptance or a new Glama score.
+
 ## Version 0.12.0 — Exact-message pinning and account identity
 
 Synthetic checks cover durable account/parameter binding, exact native IDs,

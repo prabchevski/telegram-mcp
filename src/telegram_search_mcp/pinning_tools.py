@@ -1,15 +1,28 @@
 """Optional exact-message pin changes; status is always safe to inspect."""
 from __future__ import annotations
 
+from typing import Annotated
+
 from mcp.types import ToolAnnotations
+from pydantic import Field
 
 from .pinning import ChatId, MessageId, NotificationFlag, OperationId, PinResult
+
+PinOperationId = Annotated[OperationId, Field(description=(
+    "UUID as 32 lowercase hexadecimal characters for one exact account-bound pin/unpin operation. "
+    "Reuse the same ID after timeout/unknown; never create a replacement to retry. For status, use the existing operation's ID."))]
+PinChatId = Annotated[ChatId, Field(description=(
+    "Exact native chat_id selected by the owner and returned by Telegram MCP. Keep its sign; do not use a chat title, URL or converted Bot API ID."))]
+PinMessageId = Annotated[MessageId, Field(description=(
+    "Exact native TDLib message_id of the owner's selected message within chat_id. Reuse the returned chat/message pair unchanged; never convert Bot API or URL message numbers."))]
+PinNotification = Annotated[NotificationFlag, Field(description=(
+    "True disables the pin notification; default true is a silent shared pin. only_for_self is always false."))]
 
 
 def register(mcp, backend, *, enable_pinning=False):
     @mcp.tool(title="Check an exact Telegram pin operation", annotations=ToolAnnotations(
         read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=True))
-    async def telegram_get_pin_status(operation_id: OperationId) -> PinResult:
+    async def telegram_get_pin_status(operation_id: PinOperationId) -> PinResult:
         """Read a durable pin/unpin result and reconcile only by reading its exact target.
 
         Never dispatches or retries a pin change. Reuse the SAME operation_id after
@@ -23,8 +36,8 @@ def register(mcp, backend, *, enable_pinning=False):
 
     @mcp.tool(title="Pin one exact Telegram message", annotations=ToolAnnotations(
         read_only_hint=False, destructive_hint=False, idempotent_hint=True, open_world_hint=True))
-    async def telegram_pin_message(operation_id: OperationId, chat_id: ChatId,
-                                   message_id: MessageId, disable_notification: NotificationFlag = True) -> PinResult:
+    async def telegram_pin_message(operation_id: PinOperationId, chat_id: PinChatId,
+                                   message_id: PinMessageId, disable_notification: PinNotification = True) -> PinResult:
         """Pin only the exact message explicitly selected by the owner; retain other pins.
 
         Generate one UUID as 32 lowercase hex characters and reuse it on every retry.
@@ -42,8 +55,8 @@ def register(mcp, backend, *, enable_pinning=False):
 
     @mcp.tool(title="Unpin one exact Telegram message", annotations=ToolAnnotations(
         read_only_hint=False, destructive_hint=True, idempotent_hint=True, open_world_hint=True))
-    async def telegram_unpin_message(operation_id: OperationId, chat_id: ChatId,
-                                     message_id: MessageId) -> PinResult:
+    async def telegram_unpin_message(operation_id: PinOperationId, chat_id: PinChatId,
+                                     message_id: PinMessageId) -> PinResult:
         """Unpin only the exact message explicitly selected by the owner; retain other pins.
 
         Requires the owner's explicit unpin instruction for these exact native IDs.
