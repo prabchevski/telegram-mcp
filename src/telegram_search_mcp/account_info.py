@@ -1,7 +1,7 @@
 """Minimal account identity and exact/newest pin observations, without mutations."""
 from __future__ import annotations
 
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import Field
 
@@ -100,7 +100,10 @@ def register(mcp, backend):
         return MeResult.model_validate(await backend.get_me())
 
     @mcp.tool(title="Read an exact Telegram message pin state", annotations=read)
-    async def telegram_get_pin_info(chat_id: ChatId, message_id: MessageId | None = None) -> PinInfoResult:
+    async def telegram_get_pin_info(
+        chat_id: Annotated[ChatId, Field(description="Exact native chat_id returned by Telegram MCP list/search/history; preserve its sign and value.")],
+        message_id: Annotated[MessageId | None, Field(description="Exact native TDLib message_id in this chat to inspect; omit for newest-pinned-message scope only. Never convert a Bot API ID or URL number.")] = None,
+    ) -> PinInfoResult:
         """Read exact native message IDs and pin state without changing Telegram.
 
         With message_id, checks that exact message. Without it, returns only the

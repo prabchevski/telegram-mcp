@@ -1,5 +1,11 @@
 # Changelog
 
+Metadata documentation patch under review (2026-11-04): describe all input
+parameters of the 18 default tools, native TDLib IDs, search continuation and
+result fields, voice placeholders, and preview versus persistent file export.
+Add examples and preserve all existing tool contracts and capability annotations.
+This source patch has no package-version bump or published release yet.
+
 ## 0.12.0 — 2026-11-03
 
 - Add exact-message pin/unpin behind a separate local `tgsearch pinning on` opt-in.
