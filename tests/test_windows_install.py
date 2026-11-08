@@ -579,12 +579,13 @@ def test_installer_pinned_uv_fallback_only_on_transport_failure(mode, expected_c
     source = Path(__file__).resolve().parents[1]
     release = installer._release_module(source)
     script = release.windows_assets(release.inventory(source))["install-windows.ps1"].decode("utf-8")
-    block = script[script.index("    try {\n        Invoke-WebRequest"):script.index("    Expand-Archive")]
+    block = script[script.index("    if ($UvArchive)"):script.index("    Expand-Archive")]
     driver = r'''
 $ErrorActionPreference = 'Stop'
 $script:calls = @()
 $mode = '@MODE@'
 $zip = 'inert.zip'
+$UvArchive = $null
 function Invoke-WebRequest {
     param([switch]$UseBasicParsing, [string]$Uri, [string]$OutFile, [int]$TimeoutSec, [hashtable]$Headers)
     $script:calls += $Uri
@@ -611,6 +612,50 @@ try {
     assert len(evidence["calls"]) == expected_calls
     if expected_calls == 2:
         assert evidence["calls"][1] == "https://api.github.com/repos/astral-sh/uv/releases/assets/423571216"
+
+
+@pytest.mark.parametrize('wrong_hash', [False, True])
+def test_installer_verified_local_uv_archive_never_downloads(tmp_path, wrong_hash):
+    import hashlib
+    import shutil
+    import zipfile
+    executable = shutil.which('pwsh') or shutil.which('powershell.exe')
+    if executable is None:
+        pytest.skip('PowerShell parser unavailable')
+    source = Path(__file__).resolve().parents[1]
+    release = installer._release_module(source)
+    script = release.windows_assets(release.inventory(source))['install-windows.ps1'].decode('utf-8')
+    assert '[string]$UvArchive' in script
+    block = script[script.index('    if ($UvArchive)'):script.index('    $uv =')]
+    archive = tmp_path / 'verified [archive].zip'
+    with zipfile.ZipFile(archive, 'w') as zipped:
+        zipped.writestr('uv.exe', b'inert fixture, never executed')
+    expected = hashlib.sha256(archive.read_bytes()).hexdigest()
+    block = block.replace('04b98d414a9000e25e5e0e7c9f53749e66b790cdaffc582829e6f58c544ee11c',
+                          '0' * 64 if wrong_hash else expected)
+    temporary = tmp_path / 'private-copy'
+    temporary.mkdir()
+    def quote(path):
+        return "'" + str(path).replace("'", "''") + "'"
+    driver = r'''
+$ErrorActionPreference = 'Stop'
+$script:networkCalls = 0
+$UvArchive = @ARCHIVE@
+$temporary = @TEMPORARY@
+$zip = Join-Path $temporary 'uv.zip'
+function Invoke-WebRequest { $script:networkCalls += 1; throw 'Network is forbidden in this test' }
+$success = $false
+try {
+@BLOCK@
+    $success = $true
+} catch {}
+[pscustomobject]@{ success = $success; networkCalls = $script:networkCalls;
+    expanded = (Test-Path -LiteralPath (Join-Path $temporary 'uv/uv.exe')) } | ConvertTo-Json -Compress
+'''.replace('@ARCHIVE@', quote(archive)).replace('@TEMPORARY@', quote(temporary)).replace('@BLOCK@', block)
+    result = subprocess.run([executable, '-NoLogo', '-NoProfile', '-NonInteractive', '-Command', driver],
+                            check=True, capture_output=True, text=True, timeout=20)
+    evidence = json.loads(result.stdout)
+    assert evidence == {'success': not wrong_hash, 'networkCalls': 0, 'expanded': not wrong_hash}
 
 
 @pytest.mark.skipif(sys.platform != 'win32', reason='Actual Windows PowerShell pipe behavior')

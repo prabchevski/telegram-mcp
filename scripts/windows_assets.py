@@ -13,6 +13,7 @@ param(
     [switch]$PrepareOnly,
     [string]$InstallDir,
     [string]$MarketplacePath,
+    [string]$UvArchive,
     [ValidateSet('keep', 'on', 'off')][string]$AutoUpdate = 'keep'
 )
 $ErrorActionPreference = 'Stop'
@@ -43,14 +44,18 @@ try {
     Set-Acl -LiteralPath $temporary -AclObject $acl
     # A pinned binary and checksum, never an unverified downloaded shell script.
     $zip = Join-Path $temporary 'uv.zip'
-    try {
-        Invoke-WebRequest -UseBasicParsing -Uri 'https://github.com/astral-sh/uv/releases/download/0.11.15/uv-x86_64-pc-windows-msvc.zip' -OutFile $zip -TimeoutSec 120
-    } catch {
-        $failureType = $_.Exception.GetType().FullName
-        if ($_.Exception -is [System.Net.WebException] -or $failureType -in @('Microsoft.PowerShell.Commands.HttpResponseException', 'System.Net.Http.HttpRequestException')) {
-            # The official API serves the same pinned asset when the browser URL fails.
-            Invoke-WebRequest -UseBasicParsing -Uri 'https://api.github.com/repos/astral-sh/uv/releases/assets/423571216' -Headers @{ Accept = 'application/octet-stream' } -OutFile $zip -TimeoutSec 120
-        } else { throw }
+    if ($UvArchive) {
+        Copy-Item -LiteralPath $UvArchive -Destination $zip
+    } else {
+        try {
+            Invoke-WebRequest -UseBasicParsing -Uri 'https://github.com/astral-sh/uv/releases/download/0.11.15/uv-x86_64-pc-windows-msvc.zip' -OutFile $zip -TimeoutSec 120
+        } catch {
+            $failureType = $_.Exception.GetType().FullName
+            if ($_.Exception -is [System.Net.WebException] -or $failureType -in @('Microsoft.PowerShell.Commands.HttpResponseException', 'System.Net.Http.HttpRequestException')) {
+                # The official API serves the same pinned asset when the browser URL fails.
+                Invoke-WebRequest -UseBasicParsing -Uri 'https://api.github.com/repos/astral-sh/uv/releases/assets/423571216' -Headers @{ Accept = 'application/octet-stream' } -OutFile $zip -TimeoutSec 120
+            } else { throw }
+        }
     }
     if ((Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant() -ne '04b98d414a9000e25e5e0e7c9f53749e66b790cdaffc582829e6f58c544ee11c') {
         throw 'uv checksum verification failed.'

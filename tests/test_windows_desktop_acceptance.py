@@ -2,6 +2,7 @@
 import ast
 import importlib.util
 import subprocess
+import zipfile
 from pathlib import Path
 
 import pytest
@@ -15,6 +16,23 @@ spec.loader.exec_module(desktop)
 
 def complete():
     return [{"name": name, "status": "passed"} for name in sorted(desktop.EXPECTED_INSTALL_CHECKS)]
+
+
+def test_guest_carries_the_same_uv_archive_into_the_real_installer(tmp_path):
+    archive = tmp_path / "package.zip"
+    archive.write_bytes(b"reviewed source archive")
+    uv_archive = tmp_path / "uv.zip"
+    with zipfile.ZipFile(uv_archive, "w") as bundle:
+        bundle.writestr("uv/uv.exe", b"inert bootstrap fixture")
+    oem = tmp_path / "oem"
+    desktop.write_guest(oem, "11", archive, uv_archive)
+    assert (oem / "uv.zip").read_bytes() == uv_archive.read_bytes()
+    assert (oem / "uv.exe").read_bytes() == b"inert bootstrap fixture"
+    bootstrap = (oem / "bootstrap.ps1").read_text(encoding="utf-8-sig")
+    guest = (oem / "guest-test.ps1").read_text(encoding="utf-8-sig")
+    assert "Copy-Item -LiteralPath 'C:\\OEM\\uv.zip' -Destination $root" in bootstrap
+    assert 'scripts/smoke-install-windows.py' in guest
+    assert '--uv-archive "$root\\uv.zip"' in guest
 
 
 @pytest.mark.parametrize("failure", [subprocess.CalledProcessError(22, ["curl"]), TimeoutError()])

@@ -257,7 +257,8 @@ def plugin_configuration(marketplace: Path, install: Path, original: dict) -> Pa
     return configuration
 
 
-def exercise_archive(archive_path: Path, manifest: dict, powershell: Path, checks: list[dict]) -> None:
+def exercise_archive(archive_path: Path, manifest: dict, powershell: Path, checks: list[dict],
+                     uv_archive: Path | None = None) -> None:
     def passed(name: str) -> None:
         checks.append({"name": name, "status": "passed"})
 
@@ -291,6 +292,8 @@ def exercise_archive(archive_path: Path, manifest: dict, powershell: Path, check
             str(source / "install-windows.ps1"), "-PrepareOnly",
             "-InstallDir", str(install), "-MarketplacePath", str(marketplace),
         ]
+        if uv_archive is not None:
+            command.extend(["-UvArchive", str(uv_archive)])
         # Explicit disposable destinations; never override the user's home or credentials.
         subprocess.run(command, check=True, timeout=600)
         passed("initial_archive_install_in_unicode_path")
@@ -369,8 +372,11 @@ def main() -> None:
                         help="Require this desktop Windows version; reject Windows Server")
     parser.add_argument("--report-path", type=Path,
                         help="Write OS, archive hash and acceptance outcome as JSON outside the source tree")
+    parser.add_argument("--uv-archive", type=Path,
+                        help="Supply the pinned uv archive; the actual installer still verifies its SHA-256")
     args = parser.parse_args()
     archive_path = args.archive.resolve()
+    uv_archive = args.uv_archive.resolve(strict=True) if args.uv_archive is not None else None
     report_path = args.report_path.resolve() if args.report_path is not None else None
     if report_path == archive_path:
         parser.error("The report must not overwrite the release archive")
@@ -412,7 +418,7 @@ def main() -> None:
         report["archive"].update({"sha256": hashlib.sha256(archive_path.read_bytes()).hexdigest(),
                                  "version": manifest["version"]})
         report["checks"].append({"name": "verified_release_archive", "status": "passed"})
-        exercise_archive(archive_path, manifest, powershell, report["checks"])
+        exercise_archive(archive_path, manifest, powershell, report["checks"], uv_archive)
         report["status"] = "passed"
     except BaseException as error:
         report["error"] = {"type": type(error).__name__, "message": str(error)}

@@ -71,6 +71,11 @@ $tg = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'Programs
 
 Stop the service with the command above and let the current operation finish instead of deleting `tdlib.lock`. One shared service supports all windows and chats.
 
+If the pinned uv archive is already available locally, `install-windows.ps1`
+accepts `-UvArchive C:\path\uv.zip`. The installer copies it to its private
+temporary directory and requires the same pinned SHA-256 before extraction.
+This avoids downloading uv again; all installation and dependency checks still run.
+
 To enable sending when needed:
 
 ```powershell

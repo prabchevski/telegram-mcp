@@ -14,6 +14,9 @@
   working HTMLBubbles.
 - If GitHub's browser download of pinned Windows uv fails, retry the same official
   release asset through GitHub API; retain the exact mandatory SHA-256 check.
+- Accept a supplied pinned uv archive. Clean desktop VM checks pass their already
+  verified bootstrap archive to the real installer, which independently verifies
+  the same digest before extraction; Windows Server retains the network route.
 
 CI maintenance (2026-11-04): pin macOS test and package jobs to the supported
 `macos-15` Apple Silicon image after repeated allocation failures on the

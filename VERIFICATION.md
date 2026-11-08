@@ -8,7 +8,7 @@ and prepare one selected result. All require sending opt-in; existing send/statu
 tools dispatch through the durable outbox. Relay drafts have a separate directory
 so an older runtime cannot send their metadata preview as an ordinary message.
 
-On Apple Silicon macOS: `uv run --frozen pytest -ra` passed **1449 tests** with
+On Apple Silicon macOS: `uv run --frozen pytest -ra` passed **1452 tests** with
 **10 native Windows skips**. Coverage includes account/recipient binding, source
 change detection, protected sources, Unicode previews, inline expiry and draft
 preservation, at-most-once outcomes after failure/restart, legacy-journal isolation,
@@ -23,11 +23,19 @@ all four modes (18 default, 28 sending, 20 pinning, 30 both). The smoke check us
 temporary settings and no Telegram authorization or content calls. Windows VM/CI
 checks were not run locally; their named acceptance gates remain mandatory.
 
-At the local pre-release checkpoint, publication, personal update and authenticated
-forward / inline-send acceptance remain pending. The owner's baseline installation
-was 0.12.0 at revision `10796cb`; all 46 installed source files matched that commit. Pinned TDLib 1.8.67 lacks widget constructors; generic forward/inline
-support does not establish HTMLBubble rendering or sending. Native inline sending
-can race another device's draft edit after the final preflight check.
+Before publication, the owner explicitly requested local candidate acceptance.
+Candidate 0.13.0 at `d3bac77` was installed preserving the existing Telegram login.
+The installed stdio MCP exposed 30 tools; the shared service reported 0.13.0 and
+the linked identity matched the intended self chat. One real `prepare_forward` /
+`send_message` / `get_send_status` operation returned `sent`; reading the exact new
+message back matched the selected source text. Private IDs and content remain in
+the operator's local evidence, outside the repository. This confirms an ordinary
+text forward to Saved Messages, not inline-bot, HTMLBubble or third-party author
+attribution acceptance. No second live send was performed.
+
+The baseline installation was 0.12.0 at `10796cb`; all 46 baseline source files
+matched that commit. Pinned TDLib 1.8.67 lacks widget constructors. Native inline
+sending can race another device's draft edit after the final preflight check.
 
 Canonical CI candidate `4048a97` passed all four Linux/macOS test jobs and the
 macOS artifact/install/update checks. Windows Server portable tests passed, but
@@ -39,6 +47,14 @@ returned the same 22,872,113 bytes with pinned SHA-256
 The installer and desktop check now use that official asset only as a transport
 fallback, still requiring the unchanged digest. Full canonical CI must pass
 again before publication; no platform gate is bypassed.
+
+The bounded repeat reached the Windows 10 guest but its installer again failed
+with API HTTP 502. Inspection showed that desktop bootstrap already downloads and
+verifies that exact uv archive, then the guest installer downloads it again.
+The desktop check now carries the verified archive into the real installer with
+`-UvArchive`; the installer copies it privately and independently requires the
+unchanged digest before extraction. Windows Server still tests the network path.
+All native installer, standard-user, discovery, reinstall and release gates remain.
 
 ## CI maintenance — Explicit Apple Silicon image, 2026-11-04
 

@@ -101,6 +101,7 @@ try {
     Copy-Item -LiteralPath 'C:\OEM\package.zip' -Destination $root
     Copy-Item -LiteralPath 'C:\OEM\guest-test.ps1' -Destination $root
     Copy-Item -LiteralPath 'C:\OEM\uv.exe' -Destination $root
+    Copy-Item -LiteralPath 'C:\OEM\uv.zip' -Destination $root
     Expand-Archive -LiteralPath (Join-Path $root 'package.zip') -DestinationPath (Join-Path $root 'source')
     & net.exe user DesktopTestRunner '@TEST_PASSWORD@' /add /expires:never
     if ($LASTEXITCODE -ne 0) { throw 'Could not create disposable standard test user' }
@@ -157,7 +158,7 @@ if ($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))
 Set-Location (Join-Path $root 'source\telegram-mcp-macos')
 & "$root\uv.exe" sync --locked --python 3.13
 if ($LASTEXITCODE -ne 0) { throw 'Locked dependency bootstrap failed' }
-& '.\.venv\Scripts\python.exe' -I scripts/smoke-install-windows.py "$root\package.zip" --expected-windows '@EXPECTED_WINDOWS@' --report-path "$root\results\acceptance.json"
+& '.\.venv\Scripts\python.exe' -I scripts/smoke-install-windows.py "$root\package.zip" --expected-windows '@EXPECTED_WINDOWS@' --report-path "$root\results\acceptance.json" --uv-archive "$root\uv.zip"
 if ($LASTEXITCODE -ne 0) { throw 'The Windows archive installer smoke test failed' }
 exit 0
 """
@@ -262,6 +263,7 @@ def prepare_runner() -> None:
 def write_guest(oem: Path, windows: str, archive: Path, uv_zip: Path) -> None:
     oem.mkdir()
     shutil.copyfile(archive, oem / "package.zip")
+    shutil.copyfile(uv_zip, oem / "uv.zip")
     with zipfile.ZipFile(uv_zip) as bundle:
         entries = [item for item in bundle.infolist() if Path(item.filename).name == "uv.exe"]
         if len(entries) != 1:
