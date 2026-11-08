@@ -12,6 +12,8 @@
 - Preserve native Windows coverage and installer checks. The pinned TDLib lacks
   HTMLWidget constructors; generic forwarding/inline support does not establish
   working HTMLBubbles.
+- If GitHub's browser download of pinned Windows uv fails, retry the same official
+  release asset through GitHub API; retain the exact mandatory SHA-256 check.
 
 CI maintenance (2026-11-04): pin macOS test and package jobs to the supported
 `macos-15` Apple Silicon image after repeated allocation failures on the

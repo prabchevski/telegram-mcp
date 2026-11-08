@@ -569,6 +569,50 @@ def test_plugin_template_is_fail_closed_until_configured():
     assert 'exit 1' in config['mcpServers']['telegram']['args'][-1]
 
 
+@pytest.mark.parametrize("mode,expected_calls,success", [
+    ("success", 1, True), ("transport", 2, True), ("hash", 1, False), ("fileerror", 1, False)])
+def test_installer_pinned_uv_fallback_only_on_transport_failure(mode, expected_calls, success):
+    import shutil
+    executable = shutil.which("pwsh") or shutil.which("powershell.exe")
+    if executable is None:
+        pytest.skip("PowerShell parser unavailable")
+    source = Path(__file__).resolve().parents[1]
+    release = installer._release_module(source)
+    script = release.windows_assets(release.inventory(source))["install-windows.ps1"].decode("utf-8")
+    block = script[script.index("    try {\n        Invoke-WebRequest"):script.index("    Expand-Archive")]
+    driver = r'''
+$ErrorActionPreference = 'Stop'
+$script:calls = @()
+$mode = '@MODE@'
+$zip = 'inert.zip'
+function Invoke-WebRequest {
+    param([switch]$UseBasicParsing, [string]$Uri, [string]$OutFile, [int]$TimeoutSec, [hashtable]$Headers)
+    $script:calls += $Uri
+    if ($script:calls.Count -eq 1 -and $mode -eq 'transport') { throw [System.Net.WebException]::new('fixture transport') }
+    if ($mode -eq 'fileerror') { throw [System.IO.IOException]::new('fixture disk') }
+    if ($script:calls.Count -eq 2 -and $Headers.Accept -ne 'application/octet-stream') { throw 'Missing pinned API header' }
+}
+function Get-FileHash {
+    param([string]$LiteralPath, [string]$Algorithm)
+    $hash = if ($mode -eq 'hash') { 'wrong' } else { '04b98d414a9000e25e5e0e7c9f53749e66b790cdaffc582829e6f58c544ee11c' }
+    [pscustomobject]@{ Hash = $hash }
+}
+$success = $false
+try {
+@BLOCK@
+    $success = $true
+} catch {}
+[pscustomobject]@{ success = $success; calls = @($script:calls) } | ConvertTo-Json -Compress
+'''.replace("@MODE@", mode).replace("@BLOCK@", block)
+    result = subprocess.run([executable, "-NoLogo", "-NoProfile", "-NonInteractive", "-Command", driver],
+        check=True, capture_output=True, text=True, timeout=20)
+    evidence = json.loads(result.stdout)
+    assert evidence["success"] is success
+    assert len(evidence["calls"]) == expected_calls
+    if expected_calls == 2:
+        assert evidence["calls"][1] == "https://api.github.com/repos/astral-sh/uv/releases/assets/423571216"
+
+
 @pytest.mark.skipif(sys.platform != 'win32', reason='Actual Windows PowerShell pipe behavior')
 @pytest.mark.parametrize('hidden_console', [False, True])
 def test_native_launcher_preserves_unicode_json_stdio(tmp_path, hidden_console):

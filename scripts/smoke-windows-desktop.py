@@ -53,6 +53,7 @@ WINDOWS_IMAGES = {
     },
 }
 UV_URL = "https://github.com/astral-sh/uv/releases/download/0.11.15/uv-x86_64-pc-windows-msvc.zip"
+UV_API_URL = "https://api.github.com/repos/astral-sh/uv/releases/assets/423571216"
 UV_SHA256 = "04b98d414a9000e25e5e0e7c9f53749e66b790cdaffc582829e6f58c544ee11c"
 
 # Match named coverage, including independent sending/pinning discovery, rather
@@ -188,12 +189,14 @@ def sha256(path: Path) -> str:
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
-def download(url: str, path: Path, expected: str, size: int | None = None) -> None:
+def _transfer(url: str, path: Path, size: int | None, *, api_asset: bool = False) -> None:
     budget = 12 * 60 if size is not None else 2 * 60
     print(f"Downloading {path.name} (total retry budget: {budget}s)", flush=True)
     command = ["curl", "--fail", "--location", "--retry", "2", "--retry-max-time", str(budget),
                "--connect-timeout", "30", "--max-time", str(budget),
                "--silent", "--show-error", url, "--output", str(path)]
+    if api_asset:
+        command.extend(["--header", "Accept: application/octet-stream"])
     # curl's retry-max-time does not bound a final in-progress attempt. Enforce
     # one wall-clock budget around the entire process, including every retry.
     with subprocess.Popen(command) as process:
@@ -217,6 +220,16 @@ def download(url: str, path: Path, expected: str, size: int | None = None) -> No
             if process.poll() is None:
                 process.kill()
                 process.wait(timeout=10)
+
+
+def download(url: str, path: Path, expected: str, size: int | None = None) -> None:
+    try:
+        _transfer(url, path, size)
+    except (subprocess.CalledProcessError, TimeoutError):
+        if url != UV_URL or expected != UV_SHA256:
+            raise
+        print("Primary uv transport failed; using the same official pinned asset API", flush=True)
+        _transfer(UV_API_URL, path, size, api_asset=True)
     if size is not None and path.stat().st_size != size:
         raise RuntimeError(f"Unexpected downloaded size: {path.name}")
     if sha256(path) != expected:

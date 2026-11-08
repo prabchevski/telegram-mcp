@@ -8,7 +8,7 @@ and prepare one selected result. All require sending opt-in; existing send/statu
 tools dispatch through the durable outbox. Relay drafts have a separate directory
 so an older runtime cannot send their metadata preview as an ordinary message.
 
-On Apple Silicon macOS: `uv run --frozen pytest -ra` passed **1441 tests** with
+On Apple Silicon macOS: `uv run --frozen pytest -ra` passed **1449 tests** with
 **10 native Windows skips**. Coverage includes account/recipient binding, source
 change detection, protected sources, Unicode previews, inline expiry and draft
 preservation, at-most-once outcomes after failure/restart, legacy-journal isolation,
@@ -28,6 +28,17 @@ forward / inline-send acceptance remain pending. The owner's baseline installati
 was 0.12.0 at revision `10796cb`; all 46 installed source files matched that commit. Pinned TDLib 1.8.67 lacks widget constructors; generic forward/inline
 support does not establish HTMLBubble rendering or sending. Native inline sending
 can race another device's draft edit after the final preflight check.
+
+Canonical CI candidate `4048a97` passed all four Linux/macOS test jobs and the
+macOS artifact/install/update checks. Windows Server portable tests passed, but
+the Server installer and Windows 10 VM bootstrap failed downloading the pinned
+uv archive: GitHub's browser URL returned HTTP 504. The same URL failed from the
+developer Mac. GitHub API asset `423571216` with `Accept: application/octet-stream`
+returned the same 22,872,113 bytes with pinned SHA-256
+`04b98d414a9000e25e5e0e7c9f53749e66b790cdaffc582829e6f58c544ee11c`.
+The installer and desktop check now use that official asset only as a transport
+fallback, still requiring the unchanged digest. Full canonical CI must pass
+again before publication; no platform gate is bypassed.
 
 ## CI maintenance — Explicit Apple Silicon image, 2026-11-04
 
