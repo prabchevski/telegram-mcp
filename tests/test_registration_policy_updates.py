@@ -70,7 +70,7 @@ def test_known_historical_catalogs_migrate_both_clients_preserving_policy_and_ab
     assert result["skipped"] == []
     for client, path in paths.items():
         assert load_entry(client, path) == expected[client]
-        assert len(expected[client]["enabled_tools" if client == "codex" else "includeTools"]) == (25 if sending else 18)
+        assert len(expected[client]["enabled_tools" if client == "codex" else "includeTools"]) == (28 if sending else 18)
     assert activation.migrate(root) == {"status": "unchanged", "clients": [], "skipped": []}
     assert (root / installation.RECEIPT).read_bytes() == before_receipt
 
@@ -88,6 +88,28 @@ def test_codex_policy_fields_can_be_independently_absent(clients, monkeypatch, a
     monkeypatch.setattr(activation, "running_version", lambda: version)
     assert activation.migrate(root)["clients"] == ["codex"]
     assert load_entry("codex", paths["codex"]) == expected
+
+
+@pytest.mark.parametrize("pinning", [False, True])
+@pytest.mark.parametrize("preference", ["approve", "never", "absent"])
+def test_pre_relaying_catalog_upgrade_preserves_client_policy(clients, monkeypatch, pinning, preference):
+    from telegram_search_mcp.pinning_settings import set_pinning
+    root, version, paths = clients
+    set_sending(root, True)
+    if pinning:
+        set_pinning(root, True)
+    expected = {}
+    for client, path in paths.items():
+        wanted = registration.expected_entry(client, str(version / ".venv/bin/python"), root)
+        old = activation.before_relaying_entry(client, wanted)
+        assert len(old["enabled_tools" if client == "codex" else "includeTools"]) == 25 + 2 * pinning
+        write_entry(client, path, with_policy(client, old, preference))
+        expected[client] = with_policy(client, wanted, preference)
+    monkeypatch.setattr(activation, "running_version", lambda: version)
+    assert activation.migrate(root)["skipped"] == []
+    for client, path in paths.items():
+        assert load_entry(client, path) == expected[client]
+        assert len(expected[client]["enabled_tools" if client == "codex" else "includeTools"]) == 28 + 2 * pinning
 
 
 @pytest.mark.parametrize("preference", ["approve", "never", "absent"])

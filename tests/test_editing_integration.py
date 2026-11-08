@@ -74,7 +74,7 @@ async def test_edit_tools_require_opt_in_and_advertise_correct_annotations():
     assert disabled.isdisjoint(EDIT_TOOLS)
     async with Client(create_server(backend, enable_sending=True)) as client:
         enabled = {tool.name: tool for tool in (await client.list_tools()).tools}
-    assert len(enabled) == 25
+    assert len(enabled) == 28
     assert EDIT_TOOLS <= enabled.keys()
     expected = {
         "telegram_prepare_message_edit": (False, False, True),

@@ -401,7 +401,7 @@ def test_06_activation_migrates_both_clients_once_preserving_login_and_sending(m
     for client, path in {"codex": codex, "gemini": gemini}.items():
         actual = registration._load(client, path, path.read_bytes())[registration.NAMES[client]][registration.ALIASES[client]]
         assert actual == wanted[client]
-        assert len(actual["enabled_tools" if client == "codex" else "includeTools"]) == (25 if sending else 18)
+        assert len(actual["enabled_tools" if client == "codex" else "includeTools"]) == (28 if sending else 18)
         assert list(path.parent.glob(path.name + ".telegram-search-backup-*"))
 
 

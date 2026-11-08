@@ -75,7 +75,7 @@ To enable sending when needed:
 
 ```powershell
 & $tg sending on
-# Restart Codex or ChatGPT and start a new chat: 25 tools are now available.
+# Restart Codex or ChatGPT and start a new chat: 28 tools are now available.
 & $tg sending off
 ```
 
@@ -85,7 +85,7 @@ For exact-message pinning independently of sending:
 
 ```powershell
 & $tg pinning on
-# Reconnect the Telegram MCP client: 20 tools, or 27 if sending is also enabled.
+# Reconnect the Telegram MCP client: 20 tools, or 30 if sending is also enabled.
 & $tg pinning status
 & $tg pinning off
 ```

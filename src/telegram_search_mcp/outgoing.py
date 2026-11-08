@@ -155,7 +155,8 @@ class Outbox:
         )}
 
     def prepare(self, session: Any, *, draft_id: str, recipient: str, text: str, file_path: str | None,
-                reply_to_message_id: int | None = None, topic_id: int | None = None, schedule_at: str | None = None) -> dict:
+                reply_to_message_id: int | None = None, topic_id: int | None = None, schedule_at: str | None = None,
+                _spec: dict | None = None, _relay: dict | None = None) -> dict:
         valid_id(draft_id)
         validate_content(text, file_path)
         from .navigation import timestamp
@@ -167,6 +168,11 @@ class Outbox:
         # Preserve old preparation identity when all new options are omitted.
         if reply_to_message_id is not None or topic_id is not None or schedule_at is not None:
             spec.update(reply_to_message_id=reply_to_message_id, topic_id=topic_id, schedule_at=schedule_at)
+        if _relay is not None:
+            if _spec is None or file_path is not None or any(option is not None for option in
+                    (reply_to_message_id, topic_id, schedule_at)):
+                raise ValueError("Invalid internal relay draft")
+            spec = _spec
         with self.lock:
             if (self.directory / draft_id).exists():
                 previous = self._load(draft_id)
@@ -210,6 +216,8 @@ class Outbox:
                          "reply_to_message_id": reply_to_message_id, "topic_id": topic_id, "scheduled_at": scheduled_at,
                          "message_id": None, "detail": "Prepared locally; nothing sent", "created_at": time.time(),
                          "error_code": None, "error_message": None}
+                if _relay is not None:
+                    value["relay"] = _relay
                 if file_path is not None:
                     path = Path(file_path)
                     if path.resolve() != path or path.name == "state.json" or len(path.name.encode()) > 200:
@@ -292,6 +300,10 @@ class Outbox:
         from .chat_drafts import reply
         from .navigation import topic
         reply_to = reply(session, value["chat_id"], value.get("reply_to_message_id"), value.get("topic_id"))
+        relay_payload = None
+        if value.get("relay"):
+            from .relaying import dispatch_payload
+            relay_payload = dispatch_payload(session, value)
         with self.lock:
             value = self._load(draft_id)
             if value["status"] != "prepared":
@@ -314,11 +326,14 @@ class Outbox:
             value.update(status="unknown", detail="Dispatch may have started; do not resend with a new draft ID")
             self._save(value)
         try:
-            message = session.request({"@type": "sendMessage", "chat_id": value["chat_id"], "topic_id": topic(value.get("topic_id")),
+            message = session.request(relay_payload or {"@type": "sendMessage", "chat_id": value["chat_id"], "topic_id": topic(value.get("topic_id")),
                                        "reply_to": reply_to, "options": {"@type": "messageSendOptions", "disable_notification": False,
                                        "from_background": False, "scheduling_state": ({"@type": "messageSchedulingStateSendAtDate",
                                        "send_date": value["scheduled_at"], "repeat_period": 0} if value.get("scheduled_at") else None)}, "reply_markup": None,
                                        "input_message_content": content}, timeout=30.0)
+            if relay_payload and relay_payload["@type"] == "forwardMessages":
+                messages = message.get("messages") if message.get("@type") == "messages" else None
+                message = messages[0] if isinstance(messages, list) and len(messages) == 1 and isinstance(messages[0], dict) else {}
         except TdlibError as exc:
             with self.lock:
                 uncertain = exc.code in {-1, 408} or 500 <= exc.code < 600

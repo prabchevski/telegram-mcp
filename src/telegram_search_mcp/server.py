@@ -410,10 +410,12 @@ def create_server(backend: TelegramBackend, *, enable_sending: bool = False, ena
         async def telegram_send_message(
             draft_id: Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")],
         ) -> OutgoingResult:
-            """Send the exact prepared text/file to its pinned recipient once.
+            """Send the reviewed text/file, forward or inline result to its pinned recipient once.
 
             Call only after checking the preparation result against the user's explicit
-            sending instruction, including recipient and file. A draft expires after 24h.
+            sending instruction, including recipient and selected content. Text/file and
+            forward drafts expire after 24h; inline results have a shorter local lifetime
+            and Telegram may expire them sooner. Inline send refuses an existing chat draft.
             Reusing draft_id cannot send a second copy. Only status=sent confirms Telegram
             accepted it; scheduled means queued by Telegram, not delivered. This does not mean the recipient read it. On pending, unknown,
             timeout or connection loss, use get_send_status with the SAME draft_id.
@@ -435,6 +437,8 @@ def create_server(backend: TelegramBackend, *, enable_sending: bool = False, ena
     register(mcp, backend, enable_sending=enable_sending)
     from .editing_tools import register as register_edits
     register_edits(mcp, backend, enable_sending=enable_sending)
+    from .relaying_tools import register as register_relays
+    register_relays(mcp, backend, enable_sending=enable_sending)
     from .account_info import register as register_account_info
     register_account_info(mcp, backend)
     from .pinning_tools import register as register_pins

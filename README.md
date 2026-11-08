@@ -1,6 +1,6 @@
 <div align="center">
 
-# Telegram MCP · 0.12.0
+# Telegram MCP · 0.13.0
 
 **Telegram, connected to your AI workflow.**
 
@@ -71,7 +71,7 @@ Read the [architecture and access boundaries](ARCHITECTURE.md) and the [verifica
 - “Show my unread chats” or “What did we discuss yesterday in this group?”
 - “Save the spreadsheet I received” or “Transcribe this voice message.”
 
-The agent searches your accessible account history and subscriptions first. Before a separate public-post search, it checks the actual remaining free quota, explains any attempt it would consume, and **waits for your permission**. Stars payments are disabled. The default installation exposes 18 tools, including linked-account identity and pin observations. Sending adds seven tools; a separate pinning opt-in adds two. Both are off by default. See [public search](#free-public-channel-post-search) and [sending](#optional-text-and-file-sending).
+The agent searches your accessible account history and subscriptions first. Before a separate public-post search, it checks the actual remaining free quota, explains any attempt it would consume, and **waits for your permission**. Stars payments are disabled. The tool set exposes 18 tools, including linked-account identity and pin observations. Sending adds ten tools; a separate pinning opt-in adds two. Both are off by default. See [public search](#free-public-channel-post-search) and [sending](#optional-text-and-file-sending).
 
 Automated checks cover the core on macOS, Linux, and Windows Server 2025, as well as installers and MCP connections. Separate installation checks passed on x64 Windows 10 Enterprise Evaluation 22H2 (build 19045.2006) and Windows 11 Enterprise Evaluation 25H2 (build 26200.6584) virtual machines, using a standard user account. These checks verified installation, reinstallation, and MCP discovery; real Telegram login and the selected client's interface remain unverified. Intel macOS builds the pinned TDLib version; automated Mac installation checks run on Apple Silicon. See [VERIFICATION.md](VERIFICATION.md) for the exact coverage and limitations.
 
@@ -259,7 +259,7 @@ accepted it, the result can remain pending and needs manual checking in Telegram
 Protected, self-destructing, and secret-chat messages are excluded. Text is bounded
 to 32,000 characters, with an explicit truncation flag, and is untrusted content.
 
-The default tool set contains 18 tools; sending makes 25, pinning makes 20, and both make 27.
+The tool set contains 18 tools; sending makes 28, pinning makes 20, and both make 30.
 Unchanged standard 0.7/0.8/0.9.0 registrations migrate to the new tools while preserving sending preferences.
 Existing managed 0.6.1 installations with daily updates enabled transition automatically:
 the old updater installs the new package, then the next scheduled run (or an earlier
@@ -350,11 +350,14 @@ After upgrading from 0.5, restart the idle shared service once to load the new c
 `sending status` shows the setting and `sending off` disables further preparations
 and dispatches immediately. Existing pending sends may still finish. Your login is reused.
 
-Seven additional tools become available:
+Ten additional tools become available:
 
 | Tool | Result |
 | --- | --- |
 | `telegram_prepare_message` | Resolve an exact @username, known chat ID, or `self`; prepare text and one optional local document without sending |
+| `telegram_prepare_forward` | Pin one exact source message and its recipient for a forward preserving attribution |
+| `telegram_get_inline_bot_results` | Send an explicitly authorized query to a selected inline bot; pin up to 20 result metadata records to a private result-set token |
+| `telegram_prepare_inline_message` | Prepare one selected result for its already pinned recipient |
 | `telegram_send_message` | Send the previously reviewed draft to its pinned chat ID |
 | `telegram_get_send_status` | Check the same draft without creating another message |
 | `telegram_set_chat_draft` | Save or explicitly clear a native Telegram text draft for review in the Telegram app |
@@ -384,6 +387,39 @@ Limits: plain text up to 4096 UTF-16 code units; a file caption up to 1024; one
 nonempty regular local file up to 12 MiB, sent as a document with its original name.
 Prepared local outgoing drafts expire after 24 hours. No bulk sending,
 deleting delivered messages, auto-joining, or new authorization is involved.
+
+### Forwarding and inline-bot results
+
+To forward a selected message, pass its native `from_chat_id` and `message_id`,
+an explicit `recipient` (including `self`), and one UUID hex `draft_id` to
+`telegram_prepare_forward`. Review the source IDs, content type, caption/text
+preview and destination, then call `telegram_send_message` with the same ID.
+Protected or non-forwardable messages are refused. The source is checked again
+before dispatch; attribution and captions remain intact. Telegram has no atomic
+conditional forward, so a source edit can still race the final check.
+
+For inline results, `telegram_get_inline_bot_results(recipient, bot_username,
+query, offset)` sends that query to the explicitly chosen third-party bot,
+including Telegram's destination context, without sending a chat message.
+No location is supplied; MCP does not start the bot or follow result URLs.
+This operation requires sending opt-in and explicit user scope for that bot/query.
+Copy the returned `result_set_id` and a selected `result_id` unchanged into
+`telegram_prepare_inline_message(draft_id, result_set_id, result_id)`.
+Then review the destination and bot/result metadata before using the existing
+send/status tools. Metadata is not a full preview of Telegram's opaque payload.
+The result-set token binds the account, recipient and bot. It expires locally
+after five minutes; Telegram can expire a result sooner. A native `next_offset`
+continues the same bot/query/destination. `coverage_limited` reports clipped results.
+
+Native inline sending clears the destination's draft. MCP refuses dispatch if a
+draft already exists; editing on another device can still race this check.
+Bot attribution remains visible. Both paths fix Stars spending at zero and use
+the existing durable outbox: an uncertain send is never automatically retried.
+
+These operations do not add native HTMLWidget support. The pinned TDLib 1.8.67
+does not expose widget constructors, so HTMLBubble rendering/sending remains
+unverified and may require a future native-runtime update. Uploading an HTML
+document does not create a widget. MCP never executes HTML or JavaScript.
 
 ### Editing your sent messages
 

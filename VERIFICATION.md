@@ -1,5 +1,34 @@
 # Verification
 
+## Version 0.13.0 — Forwarding and inline bots, 2026-11-08
+
+Base: canonical main `10796cb`; release candidate version 0.13.0. New tools prepare
+one attributed forward, request results from an explicitly selected inline bot,
+and prepare one selected result. All require sending opt-in; existing send/status
+tools dispatch through the durable outbox. Relay drafts have a separate directory
+so an older runtime cannot send their metadata preview as an ordinary message.
+
+On Apple Silicon macOS: `uv run --frozen pytest -ra` passed **1441 tests** with
+**10 native Windows skips**. Coverage includes account/recipient binding, source
+change detection, protected sources, Unicode previews, inline expiry and draft
+preservation, at-most-once outcomes after failure/restart, legacy-journal isolation,
+MCP/shared-service dispatch and old-catalog migration preserving owner policy.
+Independent review found and corrected UTF-16 preview truncation; a full-suite
+failure exposed and corrected historical catalog transforms after adding tools.
+
+Source audit passed for 139 allowlisted text files. A candidate source archive
+was built, then `scripts/smoke-install-macos.py` passed real isolated install,
+immutable update, Codex/Gemini registration and stable-launcher MCP discovery in
+all four modes (18 default, 28 sending, 20 pinning, 30 both). The smoke check used
+temporary settings and no Telegram authorization or content calls. Windows VM/CI
+checks were not run locally; their named acceptance gates remain mandatory.
+
+At the local pre-release checkpoint, publication, personal update and authenticated
+forward / inline-send acceptance remain pending. The owner's baseline installation
+was 0.12.0 at revision `10796cb`; all 46 installed source files matched that commit. Pinned TDLib 1.8.67 lacks widget constructors; generic forward/inline
+support does not establish HTMLBubble rendering or sending. Native inline sending
+can race another device's draft edit after the final preflight check.
+
 ## CI maintenance — Explicit Apple Silicon image, 2026-11-04
 
 The macOS test matrix and package job use the supported `macos-15` ARM64 image

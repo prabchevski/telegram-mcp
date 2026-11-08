@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.13.0 — 2026-11-08
+
+- Add preparation of one attributed forward, an explicit inline-bot query and
+  preparation of one selected result behind the existing sending opt-in.
+- Reuse durable send/status dispatch with zero Stars spending. Refuse protected
+  forwards, changed sources, expired inline selections and existing target drafts.
+- Isolate relay drafts from older runtimes and migrate complete 0.12 client
+  catalogs while preserving owner approval, sending and pinning preferences.
+- Discovery is 18 tools by default, 28 with sending, 20 with pinning and 30 with both.
+- Preserve native Windows coverage and installer checks. The pinned TDLib lacks
+  HTMLWidget constructors; generic forwarding/inline support does not establish
+  working HTMLBubbles.
+
 CI maintenance (2026-11-04): pin macOS test and package jobs to the supported
 `macos-15` Apple Silicon image after repeated allocation failures on the
 `macos-latest` runner pool. Verify the actual Darwin/arm64 environment before

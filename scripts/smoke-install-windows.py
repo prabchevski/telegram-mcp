@@ -157,11 +157,12 @@ async def main():
             expected.update({
                 'telegram_prepare_message', 'telegram_send_message',
                 'telegram_get_send_status', 'telegram_set_chat_draft', 'telegram_prepare_message_edit', 'telegram_edit_message', 'telegram_get_edit_status',
+                'telegram_get_inline_bot_results', 'telegram_prepare_forward', 'telegram_prepare_inline_message',
             })
         if pinning:
             expected.update({'telegram_pin_message', 'telegram_unpin_message'})
         assert {tool.name for tool in result.tools} == expected
-        assert len(result.tools) == 18 + (7 if sending else 0) + (2 if pinning else 0)
+        assert len(result.tools) == 18 + (10 if sending else 0) + (2 if pinning else 0)
         writes = {
             'telegram_prepare_message', 'telegram_send_message',
             'telegram_transcribe_voice', 'telegram_download_file',
@@ -169,6 +170,7 @@ async def main():
             'telegram_prepare_message_edit', 'telegram_edit_message',
             'telegram_search_public_posts',
             'telegram_pin_message', 'telegram_unpin_message',
+            'telegram_get_inline_bot_results', 'telegram_prepare_forward', 'telegram_prepare_inline_message',
         }
         for tool in result.tools:
             assert tool.annotations is not None
@@ -314,10 +316,10 @@ def exercise_archive(archive_path: Path, manifest: dict, powershell: Path, check
         subprocess.run([str(first_python), "-I", "-m", "telegram_search_mcp.cli", "sending", "on"], check=True, timeout=30)
         configuration = plugin_configuration(marketplace, install, original)
         subprocess.run([str(first_python), "-I", "-c", MCP_DISCOVERY_CHECK, str(configuration), "sending"], check=True, timeout=60)
-        passed("sending_mcp_discovery_25_tools")
+        passed("sending_mcp_discovery_28_tools")
         subprocess.run([str(first_python), "-I", "-m", "telegram_search_mcp.cli", "pinning", "on"], check=True, timeout=30)
         subprocess.run([str(first_python), "-I", "-c", MCP_DISCOVERY_CHECK, str(configuration), "both"], check=True, timeout=60)
-        passed("separate_pinning_mcp_discovery_27_tools")
+        passed("separate_pinning_mcp_discovery_30_tools")
         update_status = update_preference(install, "off")
         assert update_status["automatic"] is False and update_status["schedule"]["enabled"] is False
         passed("automatic_updates_off_removes_owned_schedule")
@@ -343,7 +345,7 @@ def exercise_archive(archive_path: Path, manifest: dict, powershell: Path, check
         subprocess.run([str(second_python), "-I", "-c", NATIVE_RUNTIME_CHECK, manifest["version"]], check=True, timeout=30)
         passed("reinstalled_pinned_python_package_and_tdlib")
         subprocess.run([str(second_python), "-I", "-c", MCP_DISCOVERY_CHECK, str(configuration), "both"], check=True, timeout=60)
-        passed("reinstall_preserves_sending_and_pinning_27_tools")
+        passed("reinstall_preserves_sending_and_pinning_30_tools")
         subprocess.run([str(second_python), "-I", "-m", "telegram_search_mcp.cli", "sending", "off"], check=True, timeout=30)
         configuration = plugin_configuration(marketplace, install, original)
         subprocess.run([str(second_python), "-I", "-c", MCP_DISCOVERY_CHECK, str(configuration), "pinning"], check=True, timeout=60)

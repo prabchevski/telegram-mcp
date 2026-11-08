@@ -52,14 +52,14 @@ async def main():
         sending = mode in {'sending', 'both'}
         pinning = mode in {'pinning', 'both'}
         if sending:
-            expected.update({'telegram_prepare_message', 'telegram_send_message', 'telegram_get_send_status', 'telegram_set_chat_draft', 'telegram_prepare_message_edit', 'telegram_edit_message', 'telegram_get_edit_status'})
+            expected.update({'telegram_prepare_message', 'telegram_send_message', 'telegram_get_send_status', 'telegram_set_chat_draft', 'telegram_prepare_message_edit', 'telegram_edit_message', 'telegram_get_edit_status', 'telegram_get_inline_bot_results', 'telegram_prepare_forward', 'telegram_prepare_inline_message'})
         if pinning:
             expected.update({'telegram_pin_message', 'telegram_unpin_message'})
         assert {tool.name for tool in result.tools} == expected
-        assert len(result.tools) == 18 + (7 if sending else 0) + (2 if pinning else 0)
+        assert len(result.tools) == 18 + (10 if sending else 0) + (2 if pinning else 0)
         for tool in result.tools:
             assert tool.annotations is not None
-            assert tool.annotations.read_only_hint is (tool.name not in {'telegram_prepare_message', 'telegram_send_message', 'telegram_transcribe_voice', 'telegram_download_file', 'telegram_set_chat_draft', 'telegram_prepare_message_edit', 'telegram_edit_message', 'telegram_search_public_posts', 'telegram_pin_message', 'telegram_unpin_message'})
+            assert tool.annotations.read_only_hint is (tool.name not in {'telegram_prepare_message', 'telegram_send_message', 'telegram_transcribe_voice', 'telegram_download_file', 'telegram_set_chat_draft', 'telegram_prepare_message_edit', 'telegram_edit_message', 'telegram_search_public_posts', 'telegram_pin_message', 'telegram_unpin_message', 'telegram_get_inline_bot_results', 'telegram_prepare_forward', 'telegram_prepare_inline_message'})
             assert tool.annotations.destructive_hint is (tool.name in {'telegram_set_chat_draft', 'telegram_edit_message', 'telegram_unpin_message'})
             if tool.name == 'telegram_search_public_posts':
                 assert tool.annotations.idempotent_hint is False

@@ -30,8 +30,14 @@ EDIT_TOOLS = (
     "telegram_edit_message",
     "telegram_get_edit_status",
 )
+RELAY_TOOLS = (
+    "telegram_prepare_forward",
+    "telegram_get_inline_bot_results",
+    "telegram_prepare_inline_message",
+)
 OUTGOING_TOOLS = (
     "telegram_prepare_message",
+    *RELAY_TOOLS,
     "telegram_send_message",
     "telegram_get_send_status",
     "telegram_set_chat_draft",

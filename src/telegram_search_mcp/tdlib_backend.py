@@ -304,6 +304,7 @@ class TDLibBackend(WorkflowMethods):
         self._session_lock = threading.RLock()
         self._operation_lock = threading.Lock()
         self._outbox = None
+        self._relay_outbox = None
         from .public_posts import PublicPostSearch
         self._public_posts = PublicPostSearch()
 
@@ -449,12 +450,23 @@ class TDLibBackend(WorkflowMethods):
         with self._operation_lock:
             policy = Policy.load(self.profile)
             session = self._ready(policy)
-            if self._outbox is None:
-                self._outbox = Outbox(profile_root(self.profile) / "outbox", session.user_id)
-            if self._outbox.user_id != session.user_id:
+            base = profile_root(self.profile)
+            regular_exists = (base / "outbox" / params["draft_id"]).exists()
+            relay_exists = (base / "relay-outbox" / params["draft_id"]).exists()
+            if relay_exists and (regular_exists or operation == "prepare"):
+                raise ValueError("draft_id already belongs to different content")
+            # Older runtimes must not mistake a relay preview for a text message.
+            # Keep new media drafts outside the legacy text/file ledger.
+            attribute = "_relay_outbox" if relay_exists else "_outbox"
+            directory = base / ("relay-outbox" if relay_exists else "outbox")
+            outbox = getattr(self, attribute)
+            if outbox is None:
+                outbox = Outbox(directory, session.user_id)
+                setattr(self, attribute, outbox)
+            if outbox.user_id != session.user_id:
                 raise ValueError("Outgoing account changed; restart the service")
-            self._outbox.attach(session.client)
-            return getattr(self._outbox, operation)(session, **params)
+            outbox.attach(session.client)
+            return getattr(outbox, operation)(session, **params)
 
     async def _workflow(self, operation: str, params: dict) -> dict:
         return await asyncio.to_thread(self._workflow_sync, operation, params)
