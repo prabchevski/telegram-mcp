@@ -7,6 +7,12 @@ sending, drafts, transcription, public search or read acknowledgements are run.
 Normal Telegram reads may start the installed shared service and populate its
 local cache. A mismatched running service is rejected, never restarted here.
 Only counts and release/service checks are reported; chat content stays in memory.
+By default, history acceptance requires more than twenty accessible messages.
+The explicit group-upgrade mode instead checks one existing operation's status
+for the selected old chat and expected new chat. It never prepares, applies or
+retries an upgrade, and does not read messages, history, context or searches.
+These are distinct acceptance scopes; a migration-status pass does not claim
+that live history pagination was checked.
 --output is the only explicit report-file write.
 """
 from __future__ import annotations
@@ -137,7 +143,48 @@ async def read_checks(client, chat_id: int, query: str | None, maximum: int) -> 
     return report
 
 
+def native_chat_id(value) -> bool:
+    return type(value) is int and -(2**53) < value < 2**53 and value != 0
+
+
+def acceptance_scope(args) -> str:
+    """Validate explicit scope before initialization or any installed/live check."""
+    operation_id = getattr(args, "group_upgrade_operation_id", None)
+    new_chat_id = getattr(args, "expected_new_chat_id", None)
+    require((operation_id is None) == (new_chat_id is None),
+            "Group-upgrade operation ID and expected new chat ID must be supplied together")
+    if operation_id is None:
+        return "history"
+    require(isinstance(operation_id, str) and re.fullmatch(r"[0-9a-f]{32}", operation_id) is not None,
+            "Group-upgrade operation ID must be 32 lowercase hexadecimal characters")
+    require(native_chat_id(args.chat_id) and native_chat_id(new_chat_id)
+            and args.chat_id != new_chat_id, "Group-upgrade acceptance requires distinct native old and new chat IDs")
+    require(getattr(args, "query", None) is None,
+            "A query cannot be combined with group-upgrade status acceptance")
+    return "existing_group_upgrade_status"
+
+
+async def group_upgrade_checks(client, chat_id: int, operation_id: str, new_chat_id: int) -> dict:
+    # Validate even direct callers before making the sole allowed read.
+    require(acceptance_scope(argparse.Namespace(chat_id=chat_id, group_upgrade_operation_id=operation_id,
+        expected_new_chat_id=new_chat_id, query=None)) == "existing_group_upgrade_status",
+        "Group-upgrade acceptance requires an operation ID and expected new chat ID")
+    result = await call(client, "telegram_get_group_upgrade_status", {"operation_id": operation_id})
+    require(result.get("operation_id") == operation_id, "Group-upgrade read returned another operation")
+    require(native_chat_id(result.get("chat_id")) and result["chat_id"] == chat_id,
+            "Group-upgrade read returned another original chat")
+    require(native_chat_id(result.get("new_chat_id")) and result["new_chat_id"] == new_chat_id
+            and result["new_chat_id"] != result["chat_id"], "Group-upgrade read returned another new chat")
+    require(all(type(result.get(key)) is int and 0 < result[key] < 2**53
+                for key in ("basic_group_id", "new_supergroup_id")),
+            "Group-upgrade read returned invalid native group identities")
+    require(result.get("status") == "upgraded" and result.get("dispatched") is True
+            and result.get("error") is None, "Existing group upgrade is not confirmed as completed")
+    return {"acceptance_scope": "existing_group_upgrade_status", "migration_status": "passed"}
+
+
 async def verify(args) -> dict:
+    scope = acceptance_scope(args)
     from mcp import Client
     from mcp.client.stdio import stdio_client, StdioServerParameters
     from telegram_search_mcp.launchers import LAUNCHER_NAME
@@ -156,7 +203,11 @@ async def verify(args) -> dict:
                     "MCP proxy version mismatch")
             # Discovery does not connect TDLib; the first authorized read does.
             await client.list_tools()
-            checks = await read_checks(client, args.chat_id, args.query, args.pages)
+            if scope == "existing_group_upgrade_status":
+                checks = await group_upgrade_checks(client, args.chat_id,
+                    args.group_upgrade_operation_id, args.expected_new_chat_id)
+            else:
+                checks = await read_checks(client, args.chat_id, args.query, args.pages)
             service = await check_service(args.version)
     # Catch an update racing the bounded acceptance run.
     require(check_install(args.install_root, args.version, args.revision) == current,
@@ -171,6 +222,10 @@ def main() -> int:
     parser.add_argument("--version", required=True)
     parser.add_argument("--revision", required=True)
     parser.add_argument("--chat-id", required=True, type=int)
+    parser.add_argument("--group-upgrade-operation-id",
+        help="Read only this existing upgrade operation instead of running history acceptance")
+    parser.add_argument("--expected-new-chat-id", type=int,
+        help="Expected migrated chat ID; required together with --group-upgrade-operation-id")
     parser.add_argument("--query")
     parser.add_argument("--pages", type=int, default=5)
     parser.add_argument("--output", type=Path)
@@ -179,6 +234,10 @@ def main() -> int:
             or not re.fullmatch(r"[0-9a-f]{40}", args.revision) or not args.chat_id
             or not 2 <= args.pages <= 20 or (args.query is not None and not 2 <= len(args.query.strip()) <= 200)):
         parser.error("Use an absolute install root, semantic version, full lowercase revision, nonzero chat ID, 2..20 pages and an optional 2..200 character query")
+    try:
+        acceptance_scope(args)
+    except AcceptanceError as exc:
+        parser.error(str(exc))
     logging.disable(logging.CRITICAL)
     try:
         report = asyncio.run(verify(args))

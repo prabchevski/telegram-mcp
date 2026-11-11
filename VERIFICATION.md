@@ -11,8 +11,8 @@ Expected discovery is 19 default, 29 with sending, 21 with pinning, 31 with send
 plus pinning and 33 with all three opt-ins. Isolated installer checks now exercise
 group-upgrade enablement, reinstall preservation and independent disablement.
 Windows Server portable CI includes migration, native parsing, integration and
-Windows preference tests;
-the existing mandatory platform, installer and release prerequisites remain in place.
+Windows preference tests; the existing mandatory platform, installer and release
+prerequisites remain in place.
 
 On Apple Silicon macOS, `uv run --frozen pytest` passed **1634 tests**, with
 **10 native Windows skips**. This includes a final opt-out check after network
@@ -41,10 +41,29 @@ assertion: rejecting a directory as an operation record raises PermissionError
 on Windows instead of IsADirectoryError. The assertion now accepts that exact
 platform result only for directory targets, retaining zero-dispatch and path
 preservation checks. Runtime code was unchanged; all 100 focused core/native
-tests passed again. Current cross-platform results are recorded by the mandatory
-CI jobs for this commit; all platform and publication prerequisites remain in force.
-This local candidate is not a published release. Historical sections below do not
-establish 0.14.0 acceptance or a successful automatic-update check.
+tests passed again. Candidate run
+[43075544488](https://github.com/prabchevski/telegram-mcp/actions/runs/43075544488)
+passed all four Linux/macOS matrix jobs, Windows Server installation, and the clean
+Windows 10 build 19045 and Windows 11 build 26200 installation jobs. Its release
+gate correctly refused publication because the legacy updater smoke still expected
+18/28 tools. That expectation is corrected to 19/29; the actual legacy transition
+subsequently passed locally in both modes. Fresh canonical main CI must pass every
+mandatory platform, installer and publication prerequisite before release.
+
+The authenticated results above were recorded on a local candidate before
+publication. To accept a published installation on the same selected test group,
+the standard `scripts/verify-live-release.py` runner supports an explicit
+`--group-upgrade-operation-id OPERATION_ID --chat-id ORIGINAL_CHAT_ID
+--expected-new-chat-id SUPERGROUP_CHAT_ID` mode. It verifies the installed receipt,
+revision, proxy and service, then reads only the existing operation's exact migration
+result. It does not prepare or execute another migration, or claim history-pagination
+coverage. The original bounded history/search/context mode remains unchanged.
+Published-release acceptance and a successful automatic-update check are separate
+from these candidate results.
+Before the canonical release run, the full local suite passed 1689 tests with
+10 native Windows skips. The final acceptance-runner scope guard and its focused
+tests then passed all 61 cases, including malformed flags, mismatched identities,
+unconfirmed operations and rejection before any live call.
 
 ## Version 0.13.0 — Forwarding and inline bots, 2026-11-08
 
