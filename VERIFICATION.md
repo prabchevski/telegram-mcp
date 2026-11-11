@@ -18,9 +18,29 @@ On Apple Silicon macOS, `uv run --frozen pytest` passed **1634 tests**, with
 **10 native Windows skips**. This includes a final opt-out check after network
 preflight, at-most-once dispatch from two MCP clients, target/account binding,
 durable restart and timeout reconciliation, and pinned TDLib parsing without login.
-The allowlisted source audit passed. Archive installation, authenticated migration
-and Windows CI remain pending; historical sections below do not establish their
-acceptance for 0.14.0.
+The allowlisted source audit passed. A built candidate archive passed the real
+isolated macOS installer smoke, including all three independent opt-ins,
+reinstallation with all 33 tools and independent disablement of each capability.
+
+The owner's existing macOS installation was upgraded from 0.13.0 to a local
+0.14.0 candidate, preserving the same account/login, sending/pinning preferences,
+approval policy, unrelated client settings and automatic-update preference.
+Authenticated acceptance created one new ordinary group with no other members.
+Installed stdio MCP preparation, migration, same-operation replay and status all
+passed, and status confirmed the same old/new IDs after a quiet service restart.
+The new service reports 0.14.0, `doctor --connect` reports ready, and the installed
+client configuration verifies 33 tools. Private IDs and operation evidence stay
+outside the repository. Existing groups were not migrated for testing.
+
+Windows Server first passed 994 checks and exposed one test-only portability
+assertion: rejecting a directory as an operation record raises PermissionError
+on Windows instead of IsADirectoryError. The assertion now accepts that exact
+platform result only for directory targets, retaining zero-dispatch and path
+preservation checks. Runtime code was unchanged; all 100 focused core/native
+tests passed again. Current cross-platform results are recorded by the mandatory
+CI jobs for this commit; all platform and publication prerequisites remain in force.
+This local candidate is not a published release. Historical sections below do not
+establish 0.14.0 acceptance or a successful automatic-update check.
 
 ## Version 0.13.0 — Forwarding and inline bots, 2026-11-08
 

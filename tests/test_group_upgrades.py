@@ -428,10 +428,16 @@ def test_hostile_record_paths_are_never_replaced_or_dispatched(upgrades, tmp_pat
     else:
         path.write_text("x" * 20000 if hostile == "oversized" else "not json")
         path.chmod(0o644 if hostile == "world_readable" else 0o600)
-    with pytest.raises((ValueError, RuntimeError, IsADirectoryError)):
+    rejected = (ValueError, RuntimeError, IsADirectoryError)
+    if hostile == "directory":
+        # Windows rejects opening a directory as a protected file with EACCES.
+        rejected += (PermissionError,)
+    with pytest.raises(rejected):
         prepare(upgrades, session, operation_id)
     assert not mutations(session)
     assert outside.read_text() == "untouched"
+    if hostile == "directory":
+        assert path.is_dir()
 
 
 def test_public_result_validates_schema(upgrades):
