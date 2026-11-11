@@ -21,6 +21,10 @@ durable restart and timeout reconciliation, and pinned TDLib parsing without log
 The allowlisted source audit passed. A built candidate archive passed the real
 isolated macOS installer smoke, including all three independent opt-ins,
 reinstallation with all 33 tools and independent disablement of each capability.
+The unmodified 0.6.1 automatic updater also passed real isolated transitions with
+sending both off and on. Its new-version assertion now expects the additional
+read-only migration-status tool and confirms migration execution remains disabled
+unless the separate group-upgrade opt-in is enabled.
 
 The owner's existing macOS installation was upgraded from 0.13.0 to a local
 0.14.0 candidate, preserving the same account/login, sending/pinning preferences,
