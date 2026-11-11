@@ -273,6 +273,18 @@ def command_pinning(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_group_upgrades(args: argparse.Namespace) -> int:
+    from .launchers import installed_root
+    from .group_upgrade_settings import set_group_upgrades, group_upgrades_enabled
+    root = installed_root()
+    if root is None:
+        raise RuntimeError("Manage group upgrades from an installed copy")
+    if args.action != "status":
+        set_group_upgrades(root, args.action == "on")
+    print(json.dumps({"enabled": group_upgrades_enabled(root), "activation": "reconnect the Telegram MCP client to refresh its tool list"}))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="tgsearch",
@@ -313,6 +325,9 @@ def build_parser() -> argparse.ArgumentParser:
     pinning = commands.add_parser("pinning", help="enable or disable exact-message pin/unpin locally")
     pinning.add_argument("action", choices=["status", "on", "off"])
     pinning.set_defaults(handler=command_pinning)
+    groups = commands.add_parser("group-upgrades", help="enable or disable owner-only basic-group to supergroup upgrades")
+    groups.add_argument("action", choices=["status", "on", "off"])
+    groups.set_defaults(handler=command_group_upgrades)
     updates.set_defaults(handler=command_updates)
     return parser
 

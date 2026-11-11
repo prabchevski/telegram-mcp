@@ -472,14 +472,19 @@ class TDLibBackend(WorkflowMethods):
         return await asyncio.to_thread(self._workflow_sync, operation, params)
 
     def _workflow_sync(self, operation: str, params: dict) -> dict:
-        from .workflows import execute, WRITE_OPERATIONS, PIN_OPERATIONS, BoundedSession
+        from .workflows import execute, WRITE_OPERATIONS, PIN_OPERATIONS, GROUP_UPGRADE_OPERATIONS, BoundedSession
         from .sending_settings import sending_enabled
         from .pinning_settings import pinning_enabled
+        from .group_upgrade_settings import group_upgrades_enabled
         if operation in WRITE_OPERATIONS and not sending_enabled():
             raise ValueError("Sending is disabled. Enable it locally with `tgsearch sending on` first")
         if operation in PIN_OPERATIONS and not pinning_enabled():
             raise ValueError("Pinning is disabled. Enable it locally with `tgsearch pinning on` first")
+        if operation in GROUP_UPGRADE_OPERATIONS and not group_upgrades_enabled():
+            raise ValueError("Group upgrades are disabled. Enable them locally with `tgsearch group-upgrades on` first")
         with self._operation_lock:
+            if operation in GROUP_UPGRADE_OPERATIONS and not group_upgrades_enabled():
+                raise ValueError("Group upgrades are disabled. Enable them locally with `tgsearch group-upgrades on` first")
             policy = Policy.load(self.profile)
             session = self._ready(policy)
             result = execute(self, BoundedSession(session), operation, params)

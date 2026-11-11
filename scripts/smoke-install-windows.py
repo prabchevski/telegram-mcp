@@ -150,9 +150,11 @@ async def main():
             'telegram_search_public_posts',
             'telegram_get_public_search_quota',
             'telegram_get_me', 'telegram_get_pin_info', 'telegram_get_pin_status',
+            'telegram_get_group_upgrade_status',
         }
-        sending = sys.argv[2] in {'sending', 'both'}
-        pinning = sys.argv[2] in {'pinning', 'both'}
+        sending = sys.argv[2] in {'sending', 'both', 'all'}
+        pinning = sys.argv[2] in {'pinning', 'both', 'all', 'pinning-groups'}
+        groups = sys.argv[2] in {'all', 'pinning-groups', 'groups'}
         if sending:
             expected.update({
                 'telegram_prepare_message', 'telegram_send_message',
@@ -161,8 +163,10 @@ async def main():
             })
         if pinning:
             expected.update({'telegram_pin_message', 'telegram_unpin_message'})
+        if groups:
+            expected.update({'telegram_prepare_group_upgrade', 'telegram_upgrade_group'})
         assert {tool.name for tool in result.tools} == expected
-        assert len(result.tools) == 18 + (10 if sending else 0) + (2 if pinning else 0)
+        assert len(result.tools) == 19 + (10 if sending else 0) + (2 if pinning else 0) + (2 if groups else 0)
         writes = {
             'telegram_prepare_message', 'telegram_send_message',
             'telegram_transcribe_voice', 'telegram_download_file',
@@ -171,11 +175,12 @@ async def main():
             'telegram_search_public_posts',
             'telegram_pin_message', 'telegram_unpin_message',
             'telegram_get_inline_bot_results', 'telegram_prepare_forward', 'telegram_prepare_inline_message',
+            'telegram_prepare_group_upgrade', 'telegram_upgrade_group',
         }
         for tool in result.tools:
             assert tool.annotations is not None
             assert tool.annotations.read_only_hint is (tool.name not in writes)
-            assert tool.annotations.destructive_hint is (tool.name in {'telegram_set_chat_draft', 'telegram_edit_message', 'telegram_unpin_message'})
+            assert tool.annotations.destructive_hint is (tool.name in {'telegram_set_chat_draft', 'telegram_edit_message', 'telegram_unpin_message', 'telegram_upgrade_group'})
             if tool.name == 'telegram_search_public_posts':
                 assert tool.annotations.idempotent_hint is False
                 properties = tool.input_schema['properties']
@@ -315,14 +320,18 @@ def exercise_archive(archive_path: Path, manifest: dict, powershell: Path, check
         configuration = plugin_configuration(marketplace, install, original)
         passed("initial_marketplace_preserves_existing_plugin")
         subprocess.run([str(first_python), "-I", "-c", MCP_DISCOVERY_CHECK, str(configuration), "default"], check=True, timeout=60)
-        passed("initial_mcp_discovery_18_tools")
+        passed("initial_mcp_discovery_19_tools")
         subprocess.run([str(first_python), "-I", "-m", "telegram_search_mcp.cli", "sending", "on"], check=True, timeout=30)
         configuration = plugin_configuration(marketplace, install, original)
         subprocess.run([str(first_python), "-I", "-c", MCP_DISCOVERY_CHECK, str(configuration), "sending"], check=True, timeout=60)
-        passed("sending_mcp_discovery_28_tools")
+        passed("sending_mcp_discovery_29_tools")
         subprocess.run([str(first_python), "-I", "-m", "telegram_search_mcp.cli", "pinning", "on"], check=True, timeout=30)
         subprocess.run([str(first_python), "-I", "-c", MCP_DISCOVERY_CHECK, str(configuration), "both"], check=True, timeout=60)
-        passed("separate_pinning_mcp_discovery_30_tools")
+        passed("separate_pinning_mcp_discovery_31_tools")
+        subprocess.run([str(first_python), "-I", "-m", "telegram_search_mcp.cli", "group-upgrades", "on"], check=True, timeout=30)
+        configuration = plugin_configuration(marketplace, install, original)
+        subprocess.run([str(first_python), "-I", "-c", MCP_DISCOVERY_CHECK, str(configuration), "all"], check=True, timeout=60)
+        passed("separate_group_upgrades_mcp_discovery_33_tools")
         update_status = update_preference(install, "off")
         assert update_status["automatic"] is False and update_status["schedule"]["enabled"] is False
         passed("automatic_updates_off_removes_owned_schedule")
@@ -347,22 +356,26 @@ def exercise_archive(archive_path: Path, manifest: dict, powershell: Path, check
         passed("reinstall_preserves_marketplace_and_stable_launcher")
         subprocess.run([str(second_python), "-I", "-c", NATIVE_RUNTIME_CHECK, manifest["version"]], check=True, timeout=30)
         passed("reinstalled_pinned_python_package_and_tdlib")
-        subprocess.run([str(second_python), "-I", "-c", MCP_DISCOVERY_CHECK, str(configuration), "both"], check=True, timeout=60)
-        passed("reinstall_preserves_sending_and_pinning_30_tools")
+        subprocess.run([str(second_python), "-I", "-c", MCP_DISCOVERY_CHECK, str(configuration), "all"], check=True, timeout=60)
+        passed("reinstall_preserves_all_opt_ins_33_tools")
         subprocess.run([str(second_python), "-I", "-m", "telegram_search_mcp.cli", "sending", "off"], check=True, timeout=30)
         configuration = plugin_configuration(marketplace, install, original)
+        subprocess.run([str(second_python), "-I", "-c", MCP_DISCOVERY_CHECK, str(configuration), "pinning-groups"], check=True, timeout=60)
+        passed("sending_disabled_pinning_and_group_upgrades_preserved_23_tools")
+        subprocess.run([str(second_python), "-I", "-m", "telegram_search_mcp.cli", "group-upgrades", "off"], check=True, timeout=30)
+        configuration = plugin_configuration(marketplace, install, original)
         subprocess.run([str(second_python), "-I", "-c", MCP_DISCOVERY_CHECK, str(configuration), "pinning"], check=True, timeout=60)
-        passed("sending_disabled_pinning_preserved_20_tools")
+        passed("group_upgrades_disabled_pinning_preserved_21_tools")
         subprocess.run([str(second_python), "-I", "-m", "telegram_search_mcp.cli", "pinning", "off"], check=True, timeout=30)
         subprocess.run([str(second_python), "-I", "-c", MCP_DISCOVERY_CHECK, str(configuration), "default"], check=True, timeout=60)
-        passed("pinning_disabled_mcp_discovery_18_tools")
+        passed("pinning_disabled_mcp_discovery_19_tools")
         update_status = update_preference(install, "on")
         assert update_status["automatic"] is True
         assert update_status["schedule"]["owned"] is True and update_status["schedule"]["enabled"] is True
         update_status = update_preference(install, "off")
         assert update_status["automatic"] is False and update_status["schedule"]["enabled"] is False
         passed("automatic_updates_on_then_off_native_schedule_lifecycle")
-        print("PASS: verified archive, isolated native Windows installation and immutable update, marketplace and sending preference preservation, pinned TDLib, CLI and installed plugin discovery. No Telegram authorization or tool invocation performed.")
+        print("PASS: verified archive, isolated native Windows installation and immutable update, marketplace and independent feature preference preservation, pinned TDLib, CLI and installed plugin discovery. No Telegram authorization or tool invocation performed.")
 
 
 def main() -> None:

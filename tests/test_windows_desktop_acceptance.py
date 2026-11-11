@@ -85,20 +85,23 @@ def test_installer_reports_exact_named_desktop_gate_coverage():
     assert emitted == desktop.EXPECTED_INSTALL_CHECKS
 
 
-def test_current_guest_evidence_includes_separate_pin_discovery_and_reinstall():
+def test_current_guest_evidence_includes_independent_feature_discovery_and_reinstall():
     checks = complete()
     desktop.validate_install_checks(checks)
-    assert {"separate_pinning_mcp_discovery_30_tools", "sending_disabled_pinning_preserved_20_tools",
-            "pinning_disabled_mcp_discovery_18_tools"} <= {check["name"] for check in checks}
+    assert {"separate_pinning_mcp_discovery_31_tools", "sending_disabled_pinning_and_group_upgrades_preserved_23_tools",
+            "separate_group_upgrades_mcp_discovery_33_tools", "group_upgrades_disabled_pinning_preserved_21_tools",
+            "pinning_disabled_mcp_discovery_19_tools"} <= {check["name"] for check in checks}
 
 
-@pytest.mark.parametrize("change", ["old_17", "missing_pin", "duplicate", "unknown", "failed", "malformed", "null"])
+@pytest.mark.parametrize("change", ["old_17", "missing_pin", "missing_group", "duplicate", "unknown", "failed", "malformed", "null"])
 def test_missing_or_forged_check_coverage_cannot_pass(change):
     checks = complete()
     if change == "old_17":
         checks = checks[:17]
     elif change == "missing_pin":
-        checks = [check for check in checks if check["name"] != "separate_pinning_mcp_discovery_30_tools"]
+        checks = [check for check in checks if check["name"] != "separate_pinning_mcp_discovery_31_tools"]
+    elif change == "missing_group":
+        checks = [check for check in checks if check["name"] != "separate_group_upgrades_mcp_discovery_33_tools"]
     elif change == "duplicate":
         checks[-1] = checks[0].copy()
     elif change == "unknown":

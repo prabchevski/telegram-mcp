@@ -24,6 +24,8 @@ BASE_TOOLS = {"telegram_search_messages", "telegram_get_message", "telegram_get_
 OLD_SEND_TOOLS = {"telegram_prepare_message", "telegram_send_message", "telegram_get_send_status"}
 EDIT_TOOLS = set(CURRENT_EDIT_TOOLS)
 RELAY_TOOLS = set(CURRENT_RELAY_TOOLS)
+GROUP_UPGRADE_RELEASE_TOOLS = {"telegram_prepare_group_upgrade", "telegram_upgrade_group",
+                               "telegram_get_group_upgrade_status"}
 PINNING_RELEASE_TOOLS = {"telegram_get_me", "telegram_get_pin_info", "telegram_get_pin_status",
                          "telegram_pin_message", "telegram_unpin_message"}
 RESTART_MESSAGE = "Telegram MCP updated. Restart Codex / Gemini CLI to enable the new Telegram tools. Your Telegram login is preserved."
@@ -67,7 +69,7 @@ def navigation_entry(client: str, wanted: dict) -> dict:
     key = "enabled_tools" if client == "codex" else "includeTools"
     result[key] = [tool for tool in wanted[key] if tool not in {
         "telegram_search_public_posts", "telegram_get_public_search_quota",
-    } | EDIT_TOOLS | PINNING_RELEASE_TOOLS | RELAY_TOOLS]
+    } | EDIT_TOOLS | PINNING_RELEASE_TOOLS | RELAY_TOOLS | GROUP_UPGRADE_RELEASE_TOOLS]
     if client == "gemini":
         result["description"] = (
             "Local Telegram history, files, voice, drafts and optional scheduled sending (unofficial)"
@@ -81,7 +83,7 @@ def initial_public_entry(client: str, wanted: dict) -> dict:
     """Exact 0.9.0 registration, before the quota/consent tool."""
     result = dict(wanted)
     key = "enabled_tools" if client == "codex" else "includeTools"
-    result[key] = [tool for tool in wanted[key] if tool not in {"telegram_get_public_search_quota"} | EDIT_TOOLS | PINNING_RELEASE_TOOLS | RELAY_TOOLS]
+    result[key] = [tool for tool in wanted[key] if tool not in {"telegram_get_public_search_quota"} | EDIT_TOOLS | PINNING_RELEASE_TOOLS | RELAY_TOOLS | GROUP_UPGRADE_RELEASE_TOOLS]
     return result
 
 
@@ -89,7 +91,7 @@ def before_editing_entry(client: str, wanted: dict) -> dict:
     """Exact 0.9.1–0.9.3 registration before own-message editing tools."""
     result = dict(wanted)
     key = "enabled_tools" if client == "codex" else "includeTools"
-    result[key] = [tool for tool in wanted[key] if tool not in EDIT_TOOLS | PINNING_RELEASE_TOOLS | RELAY_TOOLS]
+    result[key] = [tool for tool in wanted[key] if tool not in EDIT_TOOLS | PINNING_RELEASE_TOOLS | RELAY_TOOLS | GROUP_UPGRADE_RELEASE_TOOLS]
     return result
 
 
@@ -97,7 +99,7 @@ def before_pinning_entry(client: str, wanted: dict) -> dict:
     """Exact 0.10–0.11.2 registration; pinning was not an available capability."""
     result = dict(wanted)
     key = "enabled_tools" if client == "codex" else "includeTools"
-    result[key] = [tool for tool in wanted[key] if tool not in PINNING_RELEASE_TOOLS | RELAY_TOOLS]
+    result[key] = [tool for tool in wanted[key] if tool not in PINNING_RELEASE_TOOLS | RELAY_TOOLS | GROUP_UPGRADE_RELEASE_TOOLS]
     return result
 
 
@@ -105,7 +107,15 @@ def before_relaying_entry(client: str, wanted: dict) -> dict:
     """Exact 0.12 registration before forwards and inline bot queries."""
     result = dict(wanted)
     key = "enabled_tools" if client == "codex" else "includeTools"
-    result[key] = [tool for tool in wanted[key] if tool not in RELAY_TOOLS]
+    result[key] = [tool for tool in wanted[key] if tool not in RELAY_TOOLS | GROUP_UPGRADE_RELEASE_TOOLS]
+    return result
+
+
+def before_group_upgrades_entry(client: str, wanted: dict) -> dict:
+    """Exact 0.13 registration before optional basic-group migration."""
+    result = dict(wanted)
+    key = "enabled_tools" if client == "codex" else "includeTools"
+    result[key] = [tool for tool in wanted[key] if tool not in GROUP_UPGRADE_RELEASE_TOOLS]
     return result
 
 
@@ -115,7 +125,7 @@ def managed_refresh_entry(client: str, existing: object, wanted: dict) -> dict |
         legacy_entry(client, wanted), previous_entry(client, wanted),
         navigation_entry(client, wanted), initial_public_entry(client, wanted),
         before_editing_entry(client, wanted), before_pinning_entry(client, wanted),
-        before_relaying_entry(client, wanted),
+        before_relaying_entry(client, wanted), before_group_upgrades_entry(client, wanted),
     ))
 
 

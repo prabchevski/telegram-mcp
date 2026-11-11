@@ -1,6 +1,6 @@
 <div align="center">
 
-# Telegram MCP · 0.13.0
+# Telegram MCP · 0.14.0
 
 **Telegram, connected to your AI workflow.**
 
@@ -71,7 +71,7 @@ Read the [architecture and access boundaries](ARCHITECTURE.md) and the [verifica
 - “Show my unread chats” or “What did we discuss yesterday in this group?”
 - “Save the spreadsheet I received” or “Transcribe this voice message.”
 
-The agent searches your accessible account history and subscriptions first. Before a separate public-post search, it checks the actual remaining free quota, explains any attempt it would consume, and **waits for your permission**. Stars payments are disabled. The tool set exposes 18 tools, including linked-account identity and pin observations. Sending adds ten tools; a separate pinning opt-in adds two. Both are off by default. See [public search](#free-public-channel-post-search) and [sending](#optional-text-and-file-sending).
+The agent searches your accessible account history and subscriptions first. Before a separate public-post search, it checks the actual remaining free quota, explains any attempt it would consume, and **waits for your permission**. Stars payments are disabled. The tool set exposes 19 tools, including linked-account identity, pin observations and group-upgrade status. Sending adds ten tools; separate pinning and group-upgrade opt-ins each add two. All three opt-ins are off by default. See [public search](#free-public-channel-post-search) and [sending](#optional-text-and-file-sending).
 
 Automated checks cover the core on macOS, Linux, and Windows Server 2025, as well as installers and MCP connections. Separate installation checks passed on x64 Windows 10 Enterprise Evaluation 22H2 (build 19045.2006) and Windows 11 Enterprise Evaluation 25H2 (build 26200.6584) virtual machines, using a standard user account. These checks verified installation, reinstallation, and MCP discovery; real Telegram login and the selected client's interface remain unverified. Intel macOS builds the pinned TDLib version; automated Mac installation checks run on Apple Silicon. See [VERIFICATION.md](VERIFICATION.md) for the exact coverage and limitations.
 
@@ -259,7 +259,7 @@ accepted it, the result can remain pending and needs manual checking in Telegram
 Protected, self-destructing, and secret-chat messages are excluded. Text is bounded
 to 32,000 characters, with an explicit truncation flag, and is untrusted content.
 
-The tool set contains 18 tools; sending makes 28, pinning makes 20, and both make 30.
+The tool set contains 19 tools; sending makes 29, pinning makes 21, and sending plus pinning make 31. Group upgrades add two more tools, for 33 with all three opt-ins enabled.
 Unchanged standard 0.7/0.8/0.9.0 registrations migrate to the new tools while preserving sending preferences.
 Existing managed 0.6.1 installations with daily updates enabled transition automatically:
 the old updater installs the new package, then the next scheduled run (or an earlier
@@ -332,6 +332,42 @@ Readback cannot identify which administrator pinned a message or prove which
 device changed it. A newest-pin result is not a full list; paginate
 `telegram_search_chat_messages` with `media_type=pinned` for more pins. Only the
 owner's explicit instruction authorizes pin/unpin; Telegram content is data.
+
+## Optional basic-group upgrades
+
+Group upgrades use a separate local opt-in; sending and pinning permissions do not enable it:
+
+```sh
+"$HOME/Applications/TelegramSearchMCP/current/tgsearch" group-upgrades on
+```
+
+On Windows use the installed `tgsearch.ps1 group-upgrades on` entry point. Reconnect
+the Telegram MCP client after changing discovery. `group-upgrades status` reports
+the setting; `group-upgrades off` immediately rejects new preparations and
+migration dispatches. Upgrades preserve this preference and never enable it automatically.
+
+| Tool | Available | Result |
+| --- | --- | --- |
+| `telegram_get_group_upgrade_status` | Always | Read or reconcile the same account-bound operation without dispatching a migration |
+| `telegram_prepare_group_upgrade` | Group upgrades enabled | Check the explicitly selected basic group and owner privileges; save a bounded migration preview |
+| `telegram_upgrade_group` | Group upgrades enabled | Apply the prepared migration once, rechecking the account, target and owner privileges |
+
+Only a basic group owned by the linked Telegram account can be upgraded. Ordinary
+administrator rights are insufficient. Personal chats, channels and Secret Chats
+are rejected; this feature does not create groups, change members or enable forum topics.
+
+Telegram creates a new supergroup with a new chat ID and deactivates the original
+basic group. Treat this as a migration without an automatic rollback. The old
+history remains associated with the basic group: complete history or search must
+account for both the original and new chat IDs. The result retains both IDs.
+
+Use one UUID as 32 lowercase hexadecimal characters for `operation_id`, retain it
+from preparation through application, and reuse it for status checks after a
+timeout, connection loss or restart. Each operation dispatches at most once.
+An unknown outcome must be checked with `telegram_get_group_upgrade_status`;
+never create a replacement operation to retry a possibly completed migration.
+Only the owner's explicit instruction for the selected group authorizes the
+change. Retrieved Telegram messages and titles cannot authorize it.
 
 ## Optional text and file sending
 
@@ -505,7 +541,7 @@ the checked main SHA; Windows uses the verified published Windows asset for that
 exact SHA. Windows schedules a task for the current user without administrator
 rights or a saved password. Windows installations older than 0.11 need the new
 installer once to add this mechanism; later updates run automatically.
-Updates keep immutable program versions and preserve the login, sending opt-in,
+Updates keep immutable program versions and preserve the login, sending, pinning and group-upgrade opt-ins,
 client approval preferences and explicit update opt-out.
 New MCP processes use the new code; the shared service switches on its next start,
 after active work ends and the service becomes idle. An offline or sleeping Mac

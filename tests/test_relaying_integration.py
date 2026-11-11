@@ -37,8 +37,8 @@ CASES = [
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("sending,pinning,count", [(False, False, 18), (True, False, 28),
-    (False, True, 20), (True, True, 30)])
+@pytest.mark.parametrize("sending,pinning,count", [(False, False, 19), (True, False, 29),
+    (False, True, 21), (True, True, 31)])
 async def test_discovery_and_query_annotations(sending, pinning, count):
     async with Client(create_server(object(), enable_sending=sending, enable_pinning=pinning)) as client:
         tools = {tool.name: tool for tool in (await client.list_tools()).tools}

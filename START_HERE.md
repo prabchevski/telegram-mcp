@@ -75,7 +75,7 @@ See [installation, authorization, verification, and removal commands](INSTALL_WI
 ## After connecting
 
 Try “Find messages in my Telegram containing …” with a phrase you know.
-The default installation exposes **18 tools** for searching and reading, chat
+The default installation exposes **19 tools** for searching and reading, chat
 navigation, attachments, voice notes, and separate public-post search. Retrieved
 messages are shared with the selected AI client. Secret Chats are not supported.
 
@@ -86,8 +86,10 @@ check itself uses no attempt. **Stars payments are disabled.** Telegram transcri
 voice messages on your request, subject to its own quotas.
 
 Sending messages and changing drafts are disabled. Running `tgsearch sending on`
-through the installed entry point adds seven more tools, including own-message editing; restart your client afterward.
-See the [sending rules](README.md#optional-text-and-file-sending).
+through the installed entry point adds ten more tools, including forwarding, inline bots and own-message editing; restart your client afterward.
+See the [sending rules](README.md#optional-text-and-file-sending). Pinning and
+basic-group migration use separate `pinning` and `group-upgrades` opt-ins; all
+three off by default. See [group-upgrade rules](README.md#optional-basic-group-upgrades).
 
 One login serves multiple chats and clients. Share the
 [repository link](https://github.com/prabchevski/telegram-mcp) or a clean release

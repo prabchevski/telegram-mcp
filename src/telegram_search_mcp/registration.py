@@ -37,7 +37,8 @@ def launcher_arguments(python: str, module: str = SERVER_MODULE) -> list[str]:
 
 
 def expected_entry(client: str, python: str, install_root: Path | None = None, *,
-                   enable_sending: bool | None = None, enable_pinning: bool | None = None) -> dict[str, Any]:
+                   enable_sending: bool | None = None, enable_pinning: bool | None = None,
+                   enable_group_upgrades: bool | None = None) -> dict[str, Any]:
     args = launcher_arguments(python)
     if install_root is not None:
         from .launchers import LAUNCHER_NAME, validate_launcher
@@ -61,6 +62,12 @@ def expected_entry(client: str, python: str, install_root: Path | None = None, *
         pinning = enable_pinning if enable_pinning is not None else pinning_enabled(install_root)
         if pinning:
             entry["enabled_tools" if client == "codex" else "includeTools"].extend(PIN_TOOLS)
+    if install_root is not None or enable_group_upgrades is not None:
+        from .group_upgrade_settings import group_upgrades_enabled
+        from .tool_catalog import GROUP_UPGRADE_TOOLS
+        groups = enable_group_upgrades if enable_group_upgrades is not None else group_upgrades_enabled(install_root)
+        if groups:
+            entry["enabled_tools" if client == "codex" else "includeTools"].extend(GROUP_UPGRADE_TOOLS)
     return entry
 
 
@@ -164,14 +171,16 @@ def _registration_refresh_entry(client: str, existing: Any, wanted: dict, *,
     from .activation import managed_refresh_entry
     for sending in (False, True):
         for pinning in (False, True):
-            comparison = expected_entry(client, python, install_root, enable_sending=sending, enable_pinning=pinning)
-            comparison["command"] = existing["command"]
-            if "args" in existing:
-                comparison["args"] = existing["args"]
-            else:
-                comparison.pop("args", None)
-            if managed_refresh_entry(client, existing, comparison) is not None:
-                return _retain_policy(client, existing, wanted)
+            for groups in (False, True):
+                comparison = expected_entry(client, python, install_root, enable_sending=sending,
+                                            enable_pinning=pinning, enable_group_upgrades=groups)
+                comparison["command"] = existing["command"]
+                if "args" in existing:
+                    comparison["args"] = existing["args"]
+                else:
+                    comparison.pop("args", None)
+                if managed_refresh_entry(client, existing, comparison) is not None:
+                    return _retain_policy(client, existing, wanted)
     # Original 0.2/0.3 registrations could contain only their known executable.
     # Explicit legacy replacement still accepts that exact minimal shape, but
     # never removes an owner filter, disabled flag or additional configuration.

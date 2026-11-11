@@ -67,7 +67,8 @@ READ_ONLY = ToolAnnotations(
 )
 
 
-def create_server(backend: TelegramBackend, *, enable_sending: bool = False, enable_pinning: bool = False) -> MCPServer:
+def create_server(backend: TelegramBackend, *, enable_sending: bool = False,
+                  enable_pinning: bool = False, enable_group_upgrades: bool = False) -> MCPServer:
     """Expose bounded reads, native speech recognition and optional sending."""
 
     mcp = MCPServer(
@@ -98,7 +99,12 @@ def create_server(backend: TelegramBackend, *, enable_sending: bool = False, ena
             "the exact existing message and replacement, then edit_message applies that prepared edit. "
             "On an uncertain outcome, use get_edit_status with the same edit_id; never prepare a replacement retry. "
             "Pin or unpin only an explicitly instructed exact chat/message pair. Use one UUID operation_id "
-            "and get_pin_status after uncertainty; never replace the ID to retry. Pinning preserves other pins."
+            "and get_pin_status after uncertainty; never replace the ID to retry. Pinning preserves other pins. "
+            "Upgrade an ordinary group only on the owner's explicit selection and instruction. "
+            "Prepare the exact group, review the returned target and migration notice, then apply the same operation_id. "
+            "Migration requires group owner rights, creates a new supergroup/chat ID and deactivates the old group. "
+            "History and integrations must account for both IDs. On uncertainty, use get_group_upgrade_status "
+            "with the SAME operation_id; never prepare a replacement or retry the native migration."
         ),
         version=__version__,
     )
@@ -443,6 +449,8 @@ def create_server(backend: TelegramBackend, *, enable_sending: bool = False, ena
     register_account_info(mcp, backend)
     from .pinning_tools import register as register_pins
     register_pins(mcp, backend, enable_pinning=enable_pinning)
+    from .group_upgrade_tools import register as register_group_upgrades
+    register_group_upgrades(mcp, backend, enable_group_upgrades=enable_group_upgrades)
     return mcp
 
 
@@ -480,12 +488,14 @@ def main() -> None:
     from .service_client import SharedTelegramBackend
     from .sending_settings import sending_enabled
     from .pinning_settings import pinning_enabled
+    from .group_upgrade_settings import group_upgrades_enabled
     import sys
     if sys.platform != "win32":
         from .activation import on_mcp_start
         on_mcp_start()
     backend = SharedTelegramBackend()
-    create_server(backend, enable_sending=sending_enabled(), enable_pinning=pinning_enabled()).run(transport="stdio")
+    create_server(backend, enable_sending=sending_enabled(), enable_pinning=pinning_enabled(),
+                  enable_group_upgrades=group_upgrades_enabled()).run(transport="stdio")
 
 
 if __name__ == "__main__":

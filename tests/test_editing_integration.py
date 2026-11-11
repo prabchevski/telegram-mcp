@@ -70,11 +70,11 @@ async def test_edit_tools_require_opt_in_and_advertise_correct_annotations():
     backend = ContractBackend()
     async with Client(create_server(backend)) as client:
         disabled = {tool.name for tool in (await client.list_tools()).tools}
-    assert len(disabled) == 18
+    assert len(disabled) == 19
     assert disabled.isdisjoint(EDIT_TOOLS)
     async with Client(create_server(backend, enable_sending=True)) as client:
         enabled = {tool.name: tool for tool in (await client.list_tools()).tools}
-    assert len(enabled) == 28
+    assert len(enabled) == 29
     assert EDIT_TOOLS <= enabled.keys()
     expected = {
         "telegram_prepare_message_edit": (False, False, True),

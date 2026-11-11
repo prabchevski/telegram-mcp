@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.14.0 — 2026-11-11
+
+- Add owner-only basic-group to supergroup migration behind the separate local
+  `tgsearch group-upgrades on` opt-in. Prepare the exact target before applying.
+- Persist account-bound migration intent before dispatch; reconcile unknown results
+  through the same operation ID without sending a second migration. Retain both
+  the original basic-group chat ID and the resulting supergroup chat ID.
+- Preserve independent sending, pinning and group-upgrade preferences across
+  installation, registration migration and immutable updates on supported platforms.
+- Discovery is 19 tools by default, 29 with sending, 21 with pinning, 31 with sending
+  plus pinning, and 33 with all three opt-ins enabled.
+- Extend isolated macOS/Windows installer discovery and reinstall checks to cover
+  enabling, preserving and independently disabling group upgrades.
+
 ## 0.13.0 — 2026-11-08
 
 - Add preparation of one attributed forward, an explicit inline-bot query and

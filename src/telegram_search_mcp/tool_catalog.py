@@ -18,6 +18,12 @@ DEFAULT_TOOLS = (
     "telegram_get_me",
     "telegram_get_pin_info",
     "telegram_get_pin_status",
+    "telegram_get_group_upgrade_status",
+)
+
+GROUP_UPGRADE_TOOLS = (
+    "telegram_prepare_group_upgrade",
+    "telegram_upgrade_group",
 )
 
 PIN_TOOLS = (
@@ -45,5 +51,8 @@ OUTGOING_TOOLS = (
 )
 
 
-def advertised_tools(*, sending: bool = False, pinning: bool = False) -> tuple[str, ...]:
-    return DEFAULT_TOOLS + (OUTGOING_TOOLS if sending else ()) + (PIN_TOOLS if pinning else ())
+def advertised_tools(*, sending: bool = False, pinning: bool = False,
+                     group_upgrades: bool = False) -> tuple[str, ...]:
+    return (DEFAULT_TOOLS + (OUTGOING_TOOLS if sending else ())
+            + (PIN_TOOLS if pinning else ())
+            + (GROUP_UPGRADE_TOOLS if group_upgrades else ()))

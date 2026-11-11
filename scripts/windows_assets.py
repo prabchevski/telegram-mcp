@@ -87,7 +87,7 @@ try {
   "interface": {
     "displayName": "Telegram MCP",
     "shortDescription": "Search Telegram in Codex and ChatGPT Work.",
-    "longDescription": "Local Windows Telegram integration for Codex and ChatGPT Work. Search account history and subscriptions first, read messages and download media. Before each broader public query, check live free quota, explain remaining attempts and wait for explicit user permission. Never offer Stars payment. Sending and own-message editing require the local sending opt-in. Exact-message pin/unpin requires a separate local pinning opt-in. Requires the Windows installer and your own Telegram login.",
+    "longDescription": "Local Windows Telegram integration for Codex and ChatGPT Work. Search account history and subscriptions first, read messages and download media. Before each broader public query, check live free quota, explain remaining attempts and wait for explicit user permission. Never offer Stars payment. Sending and own-message editing require the local sending opt-in. Exact-message pin/unpin requires a separate local pinning opt-in. Basic-group migration requires a separate local group-upgrades opt-in and owner privileges; it returns a new supergroup chat ID and deactivates the old group. Requires the Windows installer and your own Telegram login.",
     "developerName": "prabchevski",
     "category": "Productivity",
     "capabilities": [

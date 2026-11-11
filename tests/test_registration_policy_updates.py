@@ -20,6 +20,7 @@ pytestmark = pytest.mark.usefixtures("trusted_macos_env_launcher")
 HISTORICAL_ENTRIES = (
     activation.legacy_entry, activation.previous_entry, activation.navigation_entry,
     activation.initial_public_entry, activation.before_editing_entry, activation.before_pinning_entry,
+    activation.before_relaying_entry, activation.before_group_upgrades_entry,
 )
 
 
@@ -70,7 +71,7 @@ def test_known_historical_catalogs_migrate_both_clients_preserving_policy_and_ab
     assert result["skipped"] == []
     for client, path in paths.items():
         assert load_entry(client, path) == expected[client]
-        assert len(expected[client]["enabled_tools" if client == "codex" else "includeTools"]) == (28 if sending else 18)
+        assert len(expected[client]["enabled_tools" if client == "codex" else "includeTools"]) == (29 if sending else 19)
     assert activation.migrate(root) == {"status": "unchanged", "clients": [], "skipped": []}
     assert (root / installation.RECEIPT).read_bytes() == before_receipt
 
@@ -109,7 +110,7 @@ def test_pre_relaying_catalog_upgrade_preserves_client_policy(clients, monkeypat
     assert activation.migrate(root)["skipped"] == []
     for client, path in paths.items():
         assert load_entry(client, path) == expected[client]
-        assert len(expected[client]["enabled_tools" if client == "codex" else "includeTools"]) == 28 + 2 * pinning
+        assert len(expected[client]["enabled_tools" if client == "codex" else "includeTools"]) == 29 + 2 * pinning
 
 
 @pytest.mark.parametrize("preference", ["approve", "never", "absent"])

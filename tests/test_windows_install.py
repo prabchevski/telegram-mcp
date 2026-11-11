@@ -258,6 +258,30 @@ def test_windows_pin_permission_defaults_off_and_survives_reinstall(isolated_ins
     assert not (root / 'sending.json').exists()
 
 
+def test_windows_group_permission_is_separate_and_survives_reinstall(isolated_installer):
+    from telegram_search_mcp.group_upgrade_settings import group_upgrades_enabled
+    from telegram_search_mcp.pinning_settings import pinning_enabled
+    from telegram_search_mcp.sending_settings import sending_enabled
+    perform_install(isolated_installer)
+    _, root, *_ = isolated_installer
+    assert group_upgrades_enabled(root) is False
+    assert not (root / 'group-upgrades.json').exists()
+    installer.set_windows_group_upgrades(root, True)
+    before = read_source(root / 'group-upgrades.json')
+    perform_install(isolated_installer, revision='c' * 40)
+    assert group_upgrades_enabled(root) is True
+    assert read_source(root / 'group-upgrades.json') == before
+    assert pinning_enabled(root) is False
+    assert sending_enabled(root) is False
+    with pytest.raises(ValueError, match='boolean'):
+        installer.set_windows_group_upgrades(root, 1)
+    assert read_source(root / 'group-upgrades.json') == before
+    installer.set_windows_group_upgrades(root, False)
+    assert group_upgrades_enabled(root) is False
+    assert not (root / 'pinning.json').exists()
+    assert not (root / 'sending.json').exists()
+
+
 def test_legacy_false_receipt_gets_default_updates_without_losing_unknown_preferences(isolated_installer):
     perform_install(isolated_installer)
     _, root, *_ = isolated_installer

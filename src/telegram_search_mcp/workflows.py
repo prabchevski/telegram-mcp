@@ -4,7 +4,8 @@ WORKFLOW_OPERATIONS = frozenset({"list_chats", "get_chat_history", "search_chat_
     "get_message_thread", "get_scheduled_messages", "download_file", "get_chat_draft", "set_chat_draft",
     "prepare_message_edit", "edit_message", "get_edit_status",
     "get_me", "get_pin_info", "pin_message", "unpin_message", "get_pin_status",
-    "get_inline_bot_results", "prepare_forward", "prepare_inline_message"})
+    "get_inline_bot_results", "prepare_forward", "prepare_inline_message",
+    "prepare_group_upgrade", "upgrade_group", "get_group_upgrade_status"})
 
 
 def contracts():
@@ -16,26 +17,41 @@ def contracts():
     from .pinning import PinRequest, UnpinRequest, PinStatusRequest, PinResult
     from .relaying import GetInlineResultsRequest, PrepareForwardRequest, PrepareInlineRequest, InlineResultsResult
     from .models import OutgoingResult
+    from .group_upgrades import PrepareGroupUpgradeRequest, GroupUpgradeRequest, GroupUpgradeResult
     return ({**REQUESTS, "download_file": DownloadRequest, "get_chat_draft": DraftRequest, "set_chat_draft": SetDraftRequest,
              "prepare_message_edit": PrepareEditRequest, "edit_message": EditRequest, "get_edit_status": EditRequest,
              "get_me": MeRequest, "get_pin_info": PinInfoRequest, "pin_message": PinRequest,
              "unpin_message": UnpinRequest, "get_pin_status": PinStatusRequest,
              "get_inline_bot_results": GetInlineResultsRequest, "prepare_forward": PrepareForwardRequest,
-             "prepare_inline_message": PrepareInlineRequest},
+             "prepare_inline_message": PrepareInlineRequest,
+             "prepare_group_upgrade": PrepareGroupUpgradeRequest,
+             "upgrade_group": GroupUpgradeRequest, "get_group_upgrade_status": GroupUpgradeRequest},
             {**RESULTS, "download_file": DownloadResult, "get_chat_draft": DraftResult, "set_chat_draft": DraftResult,
              "prepare_message_edit": EditResult, "edit_message": EditResult, "get_edit_status": EditResult,
              "get_me": MeResult, "get_pin_info": PinInfoResult, "pin_message": PinResult,
              "unpin_message": PinResult, "get_pin_status": PinResult,
              "get_inline_bot_results": InlineResultsResult, "prepare_forward": OutgoingResult,
-             "prepare_inline_message": OutgoingResult})
+             "prepare_inline_message": OutgoingResult,
+             "prepare_group_upgrade": GroupUpgradeResult,
+             "upgrade_group": GroupUpgradeResult, "get_group_upgrade_status": GroupUpgradeResult})
 
 
 WRITE_OPERATIONS = frozenset({"set_chat_draft", "prepare_message_edit", "edit_message",
     "get_inline_bot_results", "prepare_forward", "prepare_inline_message"})
 PIN_OPERATIONS = frozenset({"pin_message", "unpin_message"})
+GROUP_UPGRADE_OPERATIONS = frozenset({"prepare_group_upgrade", "upgrade_group"})
 
 
 class WorkflowMethods:
+    async def prepare_group_upgrade(self, **params) -> dict:
+        return await self._workflow("prepare_group_upgrade", params)
+
+    async def upgrade_group(self, **params) -> dict:
+        return await self._workflow("upgrade_group", params)
+
+    async def get_group_upgrade_status(self, **params) -> dict:
+        return await self._workflow("get_group_upgrade_status", params)
+
     async def get_inline_bot_results(self, **params) -> dict:
         return await self._workflow("get_inline_bot_results", params)
 
@@ -100,6 +116,18 @@ def execute(backend, session, operation, params):
     from .chat_drafts import current, result, set_draft
     requests, _ = contracts()
     request = requests[operation].model_validate(params)
+    if operation in GROUP_UPGRADE_OPERATIONS | {"get_group_upgrade_status"}:
+        from .group_upgrades import GroupUpgrades
+        from .group_upgrade_settings import group_upgrades_enabled
+        from .paths import profile_root
+        if not hasattr(backend, "_group_upgrades"):
+            backend._group_upgrades = GroupUpgrades(profile_root(backend.profile) / "group-upgrades",
+                                                   session.user_id, can_dispatch=group_upgrades_enabled)
+        if backend._group_upgrades.user_id != session.user_id:
+            raise ValueError("Group-upgrade account changed; restart the service")
+        method = {"prepare_group_upgrade": "prepare", "upgrade_group": "apply",
+                  "get_group_upgrade_status": "status"}[operation]
+        return getattr(backend._group_upgrades, method)(session, **request.model_dump())
     if operation in {"get_inline_bot_results", "prepare_forward", "prepare_inline_message"}:
         from . import relaying
         from .outgoing import Outbox

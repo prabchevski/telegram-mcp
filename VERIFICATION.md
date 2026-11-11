@@ -1,5 +1,27 @@
 # Verification
 
+## Version 0.14.0 — Basic-group upgrades, 2026-11-11
+
+Candidate implementation adds owner-only basic-group migration with a separate
+`group-upgrades` opt-in. Preparation binds an exact account and target; application
+persists dispatch intent before the native call and status reconciles the same
+operation without retrying. Returned results retain the original and new chat IDs.
+
+Expected discovery is 19 default, 29 with sending, 21 with pinning, 31 with sending
+plus pinning and 33 with all three opt-ins. Isolated installer checks now exercise
+group-upgrade enablement, reinstall preservation and independent disablement.
+Windows Server portable CI includes migration, native parsing, integration and
+Windows preference tests;
+the existing mandatory platform, installer and release prerequisites remain in place.
+
+On Apple Silicon macOS, `uv run --frozen pytest` passed **1634 tests**, with
+**10 native Windows skips**. This includes a final opt-out check after network
+preflight, at-most-once dispatch from two MCP clients, target/account binding,
+durable restart and timeout reconciliation, and pinned TDLib parsing without login.
+The allowlisted source audit passed. Archive installation, authenticated migration
+and Windows CI remain pending; historical sections below do not establish their
+acceptance for 0.14.0.
+
 ## Version 0.13.0 — Forwarding and inline bots, 2026-11-08
 
 Base: canonical main `10796cb`; release candidate version 0.13.0. New tools prepare

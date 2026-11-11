@@ -56,23 +56,25 @@ UV_URL = "https://github.com/astral-sh/uv/releases/download/0.11.15/uv-x86_64-pc
 UV_API_URL = "https://api.github.com/repos/astral-sh/uv/releases/assets/423571216"
 UV_SHA256 = "04b98d414a9000e25e5e0e7c9f53749e66b790cdaffc582829e6f58c544ee11c"
 
-# Match named coverage, including independent sending/pinning discovery, rather
+# Match named coverage, including independent sending/pinning/group-upgrade discovery, rather
 # than accepting an obsolete count or allowing duplicates to hide a lost check.
 EXPECTED_INSTALL_CHECKS = frozenset({
     "actual_os_identity", "verified_release_archive",
     "initial_archive_install_in_unicode_path", "installed_cli",
     "initial_pinned_python_package_and_tdlib",
     "automatic_updates_owned_schedule_pinned_uv_and_source_revision",
-    "initial_marketplace_preserves_existing_plugin", "initial_mcp_discovery_18_tools",
-    "sending_mcp_discovery_28_tools", "separate_pinning_mcp_discovery_30_tools",
+    "initial_marketplace_preserves_existing_plugin", "initial_mcp_discovery_19_tools",
+    "sending_mcp_discovery_29_tools", "separate_pinning_mcp_discovery_31_tools",
+    "separate_group_upgrades_mcp_discovery_33_tools",
     "automatic_updates_off_removes_owned_schedule",
     "immutable_reinstall_with_unrelated_powershell_module_path",
     "reinstall_preserves_automatic_updates_opt_out",
     "reinstall_preserves_marketplace_and_stable_launcher",
     "reinstalled_pinned_python_package_and_tdlib",
-    "reinstall_preserves_sending_and_pinning_30_tools",
-    "sending_disabled_pinning_preserved_20_tools",
-    "pinning_disabled_mcp_discovery_18_tools",
+    "reinstall_preserves_all_opt_ins_33_tools",
+    "sending_disabled_pinning_and_group_upgrades_preserved_23_tools",
+    "group_upgrades_disabled_pinning_preserved_21_tools",
+    "pinning_disabled_mcp_discovery_19_tools",
     "automatic_updates_on_then_off_native_schedule_lifecycle",
 })
 

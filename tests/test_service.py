@@ -498,7 +498,7 @@ async def test_two_actual_mcp_stdio_processes_share_service_and_can_exit(private
                     "telegram_search_messages", "telegram_search_public_posts", "telegram_get_public_search_quota", "telegram_get_message", "telegram_get_context", "telegram_get_media", "telegram_list_voice_messages", "telegram_transcribe_voice",
                     "telegram_list_chats", "telegram_get_chat_history", "telegram_search_chat_messages",
                     "telegram_download_file", "telegram_get_message_thread", "telegram_get_chat_draft", "telegram_get_scheduled_messages",
-                    "telegram_get_me", "telegram_get_pin_info", "telegram_get_pin_status"}
+                    "telegram_get_me", "telegram_get_pin_info", "telegram_get_pin_status", "telegram_get_group_upgrade_status"}
             assert not private_paths.socket.exists(), "MCP initialization must stay lazy"
             replies = await asyncio.gather(*(client.call_tool("telegram_get_message", {"chat_id": 1, "message_id": i + 1})
                 for i, client in enumerate(clients * 3)))

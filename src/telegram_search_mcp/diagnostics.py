@@ -127,7 +127,10 @@ def error_result(exc: Exception, operation: str = "service") -> dict[str, str]:
     ambiguous_pin = operation in {"pin_message", "unpin_message", "get_pin_status"} and category in {
         "internal", "timeout", "unavailable", "busy",
     }
-    if ambiguous_send or ambiguous_draft or ambiguous_edit or ambiguous_pin:
+    ambiguous_upgrade = operation in {"prepare_group_upgrade", "upgrade_group", "get_group_upgrade_status"} and category in {
+        "internal", "timeout", "unavailable", "busy",
+    }
+    if ambiguous_send or ambiguous_draft or ambiguous_edit or ambiguous_pin or ambiguous_upgrade:
         retryable = False
     ident = uuid.uuid4().hex
     metadata = f"operation={operation} category={category} retryable={str(retryable).lower()}"
@@ -143,6 +146,8 @@ def error_result(exc: Exception, operation: str = "service") -> dict[str, str]:
         message += " Check the same edit_id with get_edit_status; never create a replacement to retry."
     if ambiguous_pin:
         message += " Check the SAME operation_id with get_pin_status; never create a replacement to retry."
+    if ambiguous_upgrade:
+        message += " Check the SAME operation_id with get_group_upgrade_status; never create a replacement to retry."
 
     # Trace exception identity and code locations, but never str/repr(exc),
     # traceback source lines, request frames, exception args or local variables.

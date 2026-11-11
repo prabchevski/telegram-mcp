@@ -190,8 +190,8 @@ in a new chat. Do not report missing authorization as success.
 - On Windows, check the personal marketplace entry and installed plugin. If the
   app needs a restart, complete everything else and leave one clear instruction:
   restart, enable Telegram MCP, and open a new chat.
-- Perform MCP initialization and `tools/list` when available: **18 tools** by
-  default, **28** if sending was already enabled; **20** with pinning and **30** with both. This does not require reading
+- Perform MCP initialization and `tools/list` when available: **19 tools** by
+  default, **29** if sending was already enabled; **21** with pinning and **31** with sending plus pinning. A separate group-upgrades opt-in adds two, for **33** with all opt-ins. This does not require reading
   messages. Writing a registration file alone does not verify an MCP connection.
 - Check `doctor --connect` after login. Do not run old TDLib against a database
   already upgraded by a newer version. Active service operations must finish
@@ -209,7 +209,7 @@ instructions to each client.
 By default, macOS checks `main` daily after successful CI. Windows schedules a
 daily/logon current-user task and installs only a verified published Windows
 release at the exact successful CI SHA. Updates preserve login, separate installed
-versions, sending and client preferences; active Telegram work finishes normally.
+versions, sending, pinning, group-upgrade and client preferences; active Telegram work finishes normally.
 Pre-0.11 Windows installations need the new installer once. Explicit update
 opt-outs are retained. Use `updates status`, `update --check` and `updates off`
 through the installed platform entry point. See [INSTALL_MACOS.md](INSTALL_MACOS.md) and

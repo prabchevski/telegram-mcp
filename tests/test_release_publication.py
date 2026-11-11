@@ -77,7 +77,7 @@ def test_current_notes_include_upgrade_exceptions():
 
 
 def test_current_notes_advertise_the_actual_editing_tool_set():
-    from telegram_search_mcp.tool_catalog import DEFAULT_TOOLS, PIN_TOOLS
+    from telegram_search_mcp.tool_catalog import DEFAULT_TOOLS, PIN_TOOLS, GROUP_UPGRADE_TOOLS
     from telegram_search_mcp.sending_settings import OUTGOING_TOOLS
     version = tomllib.loads((ROOT / 'pyproject.toml').read_text())['project']['version']
     notes = publication.current_notes(ROOT, version)
@@ -85,6 +85,7 @@ def test_current_notes_advertise_the_actual_editing_tool_set():
     assert f'{len(DEFAULT_TOOLS) + len(OUTGOING_TOOLS)} with sending' in notes
     assert f'{len(DEFAULT_TOOLS) + len(PIN_TOOLS)} with pinning' in notes
     assert f'{len(DEFAULT_TOOLS) + len(OUTGOING_TOOLS) + len(PIN_TOOLS)} with both' in notes
+    assert f'{len(DEFAULT_TOOLS) + len(OUTGOING_TOOLS) + len(PIN_TOOLS) + len(GROUP_UPGRADE_TOOLS)} with all three opt-ins' in notes
     assert 'separate local opt-ins' in notes
 
 

@@ -157,6 +157,9 @@ jobs:
           tests/test_pinning.py
           tests/test_pinning_native.py
           tests/test_pin_workflow_integration.py
+          tests/test_group_upgrades.py
+          tests/test_group_upgrade_integration.py
+          tests/test_group_upgrades_native.py
           tests/test_editing.py
           tests/test_editing_integration.py
           tests/test_outgoing_attachments.py
