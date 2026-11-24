@@ -9,7 +9,7 @@ Search conversations, work with files and voice, and prepare replies from your o
 [![Latest release](https://img.shields.io/github/v/release/prabchevski/telegram-mcp?style=flat-square&label=release&color=0284c7)](https://github.com/prabchevski/telegram-mcp/releases/latest)
 [![Test and package](https://img.shields.io/github/actions/workflow/status/prabchevski/telegram-mcp/ci.yml?branch=main&style=flat-square&label=tests%20%26%20package)](https://github.com/prabchevski/telegram-mcp/actions/workflows/ci.yml)
 [![MIT license](https://img.shields.io/github/license/prabchevski/telegram-mcp?style=flat-square&color=0f766e)](LICENSE)
-[![Glama tool quality](https://glama.ai/mcp/servers/prabchevski/telegram-mcp/badges/score.svg)](https://glama.ai/mcp/servers/prabchevski/telegram-mcp/score)
+[![prabchevski/telegram-mcp MCP server](https://glama.ai/mcp/servers/prabchevski/telegram-mcp/badges/score.svg)](https://glama.ai/mcp/servers/prabchevski/telegram-mcp)
 [![Listed on mcpservers.org](https://mcpservers.org/badge.svg)](https://mcpservers.org/servers/prabchevski/telegram-mcp)
 
 [![MCP over stdio](https://img.shields.io/badge/MCP-stdio-7c3aed?style=flat-square)](ARCHITECTURE.md#shared-session)
